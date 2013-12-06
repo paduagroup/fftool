@@ -1,0 +1,18 @@
+ethane
+
+1  C3H
+2  C3H  1  rCC
+3  H    2  rCH  1  aHCC
+4  H    1  rCH  2  aHCC  3   d1
+5  H    2  rCH  1  aHCC  4   d2
+6  H    1  rCH  2  aHCC  5   d1
+7  H    2  rCH  1  aHCC  6   d2
+8  H    1  rCH  2  aHCC  7   d1
+
+rCC = 1.47
+rCH = 1.07
+aHCC = 109.5
+d1 = 180.0
+d2 =  60.0
+
+oplsaa.ff

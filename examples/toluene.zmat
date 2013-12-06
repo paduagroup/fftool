@@ -1,0 +1,35 @@
+toluene
+
+1  CAT
+2  CAO 1  rCACA
+3  CAM 2  rCACA  1  aA
+4  CAP 3  rCACA  2  aA  1   0.0
+5  CAM 4  rCACA  3  aA  2   0.0
+6  CAO 5  rCACA  4  aA  3   0.0
+7  CTT 1  rCACT  2  aA  3 180.0
+8  HAT 2  rCAH   3  aA  4 180.0
+9  HAT 3  rCAH   4  aA  5 180.0
+10 HAT 4  rCAH   5  aA  6 180.0
+11 HAT 5  rCAH   6  aA  1 180.0
+12 HAT 6  rCAH   1  aA  2 180.0
+13 HT  7  rCTH   1  aT  2  30.0
+14 HT  7  rCTH   1  aT  2 150.0
+15 HT  7  rCTH   1  aT  2 270.0
+
+rCACA = 1.400
+rCAH  = 1.080
+rCACT = 1.510
+rCTH  = 1.090
+aA = 120.0
+aT = 109.5
+
+connect 1 6
+
+improper  2  6  1  7
+improper  3  1  2  8
+improper  4  2  3  9
+improper  5  3  4 10
+improper  6  4  5 11
+improper  1  5  6 12
+
+oplsaa.ff

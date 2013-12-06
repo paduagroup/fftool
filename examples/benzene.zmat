@@ -1,0 +1,28 @@
+benzene
+
+CA
+CA  1  rCC
+CA  2  rCC  1  120.00
+CA  3  rCC  2  120.00  1   0
+CA  4  rCC  3  120.00  2   0
+CA  5  rCC  4  120.00  3   0
+HA  1  rCH  2  120.00  3 180
+HA  2  rCH  3  120.00  4 180
+HA  3  rCH  4  120.00  5 180
+HA  4  rCH  5  120.00  6 180
+HA  5  rCH  6  120.00  1 180
+HA  6  rCH  1  120.00  2 180
+
+rCC = 1.400
+rCH = 1.080
+
+connect 1 6
+
+improper  2  6  1  7
+improper  3  1  2  8
+improper  4  2  3  9
+improper  5  3  4 10
+improper  6  4  5 11
+improper  1  5  6 12
+
+oplsaa.ff

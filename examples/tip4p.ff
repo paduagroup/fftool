@@ -1,0 +1,14 @@
+# TIP4P water (kJ/mol, A, deg)
+
+ATOMS
+#   type  m/uma    q/e    pot   pars
+Ow  Ow   15.999   -1.04   lj    3.1536   0.64852
+Hw  Hw    1.008    0.52   lj    0.0000   0.00000
+
+BONDS
+# i j    pot    re/A    ka/kJmol-1
+Ow  Hw   cons   0.9572  4331.53
+
+ANGLES
+# i  j  k    pot    th/deg   ka/kjmol-1
+Hw  Ow  Hw   harm   104.52   317.57
