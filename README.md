@@ -29,7 +29,7 @@ Obtaining
 
 Download the files or else clone the repository (easier to stay updated):
 
-    git clone https://github.com/agiliopadua/ffool.git
+    git clone https://github.com/agiliopadua/fftool.git
 
 
 How to use
