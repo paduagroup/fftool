@@ -9,7 +9,7 @@ Contents
 --------
 
 * `fftool.py`: python script to build simulation box of molecular or
-    ionic or molecula liquids and their mixtures. Requires the
+    ionic liquids and their mixtures. Requires the
     [Packmol](http://www.ime.unicamp.br/~martinez/packmol/) software
     to create coordinates. Force field files are written in formats
     suitable for the [LAMMPS](http://lammps.sandia.gov/) or
