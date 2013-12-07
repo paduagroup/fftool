@@ -1,4 +1,4 @@
-# oplsaa.ff (kJ/mol, A, deg) version 2013/07/27
+# oplsaa.ff (kJ/mol, A, deg) version 2013/12/07
 
 ATOMS
 #   type  m/uma    q/e    pot   pars
@@ -7,23 +7,23 @@ Ne  Ne    20.18    0.00   lj    2.780  0.01160
 Ar  Ar    39.95    0.00   lj    3.405  0.99558
 # monatomic ions
 Na    Na  22.990  +1.00   lj    3.33   0.01160
-# alkanes OPLS-AA JACS 118(1996)11225, JPC 100(1996)18010
+# alkanes JACS 118(1996)11225, JPC 100(1996)18010
 C4C   CT  12.011   0.00   lj    3.50   0.27614
 C4H   CT  12.011  -0.24   lj    3.50   0.27614
 C3H   CT  12.011  -0.18   lj    3.50   0.27614
 C2H   CT  12.011  -0.12   lj    3.50   0.27614
 H     HC   1.008   0.06   lj    2.50   0.12552
-# alcohols OPLS-AA JACS 118(1996)11225, JPC 100(1996)18010
+# alcohols JACS 118(1996)11225, JPC 100(1996)18010
 CTO   CT  12.011   0.145  lj    3.50   0.27614  
 CET   CT  12.011  -0.140  lj    3.50   0.27614  
 C2T   CT  12.011  -0.080  lj    3.50   0.27614  
 H1O   HC   1.008   0.040  lj    2.50   0.12552
 OH    OH  15.999  -0.683  lj    3.12   0.71128
 HO    HO   1.008   0.418  lj    0.00   0.00000
-# aromatics OPLS-AA JACS 118(1996)11225
+# aromatics JACS 118(1996)11225
 CA    CA  12.011  -0.115  lj    3.55   0.29288
 HA    HA   1.008   0.115  lj    2.42   0.12552
-# toluene OPLS-AA JACS 118(1996)11217, JCC 25(2004)1322
+# toluene JACS 118(1996)11217, JCC 25(2004)1322
 CAP   CA  12.011  -0.154  lj    3.55   0.29288
 CAM   CA  12.011  -0.145  lj    3.55   0.29288
 CAO   CA  12.011  -0.147  lj    3.55   0.29288
@@ -31,6 +31,11 @@ CAT   CA  12.011  -0.081  lj    3.55   0.29288
 CTT   CT  12.011  -0.197  lj    3.50   0.27614
 HAT   HA   1.008   0.148  lj    2.42   0.12552
 HT    HC   1.008   0.092  lj    2.42   0.12552
+# perfluoroalkanes JPCA105:4118(2001) 
+C4F   CF  12.011   0.48   lj    3.50   0.27614
+C3F   CF  12.011   0.36   lj    3.50   0.27614
+C2F   CF  12.011   0.24   lj    3.50   0.27614
+F     F   18.998  -0.12   lj    2.95   0.22175
 
 BONDS
 # i j    pot    re/A    ka/kJmol-1
@@ -45,14 +50,17 @@ CA  CA   harm   1.400   3924.6
 CA  HA   cons   1.080   3071.1
 # toluene AMBER JACS 117(1995)5179
 CA  CT   harm   1.510   2652.7
+# perfluoroalkanes JPCA105(2001)4118
+F   CF   harm   1.332   3071.1
+CF  CF   harm   1.529   2242.6
 
 ANGLES
 # i  j  k    pot    th/deg   ka/kjmol-1
-# alkanes OPLS-AA JACS 118(1996)11225, JPC 100(1996)18010
+# alkanes JACS 118(1996)11225, JPC 100(1996)18010
 HC  CT  HC   harm   107.80   276.14
 HC  CT  CT   harm   110.70   313.80
 CT  CT  CT   harm   112.70   488.27
-# alcohols OPLS-AA JACS 118(1996)11225, JPC 100(1996)18010
+# alcohols JACS 118(1996)11225, JPC 100(1996)18010
 CT  CT  OH   harm   109.50   418.40
 HC  CT  OH   harm   109.50   292.88
 CT  OH  HO   harm   108.50   460.24
@@ -61,15 +69,19 @@ CA  CA  HA   harm   120.00   292.88
 CA  CA  CA   harm   120.00   527.18
 # toluene AMBER JACS 117(1995)5179
 CA  CA  CT   harm   120.00   585.76
-CA  CT  HC   harm   109.50   418.4  
+CA  CT  HC   harm   109.50   418.4
+# perfluorocarbons JPCA105(2001)4118
+F   CF  F    harm   109.1   644.3
+F   CF  CF   harm   109.5   418.4
+CF  CF  CF   harm   112.7   488.3
 
 DIHEDRALS
 # i j   k   l    pot     v1        v2        v3        v4
-# alkanes OPLS-AA JACS 118: 11225 (1996); J Phys Chem 100: 18010 (1996)
+# alkanes JACS 118(1996)11225 ; JPC 100(1996)18010 
 HC  CT  CT  HC   opls    0.0000    0.0000    1.3305    0.0000
 HC  CT  CT  CT   opls    0.0000    0.0000    1.5313    0.0000
 CT  CT  CT  CT   opls    7.2800   -0.6569    1.1673    0.0000
-# alcohols OPLS-AA JACS 118(1996)11225, AMBER98 (OCCO) 117(1995)5179
+# alcohols JACS 118(1996)11225, AMBER98 (OCCO) 117(1995)5179
 HC  CT  OH  HO   opls    0.0000    0.0000    1.8828    0.0000
 CT  CT  OH  HO   opls   -1.4895   -0.7280    2.0585    0.0000
 HC  CT  CT  OH   opls    0.0000    0.0000    1.9581    0.0000
@@ -82,6 +94,10 @@ HA  CA  CA  HA   opls    0.0000    30.334    0.0000    0.0000
 CT  CA  CA  CA   opls    0.0000    30.334    0.0000    0.0000
 CT  CA  CA  HA   opls    0.0000    30.334    0.0000    0.0000
 CA  CA  CT  HC   opls    0.0000    0.0000    0.0000    0.0000
+# perlfuoroalkanes JPCA105(2001)4118
+F   CF  CF  F    opls  -10.4600    0.0000    1.0460    0.0000
+F   CF  CF  CF   opls    1.2552    0.0000    1.6736    0.0000
+CF  CF  CF  CF   opls   27.7064    3.9664   -5.8074   -8.8617
 
 IMPROPER
 # improper aromatics AMBER JACS 117(1995)5179
