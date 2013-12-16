@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2013/11/29
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2013/12/16
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio A.H. Padua
@@ -431,7 +431,7 @@ class mol:
         natoms = len(self.atom)    
         if natoms != len(z.zatom):
             print 'error in mol.zmat2cart(): different values of natoms'
-            sys.exit(2)
+            sys.exit(1)
 
         if natoms == 0:
             return self
@@ -811,13 +811,13 @@ class vdw:
         
         if iat.pot != jat.pot:
             print 'error in vdw object: incompatible potential types'
-            sys.exit(2)
+            sys.exit(1)
 
         self.pot = iat.pot
 
         if len(iat.par) != len(jat.par):
             print 'error in vdw object: different lengths in parameter lists'
-            sys.exit(2)
+            sys.exit(1)
 
         if self.pot == 'lj':
             if iat.name == jat.name:
@@ -958,7 +958,7 @@ class system:
                     error = True
 
         if atomerror or error:
-            sys.exit(2)
+            sys.exit(1)
                     
         # at this point force field infomation was read for all molecules
         
@@ -1167,7 +1167,18 @@ class system:
             z = []
             with open('simbox.xyz', 'r') as fx:
                 natoms = int(fx.readline().strip())
-                title = fx.readline().strip()
+                tok = fx.readline().strip().split()
+                title = tok[0]
+                if len(tok) == 5:
+                    boxx = float(tok[2])
+                    boxy = float(tok[3])
+                    boxz = float(tok[4])
+                    boxtol = 0.0
+                    boxflag = True
+                else:
+                    boxx = boxy = boxz = boxlen
+                    boxtol = 2.0
+                    boxflag = False
                 i = 0
                 while i < natoms:
                     tok = fx.readline().strip().split()
@@ -1175,11 +1186,18 @@ class system:
                     y.append(float(tok[2]))
                     z.append(float(tok[3]))
                     i += 1
-        
-            tol = 2.0
-            fd.write('%f %f xlo xhi\n' % (-boxlen/2. - tol, boxlen/2. + tol))
-            fd.write('%f %f ylo yhi\n' % (-boxlen/2. - tol, boxlen/2. + tol))
-            fd.write('%f %f zlo zhi\n' % (-boxlen/2. - tol, boxlen/2. + tol))
+                    
+            if boxflag:
+                i = 0
+                while i < natoms:
+                    x[i] -= boxx / 2.0
+                    y[i] -= boxy / 2.0
+                    z[i] -= boxz / 2.0
+                    i += 1
+                    
+            fd.write('%f %f xlo xhi\n' % (-boxx/2. - boxtol, boxx/2. + boxtol))
+            fd.write('%f %f ylo yhi\n' % (-boxy/2. - boxtol, boxy/2. + boxtol))
+            fd.write('%f %f zlo zhi\n' % (-boxz/2. - boxtol, boxz/2. + boxtol))
 
             fd.write('\nMasses\n\n')
             for att in self.attype:
@@ -1363,7 +1381,18 @@ class system:
         try:
             with open('simbox.xyz', 'r') as fx:
                 natoms = int(fx.readline().strip())
-                title = fx.readline().strip()
+                tok = fx.readline().strip().split()
+                title = tok[0]
+                if len(tok) == 5:
+                    boxx = float(tok[2])
+                    boxy = float(tok[3])
+                    boxz = float(tok[4])
+                    boxtol = 0.0
+                    boxflag = True
+                else:
+                    boxx = boxy = boxz = boxlen
+                    boxtol = 4.0
+                    boxflag = False
                 i = 0
                 while i < natoms:
                     tok = fx.readline().strip().split()
@@ -1372,14 +1401,27 @@ class system:
                     y.append(float(tok[2]))
                     z.append(float(tok[3]))
                     i += 1
-        
+                    
+            if boxflag:
+                i = 0
+                while i < natoms:
+                    x[i] -= boxx / 2.0
+                    y[i] -= boxy / 2.0
+                    z[i] -= boxz / 2.0
+                    i += 1                
+                    
             with open('CONFIG', 'w') as fc:
                 fc.write(title + '\n')
-                fc.write(' %9d %9d %9d\n' % (0, 1, natoms))
-                tol = 4.0
-                fc.write(' %19.9f %19.9f %19.9f\n' % (boxlen + tol, 0.0, 0.0))
-                fc.write(' %19.9f %19.9f %19.9f\n' % (0.0, boxlen + tol, 0.0))
-                fc.write(' %19.9f %19.9f %19.9f\n' % (0.0, 0.0, boxlen + tol))
+                if boxx == boxy and boxy == boxz:
+                    imcon = 1
+                elif boxx == boxy or boxy == boxz or boxz == boxx:
+                    imcon = 2
+                else:
+                    imcon = 3
+                fc.write(' %9d %9d %9d\n' % (0, imcon, natoms))
+                fc.write(' %19.9f %19.9f %19.9f\n' % (boxx + boxtol, 0.0, 0.0))
+                fc.write(' %19.9f %19.9f %19.9f\n' % (0.0, boxy + boxtol, 0.0))
+                fc.write(' %19.9f %19.9f %19.9f\n' % (0.0, 0.0, boxz + boxtol))
                 i = 0
                 while i < natoms:
                     fc.write('%-8s %9d\n' % (name[i], i + 1))
@@ -1398,8 +1440,10 @@ def main():
         description = 'Force-field parameters and atomic coordinates for molecules'\
         ' described by z-matrices. '\
         'Simulation box can be built using packmol with the file produced')
-    parser.add_argument('-r', '--rho', type=float, default = 5.0,
-                        help = 'density in mol/L for packmol (default: 5.0)')
+    parser.add_argument('-r', '--rho', type=float, default = 0.0,
+                        help = 'density in mol/L')
+    parser.add_argument('-b', '--box', type=float, default = 0.0,
+                        help = 'box length in A')
     parser.add_argument('-x', '--mix', default = 'g',
                         help = '[a]rithmetic or [g]eometric sigma_ij (default: g)')
     parser.add_argument('-l', '--lammps', action = 'store_true', 
@@ -1443,16 +1487,25 @@ def main():
         m[i].writexyz(args.symbol)
         i += 1
 
-    boxlen = math.pow(nmol / (args.rho * 6.022e+23 * 1.0e-27), 1./3.) 
-
     s = system(m, args.mix)
+
     if not args.quiet:
         print 'charges'
         for spec in m:
             print '  %+.3f' % spec.charge() 
+
+    if args.box != 0:
+        boxlen = args.box
+    elif args.rho != 0:
+        boxlen = math.pow(nmol / (args.rho * 6.022e+23 * 1.0e-27), 1./3.) 
+    else:
+        boxlen = 0.0
+    if boxlen != 0.0:
         print 'packmol input\n  pack.inp'
         s.writepackmol(boxlen)
-
+    else:
+        print 'packmol input\n  density or box length required'
+        
     if args.lammps:
         if not args.quiet:
             print 'force field and coordinates\n  in.lmp\n  data.lmp'
