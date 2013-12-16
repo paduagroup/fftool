@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# lattice.py - generate crystal lattice points
+# lattice.py - generate molecular coordinates on a lattice
 # Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2013/12/16
 # http://tim.univ-bpclermont.fr/apadua
-
 
 import sys
 
@@ -30,6 +29,7 @@ class cell:
             for i in range(3):
                 site[i] = (site[i] + offset) * scale
 
+                
 class lattice:
     def __init__(self, ltype, scale, n):
         self.ltype = ltype
@@ -136,7 +136,7 @@ class box:
         
 def main():
     if len(sys.argv) != 7:
-        print "Place molecules on lattice"
+        print "Generate molecular coordinates on a lattice"
         print "usage: lattice.py {fcc|bcc|sc} L/A nx ny nz molecule.xyz"
         sys.exit()
 
