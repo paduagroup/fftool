@@ -1,0 +1,155 @@
+#!/usr/bin/env python
+# lattice.py - generate crystal lattice points
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2013/12/16
+# http://tim.univ-bpclermont.fr/apadua
+
+
+import sys
+
+
+class cell:
+    def __init__(self, ltype = 'fcc', scale = 1.0):
+        if ltype == 'fcc':
+            self.basis = [[0.0, 0.0, 0.0],
+                          [0.0, 0.5, 0.5],
+                          [0.5, 0.0, 0.5],
+                          [0.5, 0.5, 0.0]]
+            offset = 0.25
+        elif ltype == 'bcc':
+            self.basis = [[0.0, 0.0, 0.0],
+                          [0.5, 0.5, 0.5]]
+            offset = 0.25
+        elif ltype == 'sc':
+            self.basis = [[0.0, 0.0, 0.0]]
+            offset = 0.5
+        else:
+            print 'Unknown lattice. Choices are: fcc, bcc, sc'
+            sys.exit(2)
+
+        for site in self.basis:
+            for i in range(3):
+                site[i] = (site[i] + offset) * scale
+
+class lattice:
+    def __init__(self, ltype, scale, n):
+        self.ltype = ltype
+        self.scale = scale
+        self.n = n
+        self.c = cell(ltype, scale)
+        
+        self.site = []
+        site = disp = [0.0, 0.0, 0.0]
+        i = 0
+        while i < n[0]:
+            disp[0] = i * scale
+            j = 0
+            while j < n[1]:
+                disp[1] = j * scale
+                k = 0
+                while k < n[2]:
+                    disp[2] = k * scale
+                    for a in self.c.basis:
+                        site = [ a[l] + disp[l] for l in range(3) ]
+                        self.site.append(site)
+                    k += 1
+                j += 1
+            i += 1
+                
+    def writexyz(self, filename):
+        with open(filename, 'w') as f:
+            f.write(str(len(self.site)) + '\n')
+            title = '%s %15.6f %15.6f %15.6f\n' % (self.ltype,
+                                                   self.scale*self.n[0],
+                                                   self.scale*self.n[1],
+                                                   self.scale*self.n[2])
+            f.write(title)
+            for a in self.site:
+                f.write('%-5s %15.6f %15.6f %15.6f\n' % ('X', a[0], a[1], a[2]))
+        print 'generated %d sites in file %s' % (len(self.site), filename)
+
+
+class atom:
+    def __init__(self, name, x, y, z):
+        self.name = name
+        self.pos = [x, y, z]
+
+    
+class mol:
+    def __init__(self, molfile):
+        self.at = []
+        try:
+            with open(molfile, 'r') as f:
+                self.natoms = int(f.readline().strip())
+                self.name = f.readline().strip()
+                i = 0
+                while i < self.natoms:
+                    tok = f.readline().strip().split()
+                    a = atom(tok[0], float(tok[1]), float(tok[2]), float(tok[3]))
+                    self.at.append(a)
+                    i += 1
+
+        except IOError:
+            print 'Error: cannot open ', molfile 
+            sys.exit(1)
+
+        # find geometric center of molecule
+        gc = [0.0, 0.0, 0.0]
+        for a in self.at:
+            for i in range(3):
+                gc[i] += a.pos[i]
+        for i in range(3):
+            gc[i] /= self.natoms
+
+        # recenter molecule on gc
+        for a in self.at:
+            for i in range(3):
+                a.pos[i] -= gc[i]
+                
+            
+class box:
+    def __init__(self, lat, m):
+        self.lat = lat
+        self.m = m
+        self.at = []
+        pos = [0.0, 0.0, 0.0]
+        
+        for site in self.lat.site:
+            for a in self.m.at:
+                for i in range(3):
+                    pos[i] = site[i] + a.pos[i]
+                at = atom(a.name, pos[0], pos[1], pos[2])
+                self.at.append(at)
+        
+    def writexyz(self, filename):
+        with open(filename, 'w') as f:
+            f.write(str(len(self.at)) + '\n')
+            title = '%s %s %15.6f %15.6f %15.6f\n' % (self.m.name, self.lat.ltype,
+                                                      self.lat.scale*self.lat.n[0],
+                                                      self.lat.scale*self.lat.n[1],
+                                                      self.lat.scale*self.lat.n[2])
+            f.write(title)
+            for a in self.at:
+                f.write('%-5s %15.6f %15.6f %15.6f\n' %
+                        (a.name, a.pos[0], a.pos[1], a.pos[2]))
+        print 'coordinates for %d molecules in file %s' % (len(self.lat.site), filename)
+        
+        
+def main():
+    if len(sys.argv) != 7:
+        print "Place molecules on lattice"
+        print "usage: lattice.py {fcc|bcc|sc} L/A nx ny nz molecule.xyz"
+        sys.exit()
+
+    ltype = sys.argv[1]
+    scale = float(sys.argv[2])
+    n = [ int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5]) ]
+    molfile = sys.argv[6]
+
+    lat = lattice(ltype, scale, n)
+    b = box(lat, mol(molfile))
+    b.writexyz('simbox.xyz')
+
+    
+if __name__ == '__main__':
+    main()
+
