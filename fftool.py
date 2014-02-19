@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2013/12/16
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2014/02/19
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio A.H. Padua
@@ -52,7 +52,7 @@ def atomic_weight(name):
     elif name[0] in atomic_weights:
         return atomic_weights[name[0]]
     else:
-        print 'warning: unknown atomic weight for %s atom' % (name)
+        print 'warning: unknown atomic weight for atom %s' % (name)
         return 0.0
 
 def atomic_symbol(name):
@@ -61,7 +61,7 @@ def atomic_symbol(name):
     elif name[0] in atomic_weights:
         return name[0]
     else:
-        print 'warning: unknown symbol for %s atom' % (name)
+        print 'warning: unknown symbol for atom %s' % (name)
         return ''
 
 
@@ -1504,7 +1504,7 @@ def main():
         print 'packmol input\n  pack.inp'
         s.writepackmol(boxlen)
     else:
-        print 'packmol input\n  density or box length required'
+        print 'packmol input\n  not created: supply density or box length'
         
     if args.lammps:
         if not args.quiet:
