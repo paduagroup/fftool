@@ -873,9 +873,10 @@ class system:
         self.vdw = []
 
         # set force field parameters
-        atomerror = error = False
         for m in self.mol:
             ff = forcefield(m.ff)
+
+            error = False
 
             # identify atom types and set parameters
             for at in m.atom:
@@ -885,11 +886,13 @@ class system:
                         at.setpar(ffat.type, ffat.q, ffat.pot, ffat.par)
                         found = True
                 if not found:
-                    print 'error in molecule %s: no parameters for atom %s' % \
+                    print 'error in %s: no parameters for atom %s' % \
                       (m.name, at.name)
-                    atomerror = True
-                    continue    # no point in looking for bonded terms
-            
+                    error = True
+
+            if error:
+                sys.exit(1)
+                
             # identify bonded terms and set parameters
             for bd in m.bond:
                 bd.name = '%s-%s' % (m.atom[bd.i].type, m.atom[bd.j].type)
@@ -901,11 +904,16 @@ class system:
                         bd.setpar(ffbd.iatp, ffbd.jatp, ffbd.pot, ffbd.par)
                         found = True
                 if not found:
-                    print 'error in molecule %s: no parameters for bond %s' % \
+                    print 'error in %s: no parameters for bond %s' % \
                       (m.name, bd.name)
                     error = True
-                                        
-            for an in m.angle:
+
+            if error:
+                sys.exit(1)
+
+            # for angles and dihedrals iterate over copy of list so that
+            # terms missing in the force field can be removed
+            for an in list(m.angle):
                 an.name = '%s-%s-%s' % \
                   (m.atom[an.i].type, m.atom[an.j].type, m.atom[an.k].type)
                 found = False
@@ -917,11 +925,11 @@ class system:
                                   ffan.pot, ffan.par)
                         found = True
                 if not found:
-                    print 'error in molecule %s: no parameters for angle %s' % \
+                    print '  warning: %s angle %s not in ff' % \
                       (m.name, an.name)
-                    error = True
+                    m.angle.remove(an)
                         
-            for dh in m.dihed:
+            for dh in list(m.dihed):
                 dh.name = '%s-%s-%s-%s' % (m.atom[dh.i].type, m.atom[dh.j].type,
                                            m.atom[dh.k].type, m.atom[dh.l].type)
                 found = False
@@ -935,11 +943,11 @@ class system:
                                   ffdh.pot, ffdh.par)
                         found = True
                 if not found:
-                    print 'error in molecule %s: no parameters for dihedral %s' % \
+                    print '  warning: %s dihedral %s not in ff' % \
                       (m.name, dh.name)
-                    error = True
+                    m.dihed.remove(dh)
 
-            for di in m.dimpr:
+            for di in list(m.dimpr):
                 di.name = '%s-%s-%s-%s' % (m.atom[di.i].type, m.atom[di.j].type,
                                            m.atom[di.k].type, m.atom[di.l].type)
                 found = False
@@ -953,15 +961,12 @@ class system:
                                   ffdi.pot, ffdi.par)
                         found = True
                 if not found:
-                    print 'error in molecule %s: no parameters for improper %s' % \
+                    print '  warning: %s: improper %s not in ff' % \
                       (m.name, di.name)
-                    error = True
+                    m.dimpr.remove(di)
 
-        if atomerror or error:
-            sys.exit(1)
-                    
         # at this point force field infomation was read for all molecules
-        
+
         # build lists of different atom and bonded term types in the system
         for m in self.mol:
             build_type_list(m.atom, self.attype)
