@@ -36,6 +36,10 @@ C4F   CF  12.011   0.48   lj    3.50   0.27614
 C3F   CF  12.011   0.36   lj    3.50   0.27614
 C2F   CF  12.011   0.24   lj    3.50   0.27614
 F     F   18.998  -0.12   lj    2.95   0.22175
+# DMSO
+SZ    SZ  32.066   0.130  lj    3.56   1.65268
+OY    OY  15.999  -0.420  lj    2.93   1.17152
+CSZ   CT  12.011  -0.035  lj    3.50   0.27614
 
 BONDS
 # i j    pot    re/A    ka/kJmol-1
@@ -53,6 +57,9 @@ CA  CT   harm   1.510   2652.7
 # perfluoroalkanes JPCA105(2001)4118
 F   CF   harm   1.332   3071.1
 CF  CF   harm   1.529   2242.6
+# DMSO
+SZ  OY   harm   1.530   5857.6
+SZ  CT   harm   1.790   2845.1
 
 ANGLES
 # i  j  k    pot    th/deg   ka/kjmol-1
@@ -74,6 +81,10 @@ CA  CT  HC   harm   109.50   418.4
 F   CF  F    harm   109.1   644.3
 F   CF  CF   harm   109.5   418.4
 CF  CF  CF   harm   112.7   488.3
+# DMSO
+OY  SZ  CT   harm   107.0   619.2
+SZ  CT  HC   harm   109.5   292.9
+CT  SZ  CT   harm    96.0   518.8
 
 DIHEDRALS
 # i j   k   l    pot     v1        v2        v3        v4
@@ -98,6 +109,9 @@ CA  CA  CT  HC   opls    0.0000    0.0000    0.0000    0.0000
 F   CF  CF  F    opls  -10.4600    0.0000    1.0460    0.0000
 F   CF  CF  CF   opls    1.2552    0.0000    1.6736    0.0000
 CF  CF  CF  CF   opls   27.7064    3.9664   -5.8074   -8.8617
+# DMSO
+HC  CT  SZ  OY   opls    0.0000    0.0000    0.0000    0.0000
+HC  CT  SZ  CT   opls    0.0000    0.0000    0.0000    0.0000
 
 IMPROPER
 # improper aromatics AMBER JACS 117(1995)5179

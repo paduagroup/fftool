@@ -1,0 +1,398 @@
+# oplsaa.ff (kJ/mol, A, deg) version 2013/05/24
+# A. Padua
+# K. Vaucher (aromatics)
+# A. Podgorsek (alkenes, styrene, amines, alcohols, acetate, trifluoroacetate)
+# J. Garcia, P. Husson (esters)
+# K. Shimizu (akylsulfonates)
+
+ATOMS
+# i  m/uma    q/e    field  a      b        c
+# alkanes OPLS-AA JACS 118: 11225 (1996); J Phys Chem 100: 18010 (1996)
+C4C  12.011   0.00   lj     3.50   0.27614  0.0
+C4H  12.011  -0.24   lj     3.50   0.27614  0.0
+C3H  12.011  -0.18   lj     3.50   0.27614  0.0
+C2H  12.011  -0.12   lj     3.50   0.27614  0.0
+HC    1.008   0.06   lj     2.50   0.12552  0.0
+# alkenes (1,3-dinenes) OPLS-AA
+C=   12.011  -0.115  lj     3.55   0.31798  0.0
+CM   12.011  -0.115  lj     3.55   0.31798  0.0
+HC=   1.008   0.115  lj     2.42   0.12552  0.0
+HCM   1.008   0.115  lj     2.42   0.12552  0.0
+# styrene OPLS-AA
+CMT  12.011  -0.230  lj     3.55   0.31798  0.0
+# aromatics OPLS-AA JACS 118: 11225 (1996)
+CA   12.011  -0.115  lj     3.55   0.43932  0.0  
+HA    1.008   0.115  lj     2.42   0.12552  0.0
+# toluene OPLS-AA JACS 118: 11217 (1996); J Comput Chem 25: 1322 (2004)
+CAP  12.011  -0.154  lj     3.55   0.43932  0.0
+CAM  12.011  -0.145  lj     3.55   0.43932  0.0
+CAO  12.011  -0.147  lj     3.55   0.43932  0.0
+CAT  12.011  -0.081  lj     3.55   0.43932  0.0
+CTT  12.011  -0.197  lj     3.50   0.27614  0.0
+HAT   1.008   0.148  lj     2.42   0.12552  0.0
+HT    1.008   0.092  lj     2.42   0.12552  0.0
+# amines OPLS-AA
+HN   1.008    0.350  lj     0.00   0.00000  0.0
+NH2  14.007  -0.900  lj     3.25   0.71118  0.0
+CTN  12.011   0.080  lj     3.50   0.27630  0.0
+# nitriles OPLS-AA JCC 22: 1340 (2001)
+NZ   14.007  -0.56   lj     3.20   0.71128  0.0
+CZ   12.011   0.46   lj     3.30   0.27614  0.0  
+CTZ  12.011  -0.08   lj     3.30   0.27614  0.0
+H1Z   1.008   0.06   lj     2.50   0.06276  0.0
+# alcohols OPLS-AA JACS 118: 11225 (1996); J Phys Chem 100: 18010 (1996)
+CTO  12.011   0.145  lj     3.50   0.27614  0.0  
+CET  12.011  -0.140  lj     3.50   0.27614  0.0  
+C2T  12.011  -0.080  lj     3.50   0.27614  0.0  
+H1O   1.008   0.040  lj     2.50   0.12552  0.0
+OH   15.999  -0.683  lj     3.21   0.71128  0.0
+HO    1.008   0.418  lj     0.00   0.00000  0.0
+# acetate OPLS-AA JPCB (2004)
+O2   15.999  -0.80   lj     2.96   0.87860  0.0
+CO2  12.011   0.70   lj     3.75   0.43930  0.0
+CTA  12.011  -0.28   lj     3.50   0.27614  0.0
+# trifluoroacetate (JPCB, 110, 24, 2006, 12062)
+FF   18.998  -0.2567 lj     3.118  0.2552   0.0
+O2F  15.999  -0.7807 lj     2.960  0.8786   0.0
+COF  12.011   0.8309 lj     3.400  0.3598   0.0
+CTF  12.011   0.5006 lj     3.400  0.4577   0.0
+# esters OPLS-AA JCC 22: 1340 (2001)
+CC   12.011   0.51   lj     3.75   0.43932  0.0  
+OC   15.999  -0.43   lj     2.96   0.87864  0.0
+OS   15.999  -0.33   lj     3.00   0.71176  0.0
+HOS   1.008   0.03   lj     2.42   0.06276  0.0
+CMO  12.011   0.16   lj     3.50   0.27614  0.0
+CEO  12.011   0.19   lj     3.50   0.27614  0.0
+# perfluoroalkanes OPLS-AA JPCA105:4118(2001)
+C3F  12.011   0.36   lj     3.50   0.27614  0.0
+C2F  12.011   0.24   lj     3.50   0.27614  0.0
+C1F  12.011   0.12   lj     3.50   0.27614  0.0
+F    18.998  -0.12   lj     2.95   0.22175  0.0
+# bromine substituted perfluorocarbons
+CFB  12.011   0.32   lj     3.50   0.27614  0.0
+BRF  79.904  -0.08   lj     3.47   1.96648  0.0
+# bromine substituted hydrocarbons
+CHB  12.011  -0.30   lj     3.50   0.27614  0.0
+HB    1.008   0.21   lj     2.50   0.12552  0.0
+BRH  79.904  -0.12   lj     3.54   2.13800  0.0
+# alkylsulfates JPCB112:5039(2008)
+SO   32.066   1.18   lj     3.55   1.04600  0.0
+OS4  15.999  -0.65   lj     3.15   0.83700  0.0
+OC4  15.999  -0.45   lj     2.90   0.58600  0.0
+CS4  12.011   0.22   lj     3.50   0.27614  0.0
+HS4   1.008   0.00   lj     2.50   0.12600  0.0
+# alkylsulfonates JPCB112:5039(2008)
+SO   32.066   1.18   lj     3.55   1.04600  0.0
+OS3  15.999  -0.68   lj     3.15   0.83700  0.0
+CS3  12.011  -0.14   lj     3.50   0.27614  0.0
+HS3   1.008   0.00   lj     2.50   0.12600  0.0
+# DMSO
+SZ   32.066   0.130  lj     3.56   1.65268  0.0
+OY   15.999  -0.420  lj     2.93   1.17152  0.0
+CSZ  12.011  -0.035  lj     3.50   0.27614  0.0
+
+TRANSLATION
+# translation table between labels of atoms and labels in bonds,
+# angles and dihedrals
+HC HT
+HC HC=
+HC HCM
+HC H1O
+HC H1Z
+HC HOS
+HA HAT
+CT C3H
+CT C2H
+CT C4H
+CT C4C
+CT CTO
+CT CET
+CT C2T
+CT CTZ
+CT CHB
+CT CMO
+CT CEO
+CT CTT
+CT CTA
+CT CSZ
+CF C3F
+CF C2F
+CF C1F
+CF CFB
+CA CAP
+CA CAM
+CA CAO
+CA CAT
+CM CMT
+
+BONDS
+# i  j    type    re/A    ka/kJmol-1
+# alkanes OPLS-AA JACS 118: 11225 (1996); J Phys Chem 100: 18010 (1996)
+HC   CT   harm    1.090  -2845.12
+CT   CT   harm    1.529   2242.62
+# alkenes OPLS-AA
+C=   C=   harm    1.460   3221.68
+CM   C=   harm    1.340   2652.65
+CT   CM   harm    1.510   2652.65
+HC   C=   harm    1.080  -2845.12
+HC   CM   harm    1.080  -2845.12
+CM   CM   harm    1.340   4594.03
+# styrene OPLS-AA
+CA   CM   harm    1.433   3575.57
+# aromatics AMBER JACS 117: 5179 (1995)
+CA   CA   harm    1.400   3924.6
+CA   HA   harm    1.080  -3071.1
+# toluene AMBER JACS 117: 5179 (1995)
+CT   CA   harm    1.510   2652.7
+# amines OPLS-AA
+CT  NH2   harm    1.3350  4102.9
+HN  NH2   harm    1.0100  3634.05
+# nitriles OPLS-AA JCC 22: 1340 (2001)
+CZ   NZ   harm    1.157   5439.2
+CT   CZ   harm    1.458   3221.7
+# alcohols OPLS-AA JACS118:11225(1996); J Phys Chem 100: 18010 (1996)
+CT   OH   harm    1.410   2677.76
+HO   OH   harm    0.945  -4627.50
+# acetate OPLS-AA JPCB (2004)
+CO2  O2   harm    1.250   5489.0
+CT   CO2  harm    1.522   2653.0
+# trifluoroacetate (JPCB, 110, 24, 2006, 12062)
+CTF  COF  harm    1.568   1087.84
+COF  O2F  harm    1.223   2322.12
+CTF  FF   harm    1.334   1004.16
+# esters OPLS-AA JCC 22: 1340 (2001)
+CC   OC   harm    1.200   4770.0
+CT   CC   harm    1.522   2653.0
+CC   OS   harm    1.344   1791.0
+CT   OS   harm    1.437   2678.0
+# perfluoroalkanes OPLS-AA J Phys Chem A 105: 4118 (2001)
+F    CF   harm    1.332   3071.06
+CF   CF   harm    1.529   2242.62
+CT   CF   harm    1.529   2242.62
+# bromine substituted perfluorocarbons
+BRF  CF   harm    1.922   1200.00
+# bromine substituted alkanes
+BRH  CT   harm    1.975   1715.73
+HB   CT   harm    1.077  -3730.05
+# alkylsulfates JPCB112:5039(2008)
+CT   OC4  harm    1.402    745.8
+OS4  SO   harm    1.455   5331.0
+OC4  SO   harm    1.633   1789.6
+# alkylsulfonates JPCB112:5039(2008)
+CT   SO   harm    1.792   1970.0
+OS3  SO   harm    1.455   5331.0
+# DMSO
+SZ   OY   harm    1.530   5857.6
+SZ   CT   harm    1.790   2845.1
+
+ANGLES
+# i  j    k     type      th/deg   ka/kjmol-1
+# alkanes OPLS-AA JACS 118: 11225 (1996); J Phys Chem 100: 18010 (1996)
+HC   CT   HC    harm      107.80   276.14
+HC   CT   CT    harm      110.70   313.80
+CT   CT   CT    harm      112.70   488.27
+# alkenes (1,3-dienes) OPLS-AA
+CM   C=   C=   harm       124.0    585.76
+CT   CM   C=   harm       124.0    585.76
+CT   CT   CM   harm       111.1    527.18
+CM   CM   CT   harm       124.0    585.76
+HC   CM   CM   harm       120.0    292.88
+HC   C=   C=   harm       120.0    292.88
+HC   C=   CM   harm       120.0    292.88
+HC   CM   C=   harm       120.0    292.88
+HC   CM   CT   harm       117.0    292.88
+HC   CT   CM   harm       109.5    292.88
+# styrene (OPLS-AA)
+CA   CA   CM   harm       124.0    585.76
+CA   CM   CM   harm       117.0    711.28
+CA   CM   HC   harm       123.3    292.88
+HC   CM   HC   harm       114.3    292.88
+# aromatics AMBER JACS 117: 5179 (1995)
+CA   CA   HA    harm      120.00   292.88
+CA   CA   CA    harm      120.00   527.184
+# toluene AMBER JACS 117: 5179 (1995)
+CA   CA   CT   harm       120.00   585.76
+CA   CT   HC   harm       109.50   418.4  
+# amines OPLS-AA
+CT   CT   NH2  harm       109.5   470.28
+HC   CT   NH2  harm       109.5   292.88
+CT   NH2  HN   harm       109.5   292.88
+HN   NH2  HN   harm       106.04  364.85
+# nitriles OPLS-AA JCC 22: 1340 (2001)
+CT   CZ   NZ    harm      180.00  1255.20
+HC   CT   CZ    harm      108.50   292.88
+CT   CT   CZ    harm      112.70   488.27
+# alcohols OPLS-AA JACS 118: 11225 (1996); J Phys Chem 100: 18010 (1996)
+CT   CT   OH    harm      109.50   418.40
+HC   CT   OH    harm      109.50   292.88
+CT   OH   HO    harm      108.50   460.24
+# acetate OPLS-AA JPCB (2004)
+O2   CO2  O2   harm       126.00   669.4
+CT   CO2  O2   harm       117.00   585.8
+HC   CT   CO2  harm       109.50   298.9
+# trifluoroacetate (JPCB, 110, 24, 2006, 12062)
+CTF  COF O2F   harm       113.60   167.36
+O2F  COF O2F   harm       123.80   439.32
+COF  CTF  FF   harm       112.80   376.56
+FF   CTF  FF   harm       106.00   585.76
+# esters OPLS-AA JCC 22: 1340 (2001) 
+CT   CC   OC    harm      125.00   669.00
+HC   CT   CC    harm      109.50   313.80
+OS   CC   OC    harm      125.00   694.50
+OS   CC   CT    harm      110.00   677.80
+CT   OS   CC    harm      115.00   694.50
+HC   CT   OS    harm      109.50   418.40
+CT   CT   OS    harm      109.50   418.40
+CT   CT   CC    harm      111.10   527.184
+# perfluoroalkanes OPLS-AA J Phys Chem A 105: 4118 (2001)
+F    CF   F     harm      109.10   644.34
+F    CF   CF    harm      109.50   418.40
+CF   CF   CF    harm      112.70   488.27
+# semifluorinated alkanes
+HC   CT   CF    harm      110.70   313.80
+F    CF   CT    harm      109.50   418.40
+CT   CF   CF    harm      112.70   488.27
+CT   CT   CF    harm      112.70   488.27
+# bromine substituted perfluorocarbons
+BRF  CF   F     harm      109.50   418.40
+BRF  CF   CF    harm      112.70   418.40
+# bromine substituted alkanes
+HB   CT    HB   harm      109.93   323.30
+HB   CT    BRH  harm      105.44   390.12  
+CT   CT    BRH  harm      112.49   534.18
+HB   CT    CT   harm      110.70   313.80
+# alkylsulfates JPCB112:5039(2008)
+OS4  SO   OS4   harm      114.00   969.00
+OC4  SO   OS4   harm      103.50  1239.62
+CT   OC4  SO    harm      116.60   300.45
+HC   CT   OC4   harm      109.70   488.68
+CT   CT   OC4   harm      107.80   765.57
+# alkylsulfonates JPCB112:5039(2008)
+OS3  SO   OS3   harm      114.00   969.00
+CT   SO   OS3   harm      104.50   870.00
+HC   CT   SO    harm      107.30   390.30
+CT   CT   SO    harm      113.30   583.00
+# DMSO
+OY   SZ   CT    harm      107.00   619.23
+SZ   CT   HC    harm      109.50   292.88
+CT   SZ   CT    harm       96.00   518.82
+
+DIHEDRALS
+# i  j    k    l    type     v1         v2          v3          v4
+# alkanes OPLS-AA JACS 118: 11225 (1996); J Phys Chem 100: 18010 (1996)
+HC   CT   CT   HC   cos3     0.0000     0.0000      1.3305      0.0000
+HC   CT   CT   CT   cos3     0.0000     0.0000      1.5313      0.0000
+CT   CT   CT   CT   cos3     7.2800    -0.6569      1.1673      0.0000
+# alkenes (1,3-dienes) OPLS-AA
+CM   C=   C=   CM   cos3     5.9538    16.9661      3.5899     0.0000
+CT   CM   C=   C=   cos3     0.0000    58.5760      0.0000     0.0000
+CT   CT   CM   C=   cos3     1.4477     1.6945     -3.7823     0.0000
+CM   CT   CT   CM   cos3     5.4392    -0.2092      0.8368     0.0000
+CM   C=   C=   HC   cos3     0.0000     0.0000     -1.5565     0.0000
+CT   CM   C=   HC   cos3     0.0000    58.5760      0.0000     0.0000
+C=   C=   CM   HC   cos3     0.0000    58.5760      0.0000     0.0000
+CT   CT   CM   HC   cos3     0.0000     0.0000      1.3305     0.0000
+C=   CM   CT   HC   cos3     0.0000     0.0000     -1.5565     0.0000
+CM   CT   CT   HC   cos3     0.0000     0.0000      1.5313     0.0000
+HC   C=   C=   HC   cos3     0.0000     0.0000      1.2552     0.0000
+HC   C=   CM   HC   cos3     0.0000    58.5760      0.0000     0.0000
+HC   CM   CT   HC   cos3     0.0000     0.0000      1.3305     0.0000
+CT   CM   CM   CT   cos3     0.0000    58.5760      0.0000     0.0000
+CT   CM   CM   HC   cos3     0.0000    58.5760      0.0000     0.0000 
+HC   CM   CM   HC   cos3     0.0000    58.5760      0.0000     0.0000
+HC   CM   CT   HC   cos3     0.00001    0.0000      1.3305     0.0000
+CM   CM   CT   HC   cos3    -0.00001    0.0000     -1.5565     0.0000
+CM   CM   CT   CT   cos3     1.4477     1.6945     -3.7823     0.0000
+CM   CT   CT   CT   cos3     5.4392    -0.2092      0.8368     0.0000
+# styrene
+CM   CM   CA   CA   cos3     5.1923    14.0290     -1.1966     0.0000
+CA   CA   CM   CM   cos3     5.1923    14.0290     -1.1966     0.0000
+CA   CA   CA   CM   cos3     0.0000    30.3340      0.0000     0.0000
+HA   CA   CA   CM   cos3     0.0000    30.3340      0.0000     0.0000
+HC   CM   CM   CA   cos3     0.0000   -58.5760      0.0000     0.0000
+HC   CM   CA   CA   cos3     0.0000     0.0000      0.0000     0.0000
+# aromatics AMBER JACS 117: 5179 (1995)
+CA   CA   CA   CA   cos3     0.0000     30.334      0.0000     0.0000
+CA   CA   CA   HA   cos3     0.0000     30.334      0.0000     0.0000
+HA   CA   CA   HA   cos3     0.0000     30.334      0.0000     0.0000
+# improper dihedral
+#CA   CA    CA   HA    cos3     0.0000     9.2048      0.0000     0.0000
+# toluene AMBER JACS 117: 5179 (1995)
+CT   CA   CA   CA   cos3     0.0000     30.334      0.0000     0.0000
+CT   CA   CA   HA   cos3     0.0000     30.334      0.0000     0.0000
+CA   CA   CT   HC   cos3     0.0000     0.0000      0.0000     0.0000
+# improper dihedral
+#CA   CA    CA   CT    cos3     0.0000     9.2048      0.0000     0.0000
+# amines OPLS-AA
+CT  CT   NH2   HN   cos3    -0.7950    -1.7447     1.74890     0.0000
+NH2 CT   CT    CT   cos3    10.0081    -2.8200     2.30120     0.0000
+HC  CT   NH2   HN   cos3     0.0000     0.0000     1.6736      0.0000
+HC  CT   CT    NH2  cos3    -4.2384    -2.9665     1.9790      0.0000
+# nitriles OPLS-AA JCC 22: 1340 (2001)
+HC   CT   CZ   NZ   cos3     0.0000     0.0000      0.0000      0.0000
+HC   CT   CT   CZ   cos3     0.0000     0.0000      1.5313      0.0000
+# alcohols OPLS-AA JACS 118: 11225 (1996); J Phys Chem 100: 18010 (1996), AMBER98 (OCCO)
+HC   CT   OH   HO   cos3     0.0000     0.0000      1.8828      0.0000
+CT   CT   OH   HO   cos3    -1.4895    -0.7280      2.0585      0.0000
+HC   CT   CT   OH   cos3     0.0000     0.0000      1.9581      0.0000
+OH   CT   CT   OH   cos3     0.0000    -9.8324      1.2050      0.0000
+# acetate OPLS-AA JPCB (2004)
+HC   CT   CO2  O2   cos3     0.0000     0.0000      0.0000     0.0000
+# trifluoroacetate (JPCB, 110, 24, 2006, 12062)
+FF  CTF  COF   O2F  cos3     0.0000     0.0000      0.0000     0.000
+# esters OPLS-AA JCC 22: 1340 (2001)
+CT   CT   CC   OC   cos3     0.0000     0.0000      0.0000     0.0000
+HC   CT   CC   OC   cos3     0.0000     0.0000      0.0000     0.0000
+CT   CT   CC   OS   cos3     0.0000     0.0000     -1.4853     0.0000
+HC   CT   CC   OS   cos3     0.0000     0.0000      0.5523     0.0000
+CT   CC   OS   CT   cos3    19.5351    21.4388      0.0000     0.0000
+OC   CC   OS   CT   cos3     0.0000    21.4388      0.0000     0.0000
+CC   OS   CT   HC   cos3     0.0000     0.0000      0.8284     0.0000
+CC   OS   CT   CT   cos3    -5.1045    -0.5272      1.7656     0.0000
+HC   CT   CT   CC   cos3     0.0000     0.0000     -1.4477     0.0000
+CT   CT   CT   CC   cos3    -7.1002    -1.9079      2.4476     0.0000
+HC   CT   CT   OS   cos3     0.0000     0.0000      1.6067     0.0000
+CT   CT   CT   OS   cos3    11.4307    -0.9581      2.0292     0.0000     
+# perfluoroalkanes OPLS-AA J Phys Chem A 105: 4118 (2001)
+F    CF   CF   F    cos3   -10.4600     0.0000      1.0460      0.0000
+F    CF   CF   CF   cos3     1.2552     0.0000      1.6736      0.0000
+CF   CF   CF   CF   cos4    27.7064     3.9664     -5.8074     -8.8617
+# n-C4F10 specific
+# CF   CF   CF   CF   cos4    30.2043    -2.0251     -4.6233     -4.1422
+# n-C5F12 specific
+# CF   CF   CF   CF   cos4    24.3885    -1.8954     -5.2969     -4.4016
+# semifluorinated alkanes
+HC  CT   CF   F     cos3     0.0000     0.0000      1.2134      0.0000
+F   CF   CT   HC    cos3     0.0000     0.0000      1.2134      0.0000
+F   CF   CT   CT    cos3     0.0000     0.0000      1.9372      0.0000
+F   CF   CF   CT    cos3     0.0000     0.0000      2.7656      0.0000
+HC  CT   CT   CF    cos3     0.0000     0.0000      0.5565      0.0000
+HC  CT   CF   CF    cos3     0.0000     0.0000      0.7573      0.0000
+CF  CF   CF   CT    cos4    14.6750    -0.9179     -2.8980     -2.0174
+CF  CT   CT   CT    cos4     0.4339    -1.3069      0.2004     -0.3477
+# 11122pentafluorobutane
+# CF  CF   CT   CT    cos4    -3.1802    -0.3609     -0.9797     -0.6518
+# 1112233heptafluoropentane
+CF  CF   CT   CT    cos4    -0.5881    -0.7642     -0.3170     -0.3179
+# bromine substituted perfluoroalkanes
+BRF  CF   CF   F    cos3     0.0000     0.0000      3.7910      0.0000
+BRF  CF   CF   CF   cos3    20.2510     0.0000     -3.6940      0.0000
+# bromine substituted alkanes
+HB   CT   CT   HC   cos3     0.0000     0.0000      1.3305     0.0000
+HB   CT   CT   CT   cos3     0.0000     0.0000      1.5313     0.0000
+BRH  CT   CT   HC   cos3     0.0000     0.0000      2.2964     0.0000
+BRH  CT   CT   CT   cos3     3.3521    -2.0653      2.2466     0.0000
+# alkylsulfates JPCB112:5039(2008)
+OS4  SO   OC4  CT   cos3     0.0000     0.0000      2.4815      0.0000
+SO   OC4  CT   HC   cos3     0.0000     0.0000      1.6858      0.0000
+SO   OC4  CT   CT   cos3    -6.0142    -3.1133      1.4941      0.0000
+OC4  CT   CT   HC   cos3     0.0000     0.0000      2.0698      0.0000
+OC4  CT   CT   CT   cos3     4.3893    -1.8273      2.9705      0.0000
+# alkylsulfonates JPCB112:5039(2008)
+OS3  SO   CT   HC   cos3     0.0000     0.0000      1.6250      0.0000
+OS3  SO   CT   CT   cos3     0.0000     0.0000      1.3938      0.0000
+SO   CT   CT   HC   cos3     0.0000     0.0000      1.3797      0.0000
+SO   CT   CT   CT   cos3   -16.1000    -2.0046      0.7674      0.0000
+# DMSO
+HC   CT   SZ   OY   cos3     0.0000     0.0000      0.0000      0.0000
+HC   CT   SZ   CT   cos3     0.0000     0.0000      0.0000      0.0000
