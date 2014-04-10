@@ -1,4 +1,4 @@
-# oplsaa.ff (kJ/mol, A, deg) version 2013/12/07
+# oplsaa.ff (kJ/mol, A, deg) version 2014/04/10
 
 ATOMS
 #   type  m/uma    q/e    pot   pars
@@ -40,6 +40,12 @@ F     F   18.998  -0.12   lj    2.95   0.22175
 SZ    SZ  32.066   0.130  lj    3.56   1.65268
 OY    OY  15.999  -0.420  lj    2.93   1.17152
 CSZ   CT  12.011  -0.035  lj    3.50   0.27614
+# carbonates OPLS
+COVC  CO  12.011   0.784  lj    3.75   0.43932
+OCVC  OC  15.999  -0.508  lj    2.96   0.87864
+OSVC  OS  15.999  -0.246  lj    3.00   0.71128
+CMVC  CM  12.011  -0.068  lj    3.55   0.31798
+HCVC  HC   1.008   0.176  lj    2.42   0.12552
 
 BONDS
 # i j    pot    re/A    ka/kJmol-1
@@ -60,6 +66,12 @@ CF  CF   harm   1.529   2242.6
 # DMSO
 SZ  OY   harm   1.530   5857.6
 SZ  CT   harm   1.790   2845.1
+# carbonates OPLS
+CO  OC   harm   1.200   4769.7
+CO  OS   harm   1.370   1790.8
+CM  OS   harm   1.370   3765.6
+CM  CM   harm   1.340   4594.0
+CM  HC   harm   1.080   2845.1
 
 ANGLES
 # i  j  k    pot    th/deg   ka/kjmol-1
@@ -85,6 +97,13 @@ CF  CF  CF   harm   112.7   488.3
 OY  SZ  CT   harm   107.0   619.2
 SZ  CT  HC   harm   109.5   292.9
 CT  SZ  CT   harm    96.0   518.8
+# carbonates Kosmus (angles) OPLS (force consants)
+OC  CO  OS   harm   125.6   669.4
+OS  CO  OS   harm   108.8   694.5
+CO  OS  CM   harm   107.0   585.8
+OS  CM  CM   harm   108.6   585.8
+OS  CM  HC   harm   125.7   292.9
+CM  CM  HC   harm   125.7   292.9
 
 DIHEDRALS
 # i j   k   l    pot     v1        v2        v3        v4
@@ -112,6 +131,14 @@ CF  CF  CF  CF   opls   27.7064    3.9664   -5.8074   -8.8617
 # DMSO
 HC  CT  SZ  OY   opls    0.0000    0.0000    0.0000    0.0000
 HC  CT  SZ  CT   opls    0.0000    0.0000    0.0000    0.0000
+# carbonates OPLS
+OC  CO  OS  CM   opls   21.4388    0.0000  -21.4388    0.0000
+OS  CO  OS  CM   opls   -6.4580    0.8096    5.6819   -0.0335
+CO  OS  CM  CM   opls    5.2300    7.3220  -12.5520    0.0000
+CO  OS  CM  HC   opls    1.5899    4.7698   0.00000   -6.3597
+OS  CM  CM  OS   opls   58.5760    0.0000  -58.5760    0.0000
+OS  CM  CM  HC   opls   58.5760    0.0000  -58.5760    0.0000
+HC  CM  CM  HC   opls   58.5760    0.0000  -58.5760    0.0000
 
 IMPROPER
 # improper aromatics AMBER JACS 117(1995)5179
