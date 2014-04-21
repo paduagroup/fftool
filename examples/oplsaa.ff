@@ -1,12 +1,16 @@
-# oplsaa.ff (kJ/mol, A, deg) version 2014/04/10
+# oplsaa.ff (kJ/mol, A, deg) version 2014/04/12
 
 ATOMS
 #   type  m/uma    q/e    pot   pars
 # rare gases
 Ne  Ne    20.18    0.00   lj    2.780  0.01160
 Ar  Ar    39.95    0.00   lj    3.405  0.99558
-# monatomic ions
+# cations (Aqvist)
+Li    Li   6.941  +1.00   lj    2.126  0.07648
 Na    Na  22.990  +1.00   lj    3.33   0.01160
+# anions
+Cl    Cl  35.453  -1.00   lj    4.417  0.49283
+Br    Br  79.904  -1.00   lj    4.624  0.37656
 # alkanes JACS 118(1996)11225, JPC 100(1996)18010
 C4C   CT  12.011   0.00   lj    3.50   0.27614
 C4H   CT  12.011  -0.24   lj    3.50   0.27614
