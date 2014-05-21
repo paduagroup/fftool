@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2014/02/19
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2014/05/21
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio A.H. Padua
@@ -250,7 +250,8 @@ class zmat:
             if rec['ir'] == 0:
                 print '%-3d %-5s' % (i, rec['name'])
             elif rec['ia'] == 0:
-                print '%-3d %-5s %3d %6.3f' % (i, rec['name'], rec['ir'], rec['r'])
+                print '%-3d %-5s %3d %6.3f' % (i, rec['name'], rec['ir'],
+                                               rec['r'])
             elif rec['id'] == 0:
                 print '%-3d %-5s %3d %6.3f %3d %6.1f' % \
                     (i, rec['name'], rec['ir'], rec['r'], rec['ia'], rec['a'])
@@ -276,7 +277,7 @@ class atom:
 
     def __init__(self, name, m = 0.0):
         self.name = name
-        if (m == 0.0):
+        if m == 0.0:
             self.m = atomic_weight(self.name)
         else:
             self.m = m
@@ -343,7 +344,7 @@ class angle:
                   (self.i + 1, self.j + 1, self.k + 1,
                    self.name, self.pot, str(self.par))
             else:
-                return 'angle %s  %s %s' % (self.name, self.pot, str(self.par))                
+                return 'angle %s  %s %s' % (self.name, self.pot, str(self.par))
         else:
             return 'angle %5d %5d %5d' % (self.i + 1, self.j + 1, self.k + 1)
 
@@ -597,11 +598,15 @@ class mol:
                             j += 1
                             continue
                         if self.bond[k].j == self.bond[j].i:
-                            self.dihed.append(dihed(self.bond[l].j, self.bond[k].i,
-                                                    self.bond[k].j, self.bond[j].j))
+                            self.dihed.append(dihed(self.bond[l].j,
+                                                    self.bond[k].i,
+                                                    self.bond[k].j,
+                                                    self.bond[j].j))
                         elif self.bond[k].j == self.bond[j].j:
-                            self.dihed.append(dihed(self.bond[l].j, self.bond[k].i,
-                                                    self.bond[k].j, self.bond[j].i))
+                            self.dihed.append(dihed(self.bond[l].j,
+                                                    self.bond[k].i,
+                                                    self.bond[k].j,
+                                                    self.bond[j].i))
                         j += 1
                 elif self.bond[k].i == self.bond[l].j:
                     j = 0
@@ -610,19 +615,22 @@ class mol:
                             j += 1
                             continue
                         if self.bond[k].j == self.bond[j].i:
-                            self.dihed.append(dihed(self.bond[l].i, self.bond[k].i,
-                                                    self.bond[k].j, self.bond[j].j))
+                            self.dihed.append(dihed(self.bond[l].i,
+                                                    self.bond[k].i,
+                                                    self.bond[k].j,
+                                                    self.bond[j].j))
                         elif self.bond[k].j == self.bond[j].j:
-                            self.dihed.append(dihed(self.bond[l].i, self.bond[k].i,
-                                                    self.bond[k].j, self.bond[j].i))
+                            self.dihed.append(dihed(self.bond[l].i,
+                                                    self.bond[k].i,
+                                                    self.bond[k].j,
+                                                    self.bond[j].i))
                         j += 1
                 l += 1
             k += 1
 
         # add improper dihedrals
         for di in z.improper:                 
-            self.dimpr.append(dihed(di[0] - 1, di[1] - 1, di[2] - 1, di[3] - 1))
-
+            self.dimpr.append(dihed(di[0]-1, di[1]-1, di[2]-1, di[3]-1))
         self.ff = z.ff
         return self
 
@@ -884,6 +892,7 @@ class system:
                 for ffat in ff.atom:     
                     if at.name == ffat.name:
                         at.setpar(ffat.type, ffat.q, ffat.pot, ffat.par)
+                        at.m = ffat.m
                         found = True
                 if not found:
                     print 'error in %s: no parameters for atom %s' % \
@@ -1071,14 +1080,17 @@ class system:
                     fi.write('pair_modify mix arithmetic tail yes\n')
                 fi.write('kspace_style pppm 1.0e-4\n\n')
                 for att in self.attype:
-                    fi.write('pair_coeff %4d %4d  %s  %8.4f %8.4f  # %s %s\n' % \
+                    fi.write('pair_coeff %4d %4d  %s  %8.4f %8.4f  '\
+                             '# %s %s\n' % \
                              (att.ityp + 1, att.ityp + 1, 'lj/cut/coul/long',
-                              att.par[1] / kcal, att.par[0], att.name, att.name))
+                              att.par[1] / kcal, att.par[0],
+                             att.name, att.name))
             else:
                 fi.write('pair_modify tail yes\n')
                 fi.write('kspace_style pppm 1.0e-4\n\n')
                 for nb in self.vdw:
-                    fi.write('pair_coeff %4d %4d  %s  %8.4f %8.4f  # %s %s\n' % \
+                    fi.write('pair_coeff %4d %4d  %s  %8.4f %8.4f  '\
+                             '# %s %s\n' % \
                              (nb.ityp + 1, nb.jtyp + 1, 'lj/cut/coul/long',
                               nb.par[1] / kcal, nb.par[0], nb.i, nb.j))
             fi.write('\n')
@@ -1130,7 +1142,8 @@ class system:
             
             fi.write('# compute cMSD all msd\n')
             fi.write('# fix fMSD all ave/time 1 1 ${ndump} '\
-                     'c_cMSD[1] c_cMSD[2] c_cMSD[3] c_cMSD[4] file msd.lammps\n\n')
+                     'c_cMSD[1] c_cMSD[2] c_cMSD[3] c_cMSD[4] file '\
+                     'msd.lammps\n\n')
 
             fi.write('dump dCONF all custom ${ndump} dump.lammpstrj '\
                      'id mol type element x y z ix iy iz\n')
@@ -1259,8 +1272,8 @@ class system:
                     while im < m.nmols:
                         for bd in m.bond:
                             fd.write('%7d %4d %7d %7d  # %s\n' % \
-                                     (i, bd.ityp + 1, bd.i + shift, bd.j + shift,
-                                      bd.name))
+                                     (i, bd.ityp + 1, bd.i + shift,
+                                      bd.j + shift, bd.name))
                             i += 1
                         shift += natoms
                         im += 1
@@ -1289,13 +1302,15 @@ class system:
                     while im < m.nmols:
                         for dh in m.dihed:
                             fd.write('%7d %4d %7d %7d %7d %7d  # %s\n' % \
-                                     (i, dh.ityp + 1, dh.i + shift, dh.j + shift,
-                                      dh.k + shift, dh.l + shift, dh.name))
+                                     (i, dh.ityp + 1, dh.i + shift,
+                                      dh.j + shift, dh.k + shift,
+                                     dh.l + shift, dh.name))
                             i += 1
                         for di in m.dimpr:
                             fd.write('%7d %4d %7d %7d %7d %7d  # %s\n' % \
-                                     (i, ndht + di.ityp + 1, di.i + shift, di.j + shift,
-                                      di.k + shift, di.l + shift, di.name))
+                                     (i, ndht + di.ityp + 1, di.i + shift,
+                                      di.j + shift, di.k + shift,
+                                     di.l + shift, di.name))
                             i += 1
                         shift += natoms
                         im += 1
@@ -1331,8 +1346,8 @@ class system:
                 for bd in mol.bond:
                     if bd.pot != 'cons':
                         f.write('%4s %4d %4d %7.1f %6.3f  # %s\n' % \
-                                (bd.pot, bd.i + 1, bd.j + 1, bd.par[1], bd.par[0],
-                                 bd.name))
+                                (bd.pot, bd.i + 1, bd.j + 1,
+                                 bd.par[1], bd.par[0], bd.name))
                                                                   
                 f.write('angles %d\n' % len(mol.angle))
                 for an in mol.angle:
@@ -1354,21 +1369,23 @@ class system:
                         f.write('%4s %4d %4d %4d %4d %9.4f %9.4f %9.4f'\
                                 ' %6.3f %6.3f  # %s\n' % \
                                 (pot, dh.i + 1, dh.j + 1, dh.k + 1, dh.l + 1,
-                                 dh.par[0], dh.par[1], dh.par[2], 0.5, 0.5, dh.name))
+                                 dh.par[0], dh.par[1], dh.par[2],
+                                 0.5, 0.5, dh.name))
                 for di in mol.dimpr:
                     if cos4:
                         pot = 'cos4'
                         f.write('%4s %4d %4d %4d %4d %9.4f %9.4f %9.4f %9.4f'\
                                 ' %6.3f %6.3f  # %s\n' % \
                                 (pot, di.i + 1, di.j + 1, di.k + 1, di.l + 1,
-                                 di.par[0], di.par[1], di.par[2], di.par[3], 0.5, 0.5,
-                                 di.name))
+                                 di.par[0], di.par[1], di.par[2], di.par[3],
+                                 0.5, 0.5, di.name))
                     else:
                         pot = 'cos3'
                         f.write('%4s %4d %4d %4d %4d %9.4f %9.4f %9.4f'\
                                 ' %6.3f %6.3f  # %s\n' % \
                                 (pot, di.i + 1, di.j + 1, di.k + 1, di.l + 1,
-                                 di.par[0], di.par[1], di.par[2], 0.5, 0.5, di.name))
+                                 di.par[0], di.par[1], di.par[2],
+                                0.5, 0.5, di.name))
                 f.write('finish\n')
 
             f.write('vdw %d\n' % len(self.vdw))
@@ -1450,7 +1467,8 @@ def main():
     parser.add_argument('-b', '--box', type=float, default = 0.0,
                         help = 'box length in A')
     parser.add_argument('-x', '--mix', default = 'g',
-                        help = '[a]rithmetic or [g]eometric sigma_ij (default: g)')
+                        help = '[a]rithmetic or [g]eometric sigma_ij '\
+                        '(default: g)')
     parser.add_argument('-l', '--lammps', action = 'store_true', 
                         help = 'save in lammps format '\
                         '(needs simbox.xyz built using packmol)')
