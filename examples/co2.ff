@@ -1,0 +1,14 @@
+# EPM2 CO2
+
+ATOMS
+# type  m/amu   q/e     pot  pars
+O  O   15.999  -0.3256  lj   3.033  0.66938
+C  C   12.011   0.6512  lj   2.757  0.23388
+
+BONDS
+# i j   pot    re/A    kr/kJmol-1
+C   O   cons   1.149   2845.0
+
+ANGLES
+# i j k   pot    th/deg   ka/kjmol-1
+O  C  O   harm   180.0    488.3
