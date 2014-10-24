@@ -644,7 +644,7 @@ class mol:
             while i < natoms:
                 tok = f.readline().strip().split()
                 self.atom[i] = atom(tok[0])
-                self.atom[i].setpar(tok[0], 0.0, '', [0.0, 0.0])
+                self.atom[i].setpar(tok[0], 0.0, 'lj', [0.0, 0.0])
                 self.atom[i].x = float(tok[1])
                 self.atom[i].y = float(tok[2])
                 self.atom[i].z = float(tok[3])
