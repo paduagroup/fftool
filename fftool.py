@@ -1058,8 +1058,8 @@ class system:
                 f.write('\nstructure %s\n' % xyzfile)
                 f.write('  number %s\n' % m.nmols)
                 f.write('  inside box %.1f %.1f %.1f %.1f %.1f %.1f\n' % \
-                        (-boxlen/2., -boxlen/2., -boxlen/2.,
-                         boxlen/2., boxlen/2., boxlen/2.))
+                        (-boxlen[0]/2., -boxlen[1]/2., -boxlen[2]/2.,
+                         boxlen[0]/2., boxlen[1]/2., boxlen[2]/2.))
                 f.write('end structure\n')
         return boxlen
                 
@@ -1218,7 +1218,9 @@ class system:
                     boxtol = 0.0
                     boxflag = True
                 else:
-                    boxx = boxy = boxz = boxlen
+                    boxx = boxlen[0]
+                    boxy = boxlen[1]
+                    boxz = boxlen[2]
                     boxtol = 2.0
                     boxflag = False
                 i = 0
@@ -1436,8 +1438,10 @@ class system:
                     boxtol = 0.0
                     boxflag = True
                 else:
-                    boxx = boxy = boxz = boxlen
-                    boxtol = 4.0
+                    boxx = boxlen[0]
+                    boxy = boxlen[1]
+                    boxz = boxlen[2]
+                    boxtol = 2.0
                     boxflag = False
                 i = 0
                 while i < natoms:
@@ -1491,8 +1495,9 @@ def main():
         'manually.')
     parser.add_argument('-r', '--rho', type=float, default = 0.0,
                         help = 'density in mol/L')
-    parser.add_argument('-b', '--box', type=float, default = 0.0,
-                        help = 'box length in A')
+    parser.add_argument('-b', '--box', default = '',
+                        help = 'box length in A (cubic, or else specify '\
+                        'lx,ly,lz)')
     parser.add_argument('-x', '--mix', default = 'g',
                         help = '[a]rithmetic or [g]eometric sigma_ij '\
                         '(default: g)')
@@ -1544,13 +1549,21 @@ def main():
         for spec in m:
             print '  %+.3f' % spec.charge() 
 
-    if args.box != 0:
-        boxlen = args.box
+    boxlen = [0.0, 0.0, 0.0]
+    if args.box != '':
+        tok = args.box.split(',')
+        if len(tok) == 1:
+            boxlen[0] = boxlen[1] = boxlen[2] = float(tok[0])
+        else:
+            boxlen[0] = float(tok[0])
+            boxlen[1] = float(tok[1])
+            boxlen[2] = float(tok[2])
     elif args.rho != 0:
-        boxlen = math.pow(nmol / (args.rho * 6.022e+23 * 1.0e-27), 1./3.) 
+        boxlen[0] = boxlen[1] = boxlen[2] = \
+          math.pow(nmol / (args.rho * 6.022e+23 * 1.0e-27), 1./3.)
     else:
-        boxlen = 0.0
-    if boxlen != 0.0:
+        boxlen[0] = boxlen[1] = boxlen[2] = 0.0
+    if boxlen[0] != 0.0:
         print 'packmol input\n  pack.inp'
         s.writepackmol(boxlen)
     else:
