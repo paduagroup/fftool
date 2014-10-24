@@ -44,6 +44,7 @@ atomic_weights = {'H':    1.008,
                   'K':   39.098,
                   'Ca':  40.078,
                   'Br':  79.904,
+                  'Mo':  95.96,
                   'I':  126.904}
 
 def atomic_weight(name):
@@ -140,8 +141,6 @@ class zmat:
         self.zatom = []
         self.connect = []
         self.improper = []
-        
-        # TODO: add code to handle z-matrix with tokens
         
         with open(filename, 'r') as f:
 
@@ -427,7 +426,7 @@ class dimpr:
 
 class mol:
     '''molecule'''
-    
+
     def zmat2cart(self, z):
         natoms = len(self.atom)    
         if natoms != len(z.zatom):
@@ -544,9 +543,10 @@ class mol:
 
         return self
     
-    def fromzmat(self, z):
+    def fromzmat(self, filename):
+        z = zmat(filename)        
         self.name = z.name
-
+        
         for zat in z.zatom:
             self.atom.append(atom(zat['name']))
             self.m += atomic_weight(zat['name'])
@@ -634,7 +634,25 @@ class mol:
         self.ff = z.ff
         return self
 
-    def __init__(self, name, nmols = 1):
+    def fromxyz(self, filename, nmols = 1):
+        self.nmols = nmols
+        with open(filename, 'r') as f:
+            natoms = int(f.readline().strip())
+            self.atom = [None] * natoms
+            self.name = f.readline().strip().split()[0]
+            i = 0
+            while i < natoms:
+                tok = f.readline().strip().split()
+                self.atom[i] = atom(tok[0])
+                self.atom[i].setpar(tok[0], 0.0, '', [0.0, 0.0])
+                self.atom[i].x = float(tok[1])
+                self.atom[i].y = float(tok[2])
+                self.atom[i].z = float(tok[3])
+                i += 1
+        self.ff = ''
+        return self
+
+    def __init__(self, filename, nmols = 1):
         self.atom = []
         self.bond = []
         self.angle = []
@@ -642,13 +660,17 @@ class mol:
         self.dimpr = []
         self.m = 0
         
-        try:                              # read from zmat file
-            with open(name, 'r'):
-                self.filename = name
-            self.fromzmat(zmat(name))                
+        try:                              # read from zmat or xyz file
+            with open(filename, 'r'):
+                self.filename = filename
+            ext = filename.split('.')[-1].strip().lower()
+            if ext == 'zmat':
+                self.fromzmat(filename)
+            elif ext == 'xyz':
+                self.fromxyz(filename)
         except IOError:
             self.filename = ''
-            self.name = name
+            self.name = filename
 
         self.nmols = nmols
         
@@ -882,8 +904,10 @@ class system:
 
         # set force field parameters
         for m in self.mol:
-            ff = forcefield(m.ff)
+            if m.ff == '':
+                continue
 
+            ff = forcefield(m.ff)
             error = False
 
             # identify atom types and set parameters
@@ -1459,9 +1483,12 @@ class system:
 
 def main():
     parser = argparse.ArgumentParser(
-        description = 'Force-field parameters and atomic coordinates for molecules'\
-        ' described by z-matrices. '\
-        'Simulation box can be built using packmol with the file produced')
+        description = 'Force-field parameters and atomic coordinates for '\
+        'molecules described by z-matrices. '\
+        'Produces pack.inp file for use with packmol to build simulation box. '\
+        'Then rerun with option to create input files for MD. '\
+        'xyz format accepted but force field parameters have to be added '\
+        'manually.')
     parser.add_argument('-r', '--rho', type=float, default = 0.0,
                         help = 'density in mol/L')
     parser.add_argument('-b', '--box', type=float, default = 0.0,
@@ -1473,7 +1500,7 @@ def main():
                         help = 'save in lammps format '\
                         '(needs simbox.xyz built using packmol)')
     parser.add_argument('-a', '--allpairs', action = 'store_true', 
-                        help = 'write all I J pairs to lammps input files')
+                        help = 'write all I J pairs to lammps input files.')
     parser.add_argument('-d', '--dlpoly', action = 'store_true',
                         help = 'save in dlpoly format '\
                         '(needs simbox.xyz built using packmol)')
@@ -1483,18 +1510,18 @@ def main():
                         help = 'write atomic symbols to xyz files '\
                         '(useful for rasmol)')
     parser.add_argument('-q', '--quiet', action = 'store_true')
-    parser.add_argument('infile', nargs='+',
-                        help = 'file(s) with z-matrix: n1 infile1 [n2 infile2 '\
-                        '...], where ni are the numbers of molecules in '\
-                        'the system')
+    parser.add_argument('infiles', nargs='+',
+                        help = 'n1 infile1 [n2 infile2 ...], '\
+                        'where n_i are the numbers of molecules defined in '\
+                        'infile_i. Use extension .zmat or .xyz')
     args = parser.parse_args()
 
     if len(args.infile) == 1:
         nmols = [1]
-        files = args.infile
+        files = args.infiles
     else:
-        nmols = args.infile[::2]   # even elements are numbers of molecules
-        files = args.infile[1::2]  # odd elements are zmat files
+        nmols = args.infiles[::2]   # even elements are numbers of molecules
+        files = args.infiles[1::2]  # odd elements are zmat files
 
     m = []
     i = 0
