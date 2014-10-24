@@ -1516,7 +1516,7 @@ def main():
                         'infile_i. Use extension .zmat or .xyz')
     args = parser.parse_args()
 
-    if len(args.infile) == 1:
+    if len(args.infiles) == 1:
         nmols = [1]
         files = args.infiles
     else:
