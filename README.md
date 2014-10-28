@@ -9,7 +9,8 @@ Contents
 --------
 
 * `fftool.py`: python script to build simulation box of molecular or
-    ionic liquids and their mixtures. Requires the
+    ionic liquids and their mixtures, as well as materials. It
+    requires the
     [Packmol](http://www.ime.unicamp.br/~martinez/packmol/) software
     to create coordinates. Force field files are written in formats
     suitable for the [LAMMPS](http://lammps.sandia.gov/) or
@@ -38,14 +39,17 @@ How to use
 How to build an initial configuration of a molecular or ionic system.
 
 1. For each molecule or ion prepare a file containing a z-matrix
-   (`molecule.zmat`). See the `examples` directory and check the
-   Wikipedia entry for "Z-matrix (chemistry)". The `fftool.py` script
-   determines the connectivity (which atoms are linked by covalent
-   bonds) from the z-matrix. Cyclic molecules require additional
-   `connect` records to close rings. Improper dihedrals cannot be
-   inferred from connectivity and must be indicated by `improper`
-   records. After the z-matrix supply the name of a database of force
-   field parameters (`database.ff`).
+   (`molecule.zmat`). See the `examples` directory and check the Wikipedia
+   entry for "Z-matrix (chemistry)". The `fftool.py` script determines
+   the connectivity (which atoms are linked by covalent bonds) from
+   the z-matrix. Cyclic molecules require additional `connect` records
+   to close rings. Improper dihedrals cannot be inferred from
+   connectivity and must be indicated by `improper` records. After the
+   z-matrix supply the name of a database of force field parameters
+   (`database.ff`).
+
+    For a material atomic coordinates can be provided in `xyz` file
+    format.
 
 2. Use the `fftool.py` script to create `.xyz` files for the molecules
    in your system and an input file for `packmol`. For help type
@@ -60,15 +64,25 @@ How to build an initial configuration of a molecular or ionic system.
 
         packmol < pack.inp
 
-    Atom coordinates will be written to `simbox.xyz`. You can use a
-    molecular viewer such as RasMol or VMD to look at the `.xyz` files
-    (`fftool.py` has an option to write IUPAC atomic symbols instead
-    of the atom names from the force field).
+    For more complex spacial arrangements of molecules and materials,
+    you can modify the `pack.inp` file to suit your needs (see the
+    [Packmol](http://www.ime.unicamp.br/~martinez/packmol/)
+    documentation).  Atom coordinates will be written to
+    `simbox.xyz`. You can use a molecular viewer such as RasMol or VMD
+    to look at the `.xyz` files (`fftool.py` has an option to write
+    IUPAC atomic symbols instead of the atom names from the force
+    field).
 
 4. Use `fftool.py` to build the input files for LAMMPS or DL_POLY
    containing the force field parameters and the coordinates:
 
         fftool.py 40 ethanol.zmat 300 spce.zmat --rho 40.0 --lammps
+
+    In the case of a material with coordinates supllied in `xyz`
+    format no force field information will be known to the script. The
+    input files for MD simulations will have to be modified manually
+    to include the correct potential function and parameters for the
+    material.
 
 
 References
