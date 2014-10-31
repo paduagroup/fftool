@@ -22,49 +22,48 @@ import sys, argparse, math
 
 kcal = 4.184                            # kJ
 
-
 # --------------------------------------
 
-atomic_weights = {'H':    1.008,
-                  'Li':   6.941,
-                  'B':   10.811,
-                  'C':   12.011,
-                  'N':   14.006,
-                  'O':   15.999,
-                  'F':   18.998,
-                  'Ne':  20.180,
-                  'Na':  22.990,
-                  'Mg':  24.305,
-                  'Al':  26.982,
-                  'Si':  28.086,
-                  'P':   30.974,
-                  'S':   32.065,
-                  'Cl':  35.453,
-                  'Ar':  39.948,
-                  'K':   39.098,
-                  'Ca':  40.078,
-                  'Br':  79.904,
-                  'Mo':  95.96,
-                  'I':  126.904}
+atomic_wt = {'H': 1.008, 'Li': 6.941, 'B': 10.811, 'C': 12.011,
+             'N': 14.006, 'O': 15.999, 'F': 18.998, 'Ne': 20.180,
+             'Na': 22.990, 'Mg': 24.305, 'Al': 26.982, 'Si':  28.086,
+             'P': 30.974, 'S': 32.065, 'Cl': 35.453, 'Ar': 39.948,
+             'K': 39.098, 'Ca': 40.078, 'Fe': 55.845, 'Zn': 65.38,
+             'Br': 79.904, 'Mo': 95.96, 'I': 126.904}
+
+vdw_rad = {'H': 1.10, 'Li': 1.81, 'B': 1.92 , 'C': 1.70,
+           'N': 1.55, 'O': 1.52, 'F': 1.47, 'Ne': 1.54,
+           'Na': 2.27, 'Mg': 1.73, 'Al': 1.84, 'Si': 2.10,
+           'P': 1.80, 'S': 1.80, 'Cl': 1.75, 'Ar': 1.88,
+           'K': 2.75, 'Ca': 2.31, 'Fe': 2.05, 'Zn': 2.10,
+           'Br': 1.83, 'Mo': 2.10, 'I':  1.98}
 
 def atomic_weight(name):
-    if name[:2] in atomic_weights:
-        return atomic_weights[name[:2]]
-    elif name[0] in atomic_weights:
-        return atomic_weights[name[0]]
+    if name[:2] in atomic_wt:
+        return atomic_wt[name[:2]]
+    elif name[0] in atomic_wt:
+        return atomic_wt[name[0]]
     else:
         print 'warning: unknown atomic weight for atom %s' % (name)
         return 0.0
 
 def atomic_symbol(name):
-    if name[:2] in atomic_weights:
+    if name[:2] in atomic_wt:
         return name[:2]
-    elif name[0] in atomic_weights:
+    elif name[0] in atomic_wt:
         return name[0]
     else:
         print 'warning: unknown symbol for atom %s' % (name)
         return ''
 
+def vdw_radius(name):
+    if name[:2] in vdw_rad:
+        return vdw_rad[name[:2]]
+    elif name[0] in vdw_rad:
+        return vdw_rad[name[0]]
+    else:
+        print 'warning: unknown vdW radius for atom %s' % (name)
+        return 0.0
 
 # --------------------------------------
 
@@ -134,10 +133,9 @@ class vector:
 # --------------------------------------
 
 class zmat:
-    '''z-matrix representing a molecule, read from file'''
+    '''z-matrix representing a molecule, read from .zmat file'''
 
-    def __init__(self, filename, nmols = 1):
-        self.nmols = nmols
+    def __init__(self, filename):
         self.zatom = []
         self.connect = []
         self.improper = []
@@ -145,25 +143,27 @@ class zmat:
         with open(filename, 'r') as f:
 
             # read molecule name
-            line = f.readline().strip() 
-            while line.startswith('#') or line == '':
-                line = f.readline().strip()
-            self.name = line
+            line = f.readline()
+            while line.strip().startswith('#'):
+                line = f.readline()
+            self.name = line.strip()
 
             #read z-matrix
-            line = f.readline().strip()
-            while line.startswith('#') or line == '':
-                line = f.readline().strip()
+            line = f.readline()
+            while line.strip().startswith('#') or line.strip() == '':
+                line = f.readline()
             
-            tok = line.split()
+            tok = line.strip().split()
             if len(tok) > 1:   # there can be line numbers
                 shift = 1
             else:
                 shift = 0
 
             variables = False
-            while line != '' and not line.lower().startswith('var'):
-                tok = line.split()
+            while line and not line.strip().lower().startswith('var'):
+                tok = line.strip().split()
+                if len(tok) == 0:
+                    break
                 name = tok[shift]
                 ir = ia = id = 0
                 r = a = d = 0.0
@@ -194,14 +194,16 @@ class zmat:
                         'ia': ia, 'avar': avar, 'a': a,
                         'id': id, 'dvar': dvar, 'd': d}
                 self.zatom.append(zatom)
-                line = f.readline().strip()
+                line = f.readline()
                 
             # read variables
             if variables:
-                if line.lower().startswith('var') or line == '':
-                    line = f.readline().strip()
-                while line != '':
-                    tok = line.split('=')
+                if line.strip().lower().startswith('var') or line.strip() == '':
+                    line = f.readline()
+                while line:
+                    tok = line.strip().split('=')
+                    if len(tok) < 2:
+                        break
                     key = tok[0].strip()
                     val = float(tok[1])
                     for rec in self.zatom:
@@ -211,38 +213,31 @@ class zmat:
                             rec['a'] = val
                         if rec['dvar'] == key:
                             rec['d'] = val
-                    line = f.readline().strip()
+                    line = f.readline()
                         
-            # read connects
-            while line.startswith('#') or line == '':
-                line = f.readline().strip()
-            while line.startswith('connect'):
-                tok = line.split()
-                atomi = int(tok[1])
-                atomj = int(tok[2])
-                self.connect.append([atomi, atomj])
-                line = f.readline().strip()
-
-            # read improper dihedrals
-            while line.startswith('#') or line == '':
-                line = f.readline().strip()            
-            while line.startswith('improper'):
-                tok = line.split()
-                atomi = int(tok[1])
-                atomj = int(tok[2])
-                atomk = int(tok[3])
-                atoml = int(tok[4])
-                self.improper.append([atomi, atomj, atomk, atoml])
-                line = f.readline().strip()
-                
-            # read force field file
-            while line.startswith('#') or line == '':
-                line = f.readline().strip()
-            self.ff = line.split()[0]
-            
+            # read connects, improper, force field file
+            self.ff = ''
+            while line:
+                if line.strip().startswith('#') or line.strip() == '':
+                    line = f.readline()
+                    continue
+                tok = line.strip().split()
+                if tok[0] == 'connect':
+                    atomi = int(tok[1])
+                    atomj = int(tok[2])
+                    self.connect.append([atomi, atomj])
+                elif tok[0] == 'improper':
+                    atomi = int(tok[1])
+                    atomj = int(tok[2])
+                    atomk = int(tok[3])
+                    atoml = int(tok[4])
+                    self.improper.append([atomi, atomj, atomk, atoml])
+                else:
+                    self.ff = tok[0]
+                line = f.readline()
+                            
     def show(self):
         print self.name
-        print
         i = 0
         for rec in self.zatom:
             i += 1
@@ -258,15 +253,14 @@ class zmat:
                 print '%-3d %-5s %3d %6.3f %3d %6.1f %3d %6.1f' % \
                     (i, rec['name'], rec['ir'], rec['r'], rec['ia'], rec['a'],
                      rec['id'], rec['d'])
-        print
         if len(self.connect) > 0:
             print 'connects'
             for c in self.connect:
                 print '%3d (%5s) -- %3d (%5s)' % \
                     (c[0], self.zatom[c[0]-1]['name'],
                      c[1], self.zatom[c[1]-1]['name'])
-            print
-        print self.ff
+        if self.ff:
+            print 'field:', self.ff
 
 
 # --------------------------------------
@@ -540,25 +534,104 @@ class mol:
             self.atom[i].x = vA.x
             self.atom[i].y = vA.y
             self.atom[i].z = vA.z
-
         return self
     
     def fromzmat(self, filename):
-        z = zmat(filename)        
+        z = zmat(filename)
         self.name = z.name
-        
+        self.ff = z.ff
         for zat in z.zatom:
             self.atom.append(atom(zat['name']))
             self.m += atomic_weight(zat['name'])
-        i = 1
-        while i < len(z.zatom):    
-            self.bond.append(bond(i, z.zatom[i]['ir'] - 1))
-            i += 1
-        for cn in z.connect:
-            self.bond.append(bond(cn[0] - 1, cn[1] - 1))
-            
         self.zmat2cart(z)
+        if self.ff:                      # topology only if ff defined
+            i = 1
+            while i < len(z.zatom):    
+                self.bond.append(bond(i, z.zatom[i]['ir'] - 1))
+                i += 1
+            for cn in z.connect:
+                self.bond.append(bond(cn[0] - 1, cn[1] - 1))
+            self.anglesdiheds()
+            for di in z.improper:                 
+                self.dimpr.append(dihed(di[0]-1, di[1]-1, di[2]-1, di[3]-1))
+        return self
+                
+    def frommdlmol(self, filename):
+        with open(filename, 'r') as f:
+            self.name = f.readline().strip()
+            f.readline()                  # program/date info
+            line = f.readline().strip()   # comment (eventually ff file)
+            if line and not line.startswith('#'):
+                self.ff = line.split()[0]
+            else:
+                self.ff = ''
+            line = f.readline()           # counts line
+            natoms = int(line[0:3])
+            nbonds = int(line[3:6])
+            self.atom = [None] * natoms
+            i = 0
+            while i < natoms:
+                tok = f.readline().strip().split()
+                self.atom[i] = atom(tok[3])
+                self.atom[i].x = float(tok[0])
+                self.atom[i].y = float(tok[1])
+                self.atom[i].z = float(tok[2])
+                i += 1
+            if self.ff:                  # topology only if ff defined
+                self.bond = [None] * nbonds
+                k = 0
+                while k < nbonds:
+                    s = f.readline()
+                    i = int(s[0:3]) - 1
+                    j = int(s[3:6]) - 1
+                    self.bond[k] = bond(i, j)
+                    k += 1
+                self.anglesdiheds()
+        return self
+                                
+    def fromxyz(self, filename):
+        with open(filename, 'r') as f:
+            natoms = int(f.readline().strip())
+            self.atom = [None] * natoms
+            tok = f.readline().strip().split()
+            self.name = tok[0]
+            if len(tok) > 1:
+                self.ff = tok[1]
+            else:
+                self.ff = ''
+            i = 0
+            while i < natoms:
+                tok = f.readline().strip().split()
+                self.atom[i] = atom(tok[0])
+                self.atom[i].x = float(tok[1])
+                self.atom[i].y = float(tok[2])
+                self.atom[i].z = float(tok[3])
+                i += 1
+        if self.ff:
+            self.connectivity()
+            self.anglesdiheds()
+        return self
 
+    def connectivity(self):
+        '''determine connectivity based on distances and vdW radii'''
+        natoms = len(self.atom)
+        for i in range(0, natoms-1):
+            ri = vdw_radius(self.atom[i].name)
+            xi = self.atom[i].x
+            yi = self.atom[i].y
+            zi = self.atom[i].z            
+            for j in range(i+1, natoms):
+                rj = vdw_radius(self.atom[j].name)
+                delx = self.atom[j].x - xi
+                dely = self.atom[j].y - yi
+                delz = self.atom[j].z - zi
+                d = math.sqrt(delx*delx + dely*dely + delz*delz)
+                if d < (ri + rj) / 2.0:
+                    self.bond.append(bond(i, j))
+                    
+    def anglesdiheds(self):
+        '''identify angles and dihedrals based on bond connectivity'''
+                 
         natoms = len(self.atom)
         nbonds = len(self.bond)
 
@@ -627,29 +700,6 @@ class mol:
                         j += 1
                 l += 1
             k += 1
-
-        # add improper dihedrals
-        for di in z.improper:                 
-            self.dimpr.append(dihed(di[0]-1, di[1]-1, di[2]-1, di[3]-1))
-        self.ff = z.ff
-        return self
-
-    def fromxyz(self, filename, nmols = 1):
-        self.nmols = nmols
-        with open(filename, 'r') as f:
-            natoms = int(f.readline().strip())
-            self.atom = [None] * natoms
-            self.name = f.readline().strip().split()[0]
-            i = 0
-            while i < natoms:
-                tok = f.readline().strip().split()
-                self.atom[i] = atom(tok[0])
-                self.atom[i].setpar(tok[0], 0.0, 'lj', [0.0, 0.0])
-                self.atom[i].x = float(tok[1])
-                self.atom[i].y = float(tok[2])
-                self.atom[i].z = float(tok[3])
-                i += 1
-        self.ff = ''
         return self
 
     def __init__(self, filename, nmols = 1):
@@ -666,6 +716,8 @@ class mol:
             ext = filename.split('.')[-1].strip().lower()
             if ext == 'zmat':
                 self.fromzmat(filename)
+            elif ext == 'mol':
+                self.frommdlmol(filename)
             elif ext == 'xyz':
                 self.fromxyz(filename)
         except IOError:
@@ -701,10 +753,15 @@ class mol:
         print '%d improper' % len(self.dimpr)
         for di in self.dimpr:
             print di
+        if self.ff:
+            print 'field:', self.ff
 
     def showxyz(self, symbol = False):
         print len(self.atom)
-        print self.name
+        if self.ff:
+            print self.name, self.ff
+        else:
+            print self.name
         for a in self.atom:
             if symbol:
                 atname = atomic_symbol(a.name)
@@ -716,7 +773,10 @@ class mol:
         outfile = (self.filename).rsplit('.', 1)[0] + '.xyz'
         with open(outfile, 'w') as f:
             f.write(str(len(self.atom)) + '\n')
-            f.write(self.name + '\n')
+            if self.ff:
+                f.write(self.name + ' ' + self.ff + '\n')
+            else:
+                f.write(self.name + '\n')
             for a in self.atom:
                 if symbol:
                     atname = atomic_symbol(a.name)
@@ -893,7 +953,7 @@ def assign_type_index(term, termtype):
 class system:
     '''Molecular system to be simulated'''
                 
-    def __init__(self, molecules, mix):
+    def __init__(self, molecules, mix = 'g'):
         self.mol = molecules                       # list of molecules
         self.attype = []                           # atom types
         self.bdtype = []                           # bond types
@@ -904,7 +964,9 @@ class system:
 
         # set force field parameters
         for m in self.mol:
-            if m.ff == '':
+            if not m.ff:
+                for at in m.atom:
+                    at.setpar(at.name, 0.0, 'lj', [0.0, 0.0])
                 continue
 
             ff = forcefield(m.ff)
@@ -1488,11 +1550,13 @@ class system:
 def main():
     parser = argparse.ArgumentParser(
         description = 'Force-field parameters and atomic coordinates for '\
-        'molecules described by z-matrices. '\
+        'molecules described in z-matrix, MDL mol or xyz formats. '\
         'Produces pack.inp file for use with packmol to build simulation box. '\
-        'Then rerun with option to create input files for MD. '\
-        'xyz format accepted but force field parameters have to be added '\
-        'manually.')
+        'Then rerun with option to create input files for MD simulation. '\
+        'The name of a file with force field parameters can be supplied: '\
+        'i) at the end of the .zmat file, '\
+        'ii) in the 3rd line of the .mol file, '\
+        'iii) in the 2nd line of the .xyz file after the molecule name.')
     parser.add_argument('-r', '--rho', type=float, default = 0.0,
                         help = 'density in mol/L')
     parser.add_argument('-b', '--box', default = '',
@@ -1518,7 +1582,7 @@ def main():
     parser.add_argument('infiles', nargs='+',
                         help = 'n1 infile1 [n2 infile2 ...], '\
                         'where n_i are the numbers of molecules defined in '\
-                        'infile_i. Use extension .zmat or .xyz')
+                        'infile_i. Use extension .zmat, .mol or .xyz')
     args = parser.parse_args()
 
     if len(args.infiles) == 1:
