@@ -36,7 +36,7 @@ vdw_rad = {'H': 1.10, 'Li': 1.81, 'B': 1.92 , 'C': 1.70,
            'Na': 2.27, 'Mg': 1.73, 'Al': 1.84, 'Si': 2.10,
            'P': 1.80, 'S': 1.80, 'Cl': 1.75, 'Ar': 1.88,
            'K': 2.75, 'Ca': 2.31, 'Fe': 2.05, 'Zn': 2.10,
-           'Br': 1.83, 'Mo': 2.10, 'I':  1.98}
+           'Br': 1.83, 'Mo': 3.10, 'I':  1.98}
 
 def atomic_weight(name):
     if name[:2] in atomic_wt:
@@ -293,6 +293,16 @@ class atom:
         self.par = par
 
 
+def dist2atoms(ati, atj):
+    vij = vector(atj.x - ati.x, atj.y - ati.y, atj.z - ati.z)
+    return abs(vij)
+
+def angle3atoms(ati, atj, atk):
+    vji = vector(ati.x - atj.x, ati.y - atj.y, ati.z - atj.z)
+    vjk = vector(atk.x - atj.x, atk.y - atj.y, atk.z - atj.z)
+    return math.acos((vji * vjk) / (abs(vji) * abs(vjk))) * 180.0 / math.pi
+
+
 class bond:
     '''covalent bond in a molecule or in a force field'''
 
@@ -308,7 +318,7 @@ class bond:
                 return 'bond %5d %5d  %s  %s %s' % \
                   (self.i + 1, self.j + 1, self.name, self.pot, str(self.par))
             else:
-                return 'bond %s  %s %s' % (self.name, self.pot, str(self.par))                
+                return 'bond %s  %s %s' % (self.name, self.pot, str(self.par))
         else:
             return 'bond %5d %5d' % (self.i + 1, self.j + 1)
 
@@ -318,6 +328,28 @@ class bond:
         self.jatp = jatp
         self.pot = pot
         self.par = par
+
+    def seteqval(self):
+        if not hasattr(self, 'name'):
+            print 'error: bond parameters not set'
+            sys.exit(1)
+        if self.pot == 'harm':
+            self.eqval = self.par[0]
+        elif self.pot == 'cons':
+            self.eqval = self.par[0]
+        else:
+            print 'error: unkown bond potential', self.pot
+            sys.exit(1)
+
+    def checkval(self, r):
+        if not hasattr(self, 'eqval'):
+            print 'error: bond equilibrium value not set'
+            sys.exit(1)
+        delta = abs(r - self.eqval)
+        if delta < 0.25:                # Angstrom
+            return True
+        else:
+            return False
 
 
 class angle:
@@ -348,6 +380,28 @@ class angle:
         self.katp = katp
         self.pot = pot
         self.par = par
+
+    def seteqval(self):
+        if not hasattr(self, 'name'):
+            print 'error: angle parameters not set'
+            sys.exit(1)
+        if self.pot == 'harm':
+            self.eqval = self.par[0]
+        elif self.pot == 'cons':
+            self.eqval = self.par[0]
+        else:
+            print 'error: unkown angle potential', self.pot
+            sys.exit(1)
+
+    def checkval(self, th):
+        if not hasattr(self, 'eqval'):
+            print 'error: angle equilibrium value not set'
+            sys.exit(1)
+        delta = abs(th - self.eqval)
+        if delta < 15.0:                  # degrees
+            return True
+        else:
+            return False
 
 
 class dihed:
@@ -424,7 +478,7 @@ class mol:
     def zmat2cart(self, z):
         natoms = len(self.atom)    
         if natoms != len(z.zatom):
-            print 'error in mol.zmat2cart(): different values of natoms'
+            print 'error: different values of natoms in zmat', self.name
             sys.exit(1)
 
         if natoms == 0:
@@ -886,6 +940,12 @@ class forcefield:
         for di in self.dimpr:
             print di
 
+    def seteqvals(self):
+        for bn in self.bond:
+            bn.seteqval()
+        for an in self.angle:
+            an.seteqval()
+            
 
 # --------------------------------------
 
@@ -900,13 +960,15 @@ class vdw:
         self.jtyp = jat.ityp
         
         if iat.pot != jat.pot:
-            print 'error in vdw object: incompatible potential types'
+            print 'error in vdw object: incompatible potential types',\
+              self.i, self.j
             sys.exit(1)
 
         self.pot = iat.pot
 
         if len(iat.par) != len(jat.par):
-            print 'error in vdw object: different lengths in parameter lists'
+            print 'error in vdw object: different lengths in parameter lists',\
+              self.i, self.j
             sys.exit(1)
 
         if self.pot == 'lj':
@@ -927,9 +989,9 @@ class vdw:
 # --------------------------------------
     
 def build_type_list(term, termtype):
-    # build a list of atom or bonded term types based on the name attribute
-    # term is an input list of atoms or bonded terms (bonds, angles, dihedrals)
-    # termtype is a list containing the different types found
+    '''build a list of atom or bonded term types based on the name attribute
+    term is an input list of atoms or bonded terms (bonds, angles, dihedrals)
+    termtype is a list containing the different types found'''
     for a in term:
         found = False
         for b in termtype:
@@ -939,7 +1001,7 @@ def build_type_list(term, termtype):
             termtype.append(a)
 
 def assign_type_index(term, termtype):
-    # assign index numbers to the ityp attribute in atoms or bonded terms
+    '''assign index numbers to the ityp attribute in atoms or bonded terms'''
     ntypes = len(termtype)
     for a in term:
         i = 0
@@ -949,7 +1011,7 @@ def assign_type_index(term, termtype):
                 break       
             i += 1
 
-
+    
 class system:
     '''Molecular system to be simulated'''
                 
@@ -977,6 +1039,9 @@ class system:
                 found = False
                 for ffat in ff.atom:     
                     if at.name == ffat.name:
+                        if found:
+                            print '  warning: duplicate atom %s in %s' % \
+                              (at.name, m.ff)     
                         at.setpar(ffat.type, ffat.q, ffat.pot, ffat.par)
                         at.m = ffat.m
                         found = True
@@ -989,14 +1054,23 @@ class system:
                 sys.exit(1)
                 
             # identify bonded terms and set parameters
+            ff.seteqvals()
+
             for bd in m.bond:
                 bd.name = '%s-%s' % (m.atom[bd.i].type, m.atom[bd.j].type)
+                r = dist2atoms(m.atom[bd.i], m.atom[bd.j])
                 found = False
                 for ffbd in ff.bond:
                     namestr = '%s-%s' % (ffbd.iatp, ffbd.jatp)
                     namerev = '%s-%s' % (ffbd.jatp, ffbd.iatp)
                     if bd.name == namestr or bd.name == namerev: 
+                        if found:
+                            print '  warning: duplicate bond %s in %s' % \
+                              (bd.name, m.ff)
                         bd.setpar(ffbd.iatp, ffbd.jatp, ffbd.pot, ffbd.par)
+                        if not ffbd.checkval(r):
+                            print '  warning: %s bond %s %d-%d %7.3f' % \
+                              (m.name, bd.name, bd.i + 1, bd.j + 1, r)
                         found = True
                 if not found:
                     print 'error in %s: no parameters for bond %s' % \
@@ -1011,16 +1085,28 @@ class system:
             for an in list(m.angle):
                 an.name = '%s-%s-%s' % \
                   (m.atom[an.i].type, m.atom[an.j].type, m.atom[an.k].type)
+                th = angle3atoms(m.atom[an.i], m.atom[an.j], m.atom[an.k])
                 found = False
+                check = True
                 for ffan in ff.angle:
                     namestr = '%s-%s-%s' % (ffan.iatp, ffan.jatp, ffan.katp)
                     namerev = '%s-%s-%s' % (ffan.katp, ffan.jatp, ffan.iatp)
                     if an.name == namestr or an.name == namerev:
+                        if found:
+                            print '  warning: duplicate angle %s in %s' % \
+                              (an.name, m.ff)
                         an.setpar(ffan.iatp, ffan.jatp, ffan.katp,
-                                  ffan.pot, ffan.par)
+                                  ffan.pot, ffan.par)                        
                         found = True
+                        if not ffan.checkval(th):
+                            print '  warning: %s angle %s %d-%d-%d %.2f'\
+                              ' removed' % \
+                              (m.name, an.name, an.i+1, an.j+1, an.k+1, th)
+                            check = False
+                if not check:
+                    m.angle.remove(an)
                 if not found:
-                    print '  warning: %s angle %s not in ff' % \
+                    print '  warning: %s angle %s not in force field' % \
                       (m.name, an.name)
                     m.angle.remove(an)
                         
@@ -1034,11 +1120,14 @@ class system:
                     namerev = '%s-%s-%s-%s' % \
                       (ffdh.latp, ffdh.katp, ffdh.jatp, ffdh.iatp)
                     if dh.name == namestr or dh.name == namerev:
+                        if found:
+                            print '  warning: duplicate dihedral %s in %s' % \
+                              (di.name, m.ff)
                         dh.setpar(ffdh.iatp, ffdh.jatp, ffdh.katp, ffdh.latp,
                                   ffdh.pot, ffdh.par)
                         found = True
                 if not found:
-                    print '  warning: %s dihedral %s not in ff' % \
+                    print '  warning: %s dihedral %s not in force field' % \
                       (m.name, dh.name)
                     m.dihed.remove(dh)
 
@@ -1052,11 +1141,14 @@ class system:
                     namerev = '%s-%s-%s-%s' % \
                       (ffdi.latp, ffdi.katp, ffdi.jatp, ffdi.iatp)
                     if di.name == namestr or di.name == namerev:
+                        if found:
+                            print '  warning: duplicate improper %s in %s' % \
+                              (di.name, m.ff)
                         di.setpar(ffdi.iatp, ffdi.jatp, ffdi.katp, ffdi.latp,
                                   ffdi.pot, ffdi.par)
                         found = True
                 if not found:
-                    print '  warning: %s: improper %s not in ff' % \
+                    print '  warning: %s: improper %s not in force field' % \
                       (m.name, di.name)
                     m.dimpr.remove(di)
 
