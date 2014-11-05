@@ -1082,6 +1082,10 @@ class system:
 
             # for angles and dihedrals iterate over copy of list so that
             # terms missing in the force field can be removed
+            anmiss = []
+            dhmiss = []
+            dimiss = []
+            
             for an in list(m.angle):
                 an.name = '%s-%s-%s' % \
                   (m.atom[an.i].type, m.atom[an.j].type, m.atom[an.k].type)
@@ -1099,16 +1103,15 @@ class system:
                                   ffan.pot, ffan.par)                        
                         found = True
                         if not ffan.checkval(th):
-                            print '  warning: %s angle %s %d-%d-%d %.2f'\
-                              ' removed' % \
-                              (m.name, an.name, an.i+1, an.j+1, an.k+1, th)
                             check = False
                 if not check:
                     m.angle.remove(an)
+                    print '  warning: %s angle %s %d-%d-%d %.2f removed' % \
+                        (m.name, an.name, an.i+1, an.j+1, an.k+1, th)
                 if not found:
-                    print '  warning: %s angle %s not in force field' % \
-                      (m.name, an.name)
                     m.angle.remove(an)
+                    if an.name not in anmiss:
+                        anmiss.append(an.name)
                         
             for dh in list(m.dihed):
                 dh.name = '%s-%s-%s-%s' % (m.atom[dh.i].type, m.atom[dh.j].type,
@@ -1127,10 +1130,10 @@ class system:
                                   ffdh.pot, ffdh.par)
                         found = True
                 if not found:
-                    print '  warning: %s dihedral %s not in force field' % \
-                      (m.name, dh.name)
                     m.dihed.remove(dh)
-
+                    if dh.name not in dhmiss:
+                        dhmiss.append(dh.name)
+                    
             for di in list(m.dimpr):
                 di.name = '%s-%s-%s-%s' % (m.atom[di.i].type, m.atom[di.j].type,
                                            m.atom[di.k].type, m.atom[di.l].type)
@@ -1148,9 +1151,18 @@ class system:
                                   ffdi.pot, ffdi.par)
                         found = True
                 if not found:
-                    print '  warning: %s: improper %s not in force field' % \
-                      (m.name, di.name)
                     m.dimpr.remove(di)
+                    if di.name not in dimiss:
+                        dimiss.append(di.name)
+
+            if len(anmiss) or len(dhmiss) or len(dimiss): 
+                print '  warning: missing force field parameters'
+                for s in anmiss:
+                    print '    angle type ' + s
+                for s in dhmiss:
+                    print '    dihedral type ' + s
+                for s in dimiss:
+                    print '    improper type ' + s
 
         # at this point force field infomation was read for all molecules
 
@@ -1688,13 +1700,13 @@ def main():
     i = 0
     nmol = 0
     if not args.quiet:
-        print 'atomic coordinates'
+        print 'atomic coordinates and force field'
     for zfile in files:
+        if not args.quiet:
+            print '  ' + zfile
         m.append(mol(zfile))
         m[i].nmols = int(nmols[i])
         nmol += m[i].nmols
-        if not args.quiet:
-            print '  ' + zfile.rsplit('.', 1)[0] + '.xyz'
         m[i].writexyz(args.symbol)
         i += 1
 
@@ -1720,18 +1732,18 @@ def main():
     else:
         boxlen[0] = boxlen[1] = boxlen[2] = 0.0
     if boxlen[0] != 0.0:
-        print 'packmol input\n  pack.inp'
+        print 'packmol input file\n  pack.inp'
         s.writepackmol(boxlen)
     else:
-        print 'packmol input\n  not created: supply density or box length'
+        print 'packmol input file\n  not created: supply density or box length'
         
     if args.lammps:
         if not args.quiet:
-            print 'force field and coordinates\n  in.lmp\n  data.lmp'
+            print 'lammps input files\n  in.lmp\n  data.lmp'
         s.writelmp(boxlen, args.mix, args.allpairs)
     elif args.dlpoly:
         if not args.quiet:
-            print 'force field and coordinates\n  FIELD\n  CONFIG'
+            print 'dlpoly input files\n  FIELD\n  CONFIG'
         s.writedlp(boxlen, args.cos4)
 
 
