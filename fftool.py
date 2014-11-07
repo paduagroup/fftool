@@ -31,13 +31,6 @@ atomic_wt = {'H': 1.008, 'Li': 6.941, 'B': 10.811, 'C': 12.011,
              'K': 39.098, 'Ca': 40.078, 'Fe': 55.845, 'Zn': 65.38,
              'Br': 79.904, 'Mo': 95.96, 'I': 126.904}
 
-vdw_rad = {'H': 1.10, 'Li': 1.81, 'B': 1.92 , 'C': 1.70,
-           'N': 1.55, 'O': 1.52, 'F': 1.47, 'Ne': 1.54,
-           'Na': 2.27, 'Mg': 1.73, 'Al': 1.84, 'Si': 2.10,
-           'P': 1.80, 'S': 1.80, 'Cl': 1.75, 'Ar': 1.88,
-           'K': 2.75, 'Ca': 2.31, 'Fe': 2.05, 'Zn': 2.10,
-           'Br': 1.83, 'Mo': 3.10, 'I':  1.98}
-
 def atomic_weight(name):
     if name[:2] in atomic_wt:
         return atomic_wt[name[:2]]
@@ -55,15 +48,6 @@ def atomic_symbol(name):
     else:
         print 'warning: unknown symbol for atom %s' % (name)
         return ''
-
-def vdw_radius(name):
-    if name[:2] in vdw_rad:
-        return vdw_rad[name[:2]]
-    elif name[0] in vdw_rad:
-        return vdw_rad[name[0]]
-    else:
-        print 'warning: unknown vdW radius for atom %s' % (name)
-        return 0.0
 
 # --------------------------------------
 
@@ -128,139 +112,6 @@ class vector:
 
     def unit(self):
         return self / abs(self)
-
-
-# --------------------------------------
-
-class zmat:
-    '''z-matrix representing a molecule, read from .zmat file'''
-
-    def __init__(self, filename):
-        self.zatom = []
-        self.connect = []
-        self.improper = []
-        
-        with open(filename, 'r') as f:
-
-            # read molecule name
-            line = f.readline()
-            while line.strip().startswith('#'):
-                line = f.readline()
-            self.name = line.strip()
-
-            #read z-matrix
-            line = f.readline()
-            while line.strip().startswith('#') or line.strip() == '':
-                line = f.readline()
-            
-            tok = line.strip().split()
-            if len(tok) > 1:   # there can be line numbers
-                shift = 1
-            else:
-                shift = 0
-
-            variables = False
-            while line and not line.strip().lower().startswith('var'):
-                tok = line.strip().split()
-                if len(tok) == 0:
-                    break
-                name = tok[shift]
-                ir = ia = id = 0
-                r = a = d = 0.0
-                rvar = avar = dvar = ''
-                if (len(tok) - shift) > 1:
-                    ir = int(tok[shift+1])
-                    if tok[shift+2][0].isalpha():
-                        rvar = tok[shift+2]
-                        variables = True
-                    else:
-                        r = float(tok[shift+2])
-                    if (len(tok) - shift) > 3:
-                        ia = int(tok[shift+3])
-                        if tok[shift+4][0].isalpha():
-                            avar = tok[shift+4]
-                            variables = True
-                        else:
-                            a = float(tok[shift+4])
-                        if (len(tok) - shift) > 5:
-                            id = int(tok[shift+5])
-                            if tok[shift+6][0].isalpha():
-                                dvar = tok[shift+6]
-                                variables = True
-                            else:
-                                d = float(tok[shift+6])
-                zatom = {'name': name,
-                        'ir': ir, 'rvar': rvar, 'r': r,
-                        'ia': ia, 'avar': avar, 'a': a,
-                        'id': id, 'dvar': dvar, 'd': d}
-                self.zatom.append(zatom)
-                line = f.readline()
-                
-            # read variables
-            if variables:
-                if line.strip().lower().startswith('var') or line.strip() == '':
-                    line = f.readline()
-                while line:
-                    tok = line.strip().split('=')
-                    if len(tok) < 2:
-                        break
-                    key = tok[0].strip()
-                    val = float(tok[1])
-                    for rec in self.zatom:
-                        if rec['rvar'] == key:
-                            rec['r'] = val
-                        if rec['avar'] == key:
-                            rec['a'] = val
-                        if rec['dvar'] == key:
-                            rec['d'] = val
-                    line = f.readline()
-                        
-            # read connects, improper, force field file
-            self.ff = ''
-            while line:
-                if line.strip().startswith('#') or line.strip() == '':
-                    line = f.readline()
-                    continue
-                tok = line.strip().split()
-                if tok[0] == 'connect':
-                    atomi = int(tok[1])
-                    atomj = int(tok[2])
-                    self.connect.append([atomi, atomj])
-                elif tok[0] == 'improper':
-                    atomi = int(tok[1])
-                    atomj = int(tok[2])
-                    atomk = int(tok[3])
-                    atoml = int(tok[4])
-                    self.improper.append([atomi, atomj, atomk, atoml])
-                else:
-                    self.ff = tok[0]
-                line = f.readline()
-                            
-    def show(self):
-        print self.name
-        i = 0
-        for rec in self.zatom:
-            i += 1
-            if rec['ir'] == 0:
-                print '%-3d %-5s' % (i, rec['name'])
-            elif rec['ia'] == 0:
-                print '%-3d %-5s %3d %6.3f' % (i, rec['name'], rec['ir'],
-                                               rec['r'])
-            elif rec['id'] == 0:
-                print '%-3d %-5s %3d %6.3f %3d %6.1f' % \
-                    (i, rec['name'], rec['ir'], rec['r'], rec['ia'], rec['a'])
-            else:
-                print '%-3d %-5s %3d %6.3f %3d %6.1f %3d %6.1f' % \
-                    (i, rec['name'], rec['ir'], rec['r'], rec['ia'], rec['a'],
-                     rec['id'], rec['d'])
-        if len(self.connect) > 0:
-            print 'connects'
-            for c in self.connect:
-                print '%3d (%5s) -- %3d (%5s)' % \
-                    (c[0], self.zatom[c[0]-1]['name'],
-                     c[1], self.zatom[c[1]-1]['name'])
-        if self.ff:
-            print 'field:', self.ff
 
 
 # --------------------------------------
@@ -438,17 +289,9 @@ class dihed:
         self.par = par
 
 
-class dimpr:
+class dimpr(dihed):
     '''dihedral angle (improper)'''
-
-    def __init__(self, i = -1, j = -1, k = -1, l = -1, phi = 0.0):
-        self.i = i
-        self.j = j
-        self.k = k
-        self.l = l
-        self.phi = phi
-        self.ityp = -1
-
+    
     def __str__(self):
         if hasattr(self, 'name'):
             if self.i != -1:
@@ -462,19 +305,201 @@ class dimpr:
             return 'improper %5d %5d %5d %5d' % \
               (self.i + 1, self.j + 1, self.k + 1, self.l + 1)
 
-    def setpar(self, iatp, jatp, katp, latp, pot, par):
-        self.name = '%s-%s-%s-%s' % (iatp, jatp, katp, latp)
-        self.iatp = iatp
-        self.jatp = jatp
-        self.katp = katp
-        self.latp = latp
-        self.pot = pot
-        self.par = par
+
+# --------------------------------------
+
+class zmat:
+    '''z-matrix representing a molecule, read from .zmat file'''
+
+    def __init__(self, filename):
+        self.zatom = []
+        self.connect = []
+        self.improper = []
+        
+        with open(filename, 'r') as f:
+
+            # read molecule name
+            line = f.readline()
+            while line.strip().startswith('#'):
+                line = f.readline()
+            self.name = line.strip()
+
+            #read z-matrix
+            line = f.readline()
+            while line.strip().startswith('#') or line.strip() == '':
+                line = f.readline()
+            
+            tok = line.strip().split()
+            if len(tok) > 1:   # there can be line numbers
+                shift = 1
+            else:
+                shift = 0
+
+            variables = False
+            while line and not line.strip().lower().startswith('var'):
+                tok = line.strip().split()
+                if len(tok) == 0:
+                    break
+                name = tok[shift]
+                ir = ia = id = 0
+                r = a = d = 0.0
+                rvar = avar = dvar = ''
+                if (len(tok) - shift) > 1:
+                    ir = int(tok[shift+1])
+                    if tok[shift+2][0].isalpha():
+                        rvar = tok[shift+2]
+                        variables = True
+                    else:
+                        r = float(tok[shift+2])
+                    if (len(tok) - shift) > 3:
+                        ia = int(tok[shift+3])
+                        if tok[shift+4][0].isalpha():
+                            avar = tok[shift+4]
+                            variables = True
+                        else:
+                            a = float(tok[shift+4])
+                        if (len(tok) - shift) > 5:
+                            id = int(tok[shift+5])
+                            if tok[shift+6][0].isalpha():
+                                dvar = tok[shift+6]
+                                variables = True
+                            else:
+                                d = float(tok[shift+6])
+                zatom = {'name': name,
+                        'ir': ir, 'rvar': rvar, 'r': r,
+                        'ia': ia, 'avar': avar, 'a': a,
+                        'id': id, 'dvar': dvar, 'd': d}
+                self.zatom.append(zatom)
+                line = f.readline()
+                
+            # read variables
+            if variables:
+                if line.strip().lower().startswith('var') or line.strip() == '':
+                    line = f.readline()
+                while line:
+                    tok = line.strip().split('=')
+                    if len(tok) < 2:
+                        break
+                    key = tok[0].strip()
+                    val = float(tok[1])
+                    for rec in self.zatom:
+                        if rec['rvar'] == key:
+                            rec['r'] = val
+                        if rec['avar'] == key:
+                            rec['a'] = val
+                        if rec['dvar'] == key:
+                            rec['d'] = val
+                    line = f.readline()
+                        
+            # read connects, improper, force field file
+            self.ff = ''
+            while line:
+                if line.strip().startswith('#') or line.strip() == '':
+                    line = f.readline()
+                    continue
+                tok = line.strip().split()
+                if tok[0] == 'connect':
+                    atomi = int(tok[1])
+                    atomj = int(tok[2])
+                    self.connect.append([atomi, atomj])
+                elif tok[0] == 'improper':
+                    atomi = int(tok[1])
+                    atomj = int(tok[2])
+                    atomk = int(tok[3])
+                    atoml = int(tok[4])
+                    self.improper.append([atomi, atomj, atomk, atoml])
+                else:
+                    self.ff = tok[0]
+                line = f.readline()
+                            
+    def show(self):
+        print self.name
+        i = 0
+        for rec in self.zatom:
+            i += 1
+            if rec['ir'] == 0:
+                print '%-3d %-5s' % (i, rec['name'])
+            elif rec['ia'] == 0:
+                print '%-3d %-5s %3d %6.3f' % (i, rec['name'], rec['ir'],
+                                               rec['r'])
+            elif rec['id'] == 0:
+                print '%-3d %-5s %3d %6.3f %3d %6.1f' % \
+                    (i, rec['name'], rec['ir'], rec['r'], rec['ia'], rec['a'])
+            else:
+                print '%-3d %-5s %3d %6.3f %3d %6.1f %3d %6.1f' % \
+                    (i, rec['name'], rec['ir'], rec['r'], rec['ia'], rec['a'],
+                     rec['id'], rec['d'])
+        if len(self.connect) > 0:
+            print 'connects'
+            for c in self.connect:
+                print '%3d (%5s) -- %3d (%5s)' % \
+                    (c[0], self.zatom[c[0]-1]['name'],
+                     c[1], self.zatom[c[1]-1]['name'])
+        if self.ff:
+            print 'field:', self.ff
+
+
+# --------------------------------------
 
 
 class mol:
     '''molecule'''
 
+    def __init__(self, filename, nmols = 1):
+        self.nmols = nmols
+        self.atom = []
+        self.bond = []
+        self.angle = []
+        self.dihed = []
+        self.dimpr = []
+        self.m = 0
+        
+        try:                              # read from zmat or xyz file
+            with open(filename, 'r'):
+                self.filename = filename
+            ext = filename.split('.')[-1].strip().lower()
+            if ext == 'zmat':
+                self.fromzmat(filename)
+            elif ext == 'mol':
+                self.frommdlmol(filename)
+            elif ext == 'xyz':
+                self.fromxyz(filename)
+        except IOError:
+            self.filename = ''
+            self.name = filename
+
+        self.setff()
+        
+    def __str__(self):
+        return 'molecule %s  %d atoms  m = %8.4f' % \
+            (self.name, len(self.atom), self.m)
+            
+    def charge(self):
+        q = 0.0
+        for at in self.atom:
+            q += at.q
+        return q
+
+    def fromzmat(self, filename):
+        z = zmat(filename)
+        self.name = z.name
+        self.ff = z.ff
+        for zat in z.zatom:
+            self.atom.append(atom(zat['name']))
+            self.m += atomic_weight(zat['name'])
+        self.zmat2cart(z)
+        if self.ff:                      # topology only if ff defined
+            i = 1
+            while i < len(z.zatom):    
+                self.bond.append(bond(i, z.zatom[i]['ir'] - 1))
+                i += 1
+            for cn in z.connect:
+                self.bond.append(bond(cn[0] - 1, cn[1] - 1))
+            self.anglesdiheds()
+            for di in z.improper:                 
+                self.dimpr.append(dihed(di[0]-1, di[1]-1, di[2]-1, di[3]-1))
+        return self
+    
     def zmat2cart(self, z):
         natoms = len(self.atom)    
         if natoms != len(z.zatom):
@@ -590,35 +615,18 @@ class mol:
             self.atom[i].z = vA.z
         return self
     
-    def fromzmat(self, filename):
-        z = zmat(filename)
-        self.name = z.name
-        self.ff = z.ff
-        for zat in z.zatom:
-            self.atom.append(atom(zat['name']))
-            self.m += atomic_weight(zat['name'])
-        self.zmat2cart(z)
-        if self.ff:                      # topology only if ff defined
-            i = 1
-            while i < len(z.zatom):    
-                self.bond.append(bond(i, z.zatom[i]['ir'] - 1))
-                i += 1
-            for cn in z.connect:
-                self.bond.append(bond(cn[0] - 1, cn[1] - 1))
-            self.anglesdiheds()
-            for di in z.improper:                 
-                self.dimpr.append(dihed(di[0]-1, di[1]-1, di[2]-1, di[3]-1))
-        return self
-                
     def frommdlmol(self, filename):
         with open(filename, 'r') as f:
-            self.name = f.readline().strip()
-            f.readline()                  # program/date info
-            line = f.readline().strip()   # comment (eventually ff file)
-            if line and not line.startswith('#'):
-                self.ff = line.split()[0]
+            tok = f.readline().strip().split()
+            self.name = tok[0]            # molecule name
+            if len(tok) > 1:              # and eventually ff file
+                self.ff = tok[-1]
             else:
                 self.ff = ''
+            f.readline()                  # program/date info
+            line = f.readline().strip()   # comment (eventually ff file)
+            if line and not line.startswith('#') and not self.ff:
+                self.ff = line.split()[0]
             line = f.readline()           # counts line
             natoms = int(line[0:3])
             nbonds = int(line[3:6])
@@ -648,9 +656,9 @@ class mol:
             natoms = int(f.readline().strip())
             self.atom = [None] * natoms
             tok = f.readline().strip().split()
-            self.name = tok[0]
-            if len(tok) > 1:
-                self.ff = tok[1]
+            self.name = tok[0]            # molecule name
+            if len(tok) > 1:              # and eventually ff file
+                self.ff = tok[-1]
             else:
                 self.ff = ''
             i = 0
@@ -666,23 +674,36 @@ class mol:
             self.anglesdiheds()
         return self
 
-    def connectivity(self):
-        '''determine connectivity based on distances and vdW radii'''
+    def connectivity(self):    
+        '''determine connectivity from force field bond distances'''
+
+        ff = forcefield(self.ff)
+        error = False
+        for at in self.atom:
+            found = False
+            for ffat in ff.atom:     
+                if at.name == ffat.name:
+                    at.type = ffat.type
+                    found = True
+            if not found:
+                print 'error in %s: no parameters for atom %s' % \
+                  (self.name, at.name)
+                error = True
+        if error:
+            sys.exit(1)
+
         natoms = len(self.atom)
         for i in range(0, natoms-1):
-            ri = vdw_radius(self.atom[i].name)
-            xi = self.atom[i].x
-            yi = self.atom[i].y
-            zi = self.atom[i].z            
             for j in range(i+1, natoms):
-                rj = vdw_radius(self.atom[j].name)
-                delx = self.atom[j].x - xi
-                dely = self.atom[j].y - yi
-                delz = self.atom[j].z - zi
-                d = math.sqrt(delx*delx + dely*dely + delz*delz)
-                if d < (ri + rj) / 2.0:
-                    self.bond.append(bond(i, j))
-                    
+                r = dist2atoms(self.atom[i], self.atom[j])
+                bdname = '%s-%s' % (self.atom[i].type, self.atom[j].type)
+                for ffbd in ff.bond:
+                    namestr = '%s-%s' % (ffbd.iatp, ffbd.jatp)
+                    namerev = '%s-%s' % (ffbd.jatp, ffbd.iatp)
+                    if bdname == namestr or bdname == namerev: 
+                        if ffbd.checkval(r):
+                            self.bond.append(bond(i, j))
+                                        
     def anglesdiheds(self):
         '''identify angles and dihedrals based on bond connectivity'''
                  
@@ -755,40 +776,145 @@ class mol:
                 l += 1
             k += 1
         return self
-
-    def __init__(self, filename, nmols = 1):
-        self.atom = []
-        self.bond = []
-        self.angle = []
-        self.dihed = []
-        self.dimpr = []
-        self.m = 0
+    
+    def setff(self):
+        '''set force field parameters'''
         
-        try:                              # read from zmat or xyz file
-            with open(filename, 'r'):
-                self.filename = filename
-            ext = filename.split('.')[-1].strip().lower()
-            if ext == 'zmat':
-                self.fromzmat(filename)
-            elif ext == 'mol':
-                self.frommdlmol(filename)
-            elif ext == 'xyz':
-                self.fromxyz(filename)
-        except IOError:
-            self.filename = ''
-            self.name = filename
-
-        self.nmols = nmols
+        if not self.ff:
+            for at in self.atom:
+                at.setpar(at.name, 0.0, 'lj', [0.0, 0.0])
+            return self
         
-    def __str__(self):
-        return 'molecule %s  %d atoms  m = %8.4f' % \
-            (self.name, len(self.atom), self.m)
-            
-    def charge(self):
-        q = 0.0
+        ff = forcefield(self.ff)
+
+        error = False
+        # identify atom types and set parameters
         for at in self.atom:
-            q += at.q
-        return q
+            found = False
+            for ffat in ff.atom:     
+                if at.name == ffat.name:
+                    if found:
+                        print '  warning: duplicate atom %s in %s' % \
+                          (at.name, self.ff)     
+                    at.setpar(ffat.type, ffat.q, ffat.pot, ffat.par)
+                    at.m = ffat.m
+                    found = True
+            if not found:
+                print 'error in %s: no parameters for atom %s' % \
+                  (self.name, at.name)
+                error = True
+        if error:
+            sys.exit(1)
+            
+        # identify bonded terms and set parameters
+        for bd in self.bond:
+            bd.name = '%s-%s' % (self.atom[bd.i].type, self.atom[bd.j].type)
+            r = dist2atoms(self.atom[bd.i], self.atom[bd.j])
+            found = False
+            for ffbd in ff.bond:
+                namestr = '%s-%s' % (ffbd.iatp, ffbd.jatp)
+                namerev = '%s-%s' % (ffbd.jatp, ffbd.iatp)
+                if bd.name == namestr or bd.name == namerev: 
+                    if found:
+                        print '  warning: duplicate bond %s in %s' % \
+                          (bd.name, self.ff)
+                    bd.setpar(ffbd.iatp, ffbd.jatp, ffbd.pot, ffbd.par)
+                    if not ffbd.checkval(r):
+                        print '  warning: %s bond %s %d-%d %7.3f' % \
+                          (self.name, bd.name, bd.i + 1, bd.j + 1, r)
+                    found = True
+            if not found:
+                print 'error in %s: no parameters for bond %s' % \
+                  (self.name, bd.name)
+                error = True
+        if error:
+            sys.exit(1)
+
+        # for angles and dihedrals iterate over copy of list so that
+        # terms missing in the force field can be removed
+        anmiss = []
+        dhmiss = []
+        dimiss = []
+        
+        for an in list(self.angle):
+            an.name = '%s-%s-%s' % \
+              (self.atom[an.i].type, self.atom[an.j].type, self.atom[an.k].type)
+            th = angle3atoms(self.atom[an.i], self.atom[an.j], self.atom[an.k])
+            found = False
+            check = True
+            for ffan in ff.angle:
+                namestr = '%s-%s-%s' % (ffan.iatp, ffan.jatp, ffan.katp)
+                namerev = '%s-%s-%s' % (ffan.katp, ffan.jatp, ffan.iatp)
+                if an.name == namestr or an.name == namerev:
+                    if found:
+                        print '  warning: duplicate angle %s in %s' % \
+                          (an.name, self.ff)
+                    an.setpar(ffan.iatp, ffan.jatp, ffan.katp,
+                              ffan.pot, ffan.par)                        
+                    found = True
+                    if not ffan.checkval(th):
+                        check = False
+            if not check:
+                self.angle.remove(an)
+                print '  warning: %s angle %s %d-%d-%d %.2f removed' % \
+                    (self.name, an.name, an.i+1, an.j+1, an.k+1, th)
+            if not found:
+                self.angle.remove(an)
+                if an.name not in anmiss:
+                    anmiss.append(an.name)
+                    
+        for dh in list(self.dihed):
+            dh.name = '%s-%s-%s-%s' % \
+              (self.atom[dh.i].type, self.atom[dh.j].type,
+                self.atom[dh.k].type, self.atom[dh.l].type)
+            found = False
+            for ffdh in ff.dihed:
+                namestr = '%s-%s-%s-%s' % \
+                  (ffdh.iatp, ffdh.jatp, ffdh.katp, ffdh.latp)
+                namerev = '%s-%s-%s-%s' % \
+                  (ffdh.latp, ffdh.katp, ffdh.jatp, ffdh.iatp)
+                if dh.name == namestr or dh.name == namerev:
+                    if found:
+                        print '  warning: duplicate dihedral %s in %s' % \
+                          (di.name, self.ff)
+                    dh.setpar(ffdh.iatp, ffdh.jatp, ffdh.katp, ffdh.latp,
+                              ffdh.pot, ffdh.par)
+                    found = True
+            if not found:
+                self.dihed.remove(dh)
+                if dh.name not in dhmiss:
+                    dhmiss.append(dh.name)
+                
+        for di in list(self.dimpr):
+            di.name = '%s-%s-%s-%s' % \
+              (self.atom[di.i].type, self.atom[di.j].type,
+                self.atom[di.k].type, self.atom[di.l].type)
+            found = False
+            for ffdi in ff.dimpr:
+                namestr = '%s-%s-%s-%s' % \
+                  (ffdi.iatp, ffdi.jatp, ffdi.katp, ffdi.latp)
+                namerev = '%s-%s-%s-%s' % \
+                  (ffdi.latp, ffdi.katp, ffdi.jatp, ffdi.iatp)
+                if di.name == namestr or di.name == namerev:
+                    if found:
+                        print '  warning: duplicate improper %s in %s' % \
+                          (di.name, self.ff)
+                    di.setpar(ffdi.iatp, ffdi.jatp, ffdi.katp, ffdi.latp,
+                              ffdi.pot, ffdi.par)
+                    found = True
+            if not found:
+                self.dimpr.remove(di)
+                if di.name not in dimiss:
+                    dimiss.append(di.name)
+
+        if len(anmiss) or len(dhmiss) or len(dimiss): 
+            print '  warning: missing force field parameters'
+            for s in anmiss:
+                print '    angle type ' + s
+            for s in dhmiss:
+                print '    dihedral type ' + s
+            for s in dimiss:
+                print '    improper type ' + s
 
     def show(self):
         print '%s: %d molecules' % (self.name, self.nmols)
@@ -928,6 +1054,11 @@ class forcefield:
                     self.dimpr[im].setpar(iatp, jatp, katp, latp, pot, par)
                     im += 1
 
+        for bn in self.bond:
+            bn.seteqval()
+        for an in self.angle:
+            an.seteqval()
+                    
     def show(self):
         for at in self.atom:
             print at
@@ -939,15 +1070,6 @@ class forcefield:
             print dh
         for di in self.dimpr:
             print di
-
-    def seteqvals(self):
-        for bn in self.bond:
-            bn.seteqval()
-        for an in self.angle:
-            an.seteqval()
-            
-
-# --------------------------------------
 
 
 class vdw:
@@ -987,29 +1109,6 @@ class vdw:
 
 
 # --------------------------------------
-    
-def build_type_list(term, termtype):
-    '''build a list of atom or bonded term types based on the name attribute
-    term is an input list of atoms or bonded terms (bonds, angles, dihedrals)
-    termtype is a list containing the different types found'''
-    for a in term:
-        found = False
-        for b in termtype:
-            if a.name == b.name:
-                found = True
-        if not found:
-            termtype.append(a)
-
-def assign_type_index(term, termtype):
-    '''assign index numbers to the ityp attribute in atoms or bonded terms'''
-    ntypes = len(termtype)
-    for a in term:
-        i = 0
-        while i < ntypes:
-            if a.name == termtype[i].name:
-                a.ityp = termtype[i].ityp = i
-                break       
-            i += 1
 
     
 class system:
@@ -1024,155 +1123,13 @@ class system:
         self.ditype = []                           # improper types
         self.vdw = []
 
-        # set force field parameters
-        for m in self.mol:
-            if not m.ff:
-                for at in m.atom:
-                    at.setpar(at.name, 0.0, 'lj', [0.0, 0.0])
-                continue
-
-            ff = forcefield(m.ff)
-            error = False
-
-            # identify atom types and set parameters
-            for at in m.atom:
-                found = False
-                for ffat in ff.atom:     
-                    if at.name == ffat.name:
-                        if found:
-                            print '  warning: duplicate atom %s in %s' % \
-                              (at.name, m.ff)     
-                        at.setpar(ffat.type, ffat.q, ffat.pot, ffat.par)
-                        at.m = ffat.m
-                        found = True
-                if not found:
-                    print 'error in %s: no parameters for atom %s' % \
-                      (m.name, at.name)
-                    error = True
-
-            if error:
-                sys.exit(1)
-                
-            # identify bonded terms and set parameters
-            ff.seteqvals()
-
-            for bd in m.bond:
-                bd.name = '%s-%s' % (m.atom[bd.i].type, m.atom[bd.j].type)
-                r = dist2atoms(m.atom[bd.i], m.atom[bd.j])
-                found = False
-                for ffbd in ff.bond:
-                    namestr = '%s-%s' % (ffbd.iatp, ffbd.jatp)
-                    namerev = '%s-%s' % (ffbd.jatp, ffbd.iatp)
-                    if bd.name == namestr or bd.name == namerev: 
-                        if found:
-                            print '  warning: duplicate bond %s in %s' % \
-                              (bd.name, m.ff)
-                        bd.setpar(ffbd.iatp, ffbd.jatp, ffbd.pot, ffbd.par)
-                        if not ffbd.checkval(r):
-                            print '  warning: %s bond %s %d-%d %7.3f' % \
-                              (m.name, bd.name, bd.i + 1, bd.j + 1, r)
-                        found = True
-                if not found:
-                    print 'error in %s: no parameters for bond %s' % \
-                      (m.name, bd.name)
-                    error = True
-
-            if error:
-                sys.exit(1)
-
-            # for angles and dihedrals iterate over copy of list so that
-            # terms missing in the force field can be removed
-            anmiss = []
-            dhmiss = []
-            dimiss = []
-            
-            for an in list(m.angle):
-                an.name = '%s-%s-%s' % \
-                  (m.atom[an.i].type, m.atom[an.j].type, m.atom[an.k].type)
-                th = angle3atoms(m.atom[an.i], m.atom[an.j], m.atom[an.k])
-                found = False
-                check = True
-                for ffan in ff.angle:
-                    namestr = '%s-%s-%s' % (ffan.iatp, ffan.jatp, ffan.katp)
-                    namerev = '%s-%s-%s' % (ffan.katp, ffan.jatp, ffan.iatp)
-                    if an.name == namestr or an.name == namerev:
-                        if found:
-                            print '  warning: duplicate angle %s in %s' % \
-                              (an.name, m.ff)
-                        an.setpar(ffan.iatp, ffan.jatp, ffan.katp,
-                                  ffan.pot, ffan.par)                        
-                        found = True
-                        if not ffan.checkval(th):
-                            check = False
-                if not check:
-                    m.angle.remove(an)
-                    print '  warning: %s angle %s %d-%d-%d %.2f removed' % \
-                        (m.name, an.name, an.i+1, an.j+1, an.k+1, th)
-                if not found:
-                    m.angle.remove(an)
-                    if an.name not in anmiss:
-                        anmiss.append(an.name)
-                        
-            for dh in list(m.dihed):
-                dh.name = '%s-%s-%s-%s' % (m.atom[dh.i].type, m.atom[dh.j].type,
-                                           m.atom[dh.k].type, m.atom[dh.l].type)
-                found = False
-                for ffdh in ff.dihed:
-                    namestr = '%s-%s-%s-%s' % \
-                      (ffdh.iatp, ffdh.jatp, ffdh.katp, ffdh.latp)
-                    namerev = '%s-%s-%s-%s' % \
-                      (ffdh.latp, ffdh.katp, ffdh.jatp, ffdh.iatp)
-                    if dh.name == namestr or dh.name == namerev:
-                        if found:
-                            print '  warning: duplicate dihedral %s in %s' % \
-                              (di.name, m.ff)
-                        dh.setpar(ffdh.iatp, ffdh.jatp, ffdh.katp, ffdh.latp,
-                                  ffdh.pot, ffdh.par)
-                        found = True
-                if not found:
-                    m.dihed.remove(dh)
-                    if dh.name not in dhmiss:
-                        dhmiss.append(dh.name)
-                    
-            for di in list(m.dimpr):
-                di.name = '%s-%s-%s-%s' % (m.atom[di.i].type, m.atom[di.j].type,
-                                           m.atom[di.k].type, m.atom[di.l].type)
-                found = False
-                for ffdi in ff.dimpr:
-                    namestr = '%s-%s-%s-%s' % \
-                      (ffdi.iatp, ffdi.jatp, ffdi.katp, ffdi.latp)
-                    namerev = '%s-%s-%s-%s' % \
-                      (ffdi.latp, ffdi.katp, ffdi.jatp, ffdi.iatp)
-                    if di.name == namestr or di.name == namerev:
-                        if found:
-                            print '  warning: duplicate improper %s in %s' % \
-                              (di.name, m.ff)
-                        di.setpar(ffdi.iatp, ffdi.jatp, ffdi.katp, ffdi.latp,
-                                  ffdi.pot, ffdi.par)
-                        found = True
-                if not found:
-                    m.dimpr.remove(di)
-                    if di.name not in dimiss:
-                        dimiss.append(di.name)
-
-            if len(anmiss) or len(dhmiss) or len(dimiss): 
-                print '  warning: missing force field parameters'
-                for s in anmiss:
-                    print '    angle type ' + s
-                for s in dhmiss:
-                    print '    dihedral type ' + s
-                for s in dimiss:
-                    print '    improper type ' + s
-
-        # at this point force field infomation was read for all molecules
-
         # build lists of different atom and bonded term types in the system
         for m in self.mol:
-            build_type_list(m.atom, self.attype)
-            build_type_list(m.bond, self.bdtype)
-            build_type_list(m.angle, self.antype)
-            build_type_list(m.dihed, self.dhtype)
-            build_type_list(m.dimpr, self.ditype)
+            self.build_type_list(m.atom, self.attype)
+            self.build_type_list(m.bond, self.bdtype)
+            self.build_type_list(m.angle, self.antype)
+            self.build_type_list(m.dihed, self.dhtype)
+            self.build_type_list(m.dimpr, self.ditype)
 
         nattypes = len(self.attype)
         nbdtypes = len(self.bdtype)
@@ -1182,11 +1139,11 @@ class system:
 
         # assign the type index for all atoms and bonded terms in the system
         for m in self.mol:
-            assign_type_index(m.atom, self.attype)
-            assign_type_index(m.bond, self.bdtype)
-            assign_type_index(m.angle, self.antype)
-            assign_type_index(m.dihed, self.dhtype)
-            assign_type_index(m.dimpr, self.ditype)
+            self.assign_type_index(m.atom, self.attype)
+            self.assign_type_index(m.bond, self.bdtype)
+            self.assign_type_index(m.angle, self.antype)
+            self.assign_type_index(m.dihed, self.dhtype)
+            self.assign_type_index(m.dimpr, self.ditype)
 
         # set non-bonded parameters for all i-j pairs
         i = 0
@@ -1196,6 +1153,27 @@ class system:
                 self.vdw.append(vdw(self.attype[i], self.attype[j], mix))
                 j += 1
             i += 1
+
+    def build_type_list(self, term, termtype):
+        '''build a list of atom or bonded term types'''        
+        for a in term:
+            found = False
+            for b in termtype:
+                if a.name == b.name:
+                    found = True
+            if not found:
+                termtype.append(a)
+
+    def assign_type_index(self, term, termtype):
+        '''assign numbers to the ityp attribute in atoms or bonded terms'''
+        ntypes = len(termtype)
+        for a in term:
+            i = 0
+            while i < ntypes:
+                if a.name == termtype[i].name:
+                    a.ityp = termtype[i].ityp = i
+                    break       
+                i += 1
 
     def show(self):
         for m in self.mol:
