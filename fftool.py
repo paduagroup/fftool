@@ -445,8 +445,7 @@ class zmat:
 class mol:
     '''molecule'''
 
-    def __init__(self, filename, nmols = 1):
-        self.nmols = nmols
+    def __init__(self, filename, calcbonds = True):
         self.atom = []
         self.bond = []
         self.angle = []
@@ -454,7 +453,7 @@ class mol:
         self.dimpr = []
         self.m = 0
         
-        try:                              # read from zmat or xyz file
+        try:
             with open(filename, 'r'):
                 self.filename = filename
             ext = filename.split('.')[-1].strip().lower()
@@ -463,7 +462,7 @@ class mol:
             elif ext == 'mol':
                 self.frommdlmol(filename)
             elif ext == 'xyz':
-                self.fromxyz(filename)
+                self.fromxyz(filename, calcbonds)
         except IOError:
             self.filename = ''
             self.name = filename
@@ -645,7 +644,7 @@ class mol:
                 self.anglesdiheds()
         return self
                                 
-    def fromxyz(self, filename):
+    def fromxyz(self, filename, calcbonds = True):
         with open(filename, 'r') as f:
             natoms = int(f.readline().strip())
             self.atom = [None] * natoms
@@ -661,7 +660,7 @@ class mol:
                 self.atom[i].x = float(tok[1])
                 self.atom[i].y = float(tok[2])
                 self.atom[i].z = float(tok[3])
-        if self.ff:
+        if calcbonds and self.ff:
             self.connectivity()
             self.anglesdiheds()
         return self
@@ -1598,10 +1597,14 @@ def main():
     i = nmol = 0
     if not args.quiet:
         print 'atomic coordinates and force field'
+    if args.lammps or args.dlpoly:
+        calcbonds = True
+    else:
+        calcbonds = False
     for zfile in files:
         if not args.quiet:
             print '  ' + zfile
-        m.append(mol(zfile))
+        m.append(mol(zfile, calcbonds))
         m[i].nmols = int(nmols[i])
         nmol += m[i].nmols
         m[i].writexyz()
