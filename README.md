@@ -36,50 +36,43 @@ Download the files or else clone the repository (easier to stay updated):
 How to use
 ----------
 
-How to build an initial configuration of a molecular or ionic system.
+How to build an initial configuration of systems composed of
+molecules, ions or materials.
 
 1. For each molecule, ion or fragment of a material prepare a file
    with atomic coordinates and/or connectivity (covalent bonds). The
    formats accepted by this tool are `.zmat`, `.mol` or `.xyz`.
 
-    A `.zmat` file has the molecule name in the first line, then one
-    empty ine, then the z-matrix. See the `examples` directory and
-    check the Wikipedia entry for "Z-matrix (chemistry)". Variables
-    can be used for distances, angles and dihedrals. The connectivity
-    is inferred from the z-matrix. Cyclic molecules require additional
-    `connect` records to close rings. Improper dihedrals must be
-    indicated by additional `improper` records. After the z-matrix the
-    name of a database of force field parameters (`database.ff`) can
-    be supplied.
+    A `.zmat` file has the molecule name in the first line, thane one
+    empy line, then the z-matrix. See the `examples` directory and the
+    Wikipedia entry for "Z-matrix (chemistry)". Variables can be used
+    for distances, angles and dihedrals. Connectivity is inferred from
+    the z-matrix. Cyclic molecules require additional `connect`
+    records to close rings. Improper dihedrals must be indicated by
+    additional `improper` records. After the z-matrix the name of a
+    file with force field parameters can be supplied.
 
     A MDL `.mol` file contains a table with coordinates and also
-    bonds. The name of a database of force field parameters can be
+    bonds. The name of a file with force field parameters can be
     given in the first line after the molecule name, or in the third
     line.
 
-    A `.xyz` file contains atomic coordinates only. The name of a
-    database of force field parameters can be given in the second line
-    after the molecule name. If a force field is given, then the
-    connectivity is inferred from the equilibrium bond lengths in the
-    force field.
+    A `.xyz` file contains atomic coordinates only. The name of a file
+    with force field parameters can be given in the second line after
+    the molecule name, and in this case connectivity is inferred from
+    the bond lengths.
 
-    There are many freely available tools to create MDL mol files or
-    xyz files, which are common formats in computational
-    chemistry. Z-matrices can also be created by such tools. The
-    `.zmat` format has the advantage of allowing specification of
-    improper dihedrals. Once these are created, manual editing is
-    necessary to match the names of atoms with those of the force
-    field.
-
-    If no force field database is provided, this tool will assign a
-    default Lennard-Jones potential to each atom type, with parameters
-    zeroed. This is useful to work with non-additive, bond-order or
-    other models, often used for materials. The input files for the MD
-    simulations will have to be edited afterwards to include such
-    interaction models.
+    There are many free tools to create MDL mol files, xyz files or
+    z-matrices, which are common formats in computational chemistry
+    ([Open Babel](http://openbabel.org/),
+    [Avogadro](http://avogadro.cc/)). Manual editing of the files is
+    usually necessary in order to match the atom names with those of
+    the force field. (One disadvantage of using `.xyz` or `.mol` files
+    is the difficulty to include improper dihedrals, which may be
+    necessary for certain molecules.)
 
 2. Use the `fftool.py` script to create `.xyz` files with atomic
-   coordinates for the molecules in your system plus an input file for
+   coordinates for the components of your system, plus an input file for
    `packmol`. For help type `fftool.py -h`. To build a simulation box
    with 40 ethanol and 300 water molecules and a density of 40.0 mol/L
    do:
@@ -91,14 +84,11 @@ How to build an initial configuration of a molecular or ionic system.
 
         packmol < pack.inp
 
-    For more complex spacial arrangements of molecules and materials,
+    For more complex spatial arrangements of molecules and materials
     you can modify the `pack.inp` file to suit your needs (see the
     [Packmol](http://www.ime.unicamp.br/~martinez/packmol/)
-    documentation).  Atom coordinates will be written to
-    `simbox.xyz`. You can use a molecular viewer such as RasMol or VMD
-    to look at the `.xyz` files (`fftool.py` has an option to write
-    IUPAC atomic symbols instead of the atom names from the force
-    field).
+    documentation).  Atomic coordinates for the full system will be
+    written to `simbox.xyz`.
 
 4. Use `fftool.py` to build the input files for LAMMPS or DL_POLY
    containing the force field parameters and the coordinates:
@@ -106,10 +96,12 @@ How to build an initial configuration of a molecular or ionic system.
         fftool.py 40 ethanol.zmat 300 spce.zmat --rho 40.0 --lammps
 
     If no force field information is given explicitly in the molecule
-    files, those atoms will ba assigned a default LJ potential with
-    parameters zeroed. The input files for MD simulations will have to
-    be edited manually to include the correct potential function and
-    parameters for the material.
+    files, a default LJ potential with parameters zeroed will be
+    assigned. No terms for bonds, angles or torsions will be
+    created. This is suitable when working with non-additive,
+    bond-order or other potentials often used for materials. The input
+    files for MD simulations will have to be edited manually to
+    include an interaction potential for the material.
 
 
 References
