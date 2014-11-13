@@ -50,6 +50,13 @@ OCVC  OC  15.999  -0.508  lj    2.96   0.87864
 OSVC  OS  15.999  -0.246  lj    3.00   0.71128
 CMVC  CM  12.011  -0.068  lj    3.55   0.31798
 HCVC  HC   1.008   0.176  lj    2.42   0.12552
+# amides, DMF, NMP
+CO    CO  12.011   0.500  lj    3.75   0.43932
+OC    OC  15.999  -0.500  lj    2.96   0.87864
+HCO   HC   1.008   0.000  lj    2.42   0.06276
+NCO   N   14.007  -0.140  lj    3.25   0.71128
+CTN   CT  12.011  -0.110  lj    3.50   0.27614
+CT3   CT  12.011  -0.050  lj    3.50   0.27614
 
 BONDS
 # i j    pot    re/A    ka/kJmol-1
@@ -70,29 +77,34 @@ CF  CF   harm   1.529   2242.6
 # DMSO
 SZ  OY   harm   1.530   5857.6
 SZ  CT   harm   1.790   2845.1
-# carbonates OPLS
-CO  OC   harm   1.200   4769.7
+# carbonates
 CO  OS   harm   1.370   1790.8
 CM  OS   harm   1.370   3765.6
 CM  CM   harm   1.340   4594.0
 CM  HC   harm   1.080   2845.1
+# amides, DMF, NMP
+CO  OC   harm   1.229   4769.7
+CO  HC   harm   1.090   2845.1
+CO  N    harm   1.335   4100.3
+CT  N    harm   1.449   2820.0
+CT  CO   harm   1.522   2652.7
 
 ANGLES
-# i  j  k    pot    th/deg   ka/kjmol-1
+# i  j  k    pot    th/deg  ka/kjmol-1
 # alkanes JACS 118(1996)11225, JPC 100(1996)18010
-HC  CT  HC   harm   107.80   276.14
-HC  CT  CT   harm   110.70   313.80
-CT  CT  CT   harm   112.70   488.27
+HC  CT  HC   harm   107.8   276.1
+HC  CT  CT   harm   110.7   313.8
+CT  CT  CT   harm   112.7   488.3
 # alcohols JACS 118(1996)11225, JPC 100(1996)18010
-CT  CT  OH   harm   109.50   418.40
-HC  CT  OH   harm   109.50   292.88
-CT  OH  HO   harm   108.50   460.24
+CT  CT  OH   harm   109.5   418.4
+HC  CT  OH   harm   109.5   292.9
+CT  OH  HO   harm   108.5   460.2
 # aromatics AMBER JACS 117(1995)5179
-CA  CA  HA   harm   120.00   292.88
-CA  CA  CA   harm   120.00   527.18
+CA  CA  HA   harm   120.0   292.9
+CA  CA  CA   harm   120.0   527.2
 # toluene AMBER JACS 117(1995)5179
-CA  CA  CT   harm   120.00   585.76
-CA  CT  HC   harm   109.50   418.4
+CA  CA  CT   harm   120.0   585.8
+CA  CT  HC   harm   109.5   418.4
 # perfluorocarbons JPCA105(2001)4118
 F   CF  F    harm   109.1   644.3
 F   CF  CF   harm   109.5   418.4
@@ -108,6 +120,18 @@ CO  OS  CM   harm   107.0   585.8
 OS  CM  CM   harm   108.6   585.8
 OS  CM  HC   harm   125.7   292.9
 CM  CM  HC   harm   125.7   292.9
+# amides, DMF, NMP
+N   CO  OC   harm   122.9   669.4
+OC  CO  HC   harm   123.0   292.9
+N   CO  HC   harm   114.0   334.7
+CO  N   CT   harm   121.9   418.4
+CT  N   CT   harm   118.0   418.4
+HC  CT  N    harm   109.5   292.9
+CT  CO  N    harm   116.6   585.8
+CT  CO  OC   harm   120.4   669.4
+CT  CT  N    harm   109.7   669.4
+CO  CT  CT   harm   111.5   527.2
+CO  CT  HC   harm   109.5   292.9
 
 DIHEDRALS
 # i j   k   l    pot     v1        v2        v3        v4
@@ -135,7 +159,7 @@ CF  CF  CF  CF   opls   27.7064    3.9664   -5.8074   -8.8617
 # DMSO
 HC  CT  SZ  OY   opls    0.0000    0.0000    0.0000    0.0000
 HC  CT  SZ  CT   opls    0.0000    0.0000    0.0000    0.0000
-# carbonates OPLS
+# carbonates
 OC  CO  OS  CM   opls   21.4388    0.0000  -21.4388    0.0000
 OS  CO  OS  CM   opls   -6.4580    0.8096    5.6819   -0.0335
 CO  OS  CM  CM   opls    5.2300    7.3220  -12.5520    0.0000
@@ -143,6 +167,22 @@ CO  OS  CM  HC   opls    1.5899    4.7698   0.00000   -6.3597
 OS  CM  CM  OS   opls   58.5760    0.0000  -58.5760    0.0000
 OS  CM  CM  HC   opls   58.5760    0.0000  -58.5760    0.0000
 HC  CM  CM  HC   opls   58.5760    0.0000  -58.5760    0.0000
+# amides, DMF, NMP
+CT  N   CO  OC   opls   25.4764    0.0000  -25.4764    0.0000
+CT  N   CO  CT   opls   30.2880   -4.8116  -25.4764    0.0000
+CT  N   CO  HC   opls   30.2880   -4.8116  -25.4764    0.0000
+CO  N   CT  CT   opls   -4.7070    2.9204    1.7866    0.0000
+CO  N   CT  HC   opls   -0.2908   -0.8724    0.0000    1.1632
+CT  N   CT  HC   opls    0.0000    0.0000    0.0000    0.0000
+CT  CT  N   CT   opls   -8.9768  -76.6864   -8.6107   94.2739
+CT  CT  CO  N    opls    4.8325   -7.6525    1.6820    1.1380
+CT  CT  CO  OC   opls    4.8785    0.0000   -4.8785    0.0000
+HC  CT  CO  N    opls    0.0000    0.0000    0.0000    0.0000
+HC  CT  CO  OC   opls    0.0000    0.0000    0.0000    0.0000
+CT  CT  CT  N    opls    5.4873    0.0272    0.0000   -5.5145
+HC  CT  CT  N    opls    0.9707    2.9121    0.0000   -3.8827
+CO  CT  CT  CT   opls   -4.9601    6.2865    1.3096   -2.6359
+CO  CT  CT  HC   opls   -0.2092   -0.6276    0.0000    0.8368
 
 IMPROPER
 # improper aromatics AMBER JACS 117(1995)5179
