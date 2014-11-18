@@ -47,15 +47,19 @@ molecules, ions or materials.
     empy line, then the z-matrix. See the `examples` directory and the
     Wikipedia entry for "Z-matrix (chemistry)". Variables can be used
     for distances, angles and dihedrals. Connectivity is inferred from
-    the z-matrix. Cyclic molecules require additional `connect`
-    records to close rings. Improper dihedrals must be indicated by
-    additional `improper` records. After the z-matrix the name of a
-    file with force field parameters can be supplied.
+    the z-matrix by default. In this case cyclic molecules require
+    additional `connect` records to close rings. If a `reconnect`
+    record is present, then connectivity is guessed based on bond
+    distances from the force field. Improper dihedrals must be
+    indicated by additional `improper` records. After the z-matrix the
+    name of a file with force field parameters can be supplied.
 
     A MDL `.mol` file contains a table with coordinates and also
-    bonds. The name of a file with force field parameters can be
-    given in the first line after the molecule name, or in the third
-    line.
+    bonds. The name of a file with force field parameters can be given
+    in the first line after the molecule name, or in the third
+    line. If the keyword `reconnect` is present after the force field
+    filename, then connectivity is guessed based on bond distances
+    from the force field.
 
     A `.xyz` file contains atomic coordinates only. The name of a file
     with force field parameters can be given in the second line after

@@ -393,11 +393,14 @@ class zmat:
                         
             # read connects, improper, force field file
             self.ff = ''
+            self.reconnect = False
             while line:
                 if line.strip().startswith('#') or line.strip() == '':
                     line = f.readline()
                     continue
                 tok = line.strip().split()
+                if tok[0] == 'reconnect':
+                    self.reconnect = True
                 if tok[0] == 'connect':
                     atomi = int(tok[1])
                     atomj = int(tok[2])
@@ -445,7 +448,7 @@ class zmat:
 class mol:
     '''molecule'''
 
-    def __init__(self, filename, calcbonds = True):
+    def __init__(self, filename, connect = True):
         self.atom = []
         self.bond = []
         self.angle = []
@@ -458,11 +461,11 @@ class mol:
                 self.filename = filename
             ext = filename.split('.')[-1].strip().lower()
             if ext == 'zmat':
-                self.fromzmat(filename)
+                self.fromzmat(filename, connect)
             elif ext == 'mol':
-                self.frommdlmol(filename)
+                self.frommdlmol(filename, connect)
             elif ext == 'xyz':
-                self.fromxyz(filename, calcbonds)
+                self.fromxyz(filename, connect)
         except IOError:
             self.filename = ''
             self.name = filename
@@ -479,19 +482,23 @@ class mol:
             q += at.q
         return q
 
-    def fromzmat(self, filename):
+    def fromzmat(self, filename, connect):
         z = zmat(filename)
         self.name = z.name
+        self.reconnect = z.reconnect
         self.ff = z.ff
         for zat in z.zatom:
             self.atom.append(atom(zat['name']))
             self.m += atomic_weight(zat['name'])
         self.zmat2cart(z)
-        if self.ff:                      # topology only if ff defined
-            for i in range(1, len(z.zatom)):
-                self.bond.append(bond(i, z.zatom[i]['ir'] - 1))
-            for cn in z.connect:
-                self.bond.append(bond(cn[0] - 1, cn[1] - 1))
+        if connect and self.ff:          # topology only if ff defined
+            if not self.reconnect:
+                for i in range(1, len(z.zatom)):
+                    self.bond.append(bond(i, z.zatom[i]['ir'] - 1))
+                for cn in z.connect:
+                    self.bond.append(bond(cn[0] - 1, cn[1] - 1))
+            else:
+                self.connectivity()
             self.anglesdiheds()
             for di in z.improper:                 
                 self.dimpr.append(dihed(di[0]-1, di[1]-1, di[2]-1, di[3]-1))
@@ -612,18 +619,26 @@ class mol:
             self.atom[i].z = vA.z
         return self
     
-    def frommdlmol(self, filename):
+    def frommdlmol(self, filename, connect):
         with open(filename, 'r') as f:
             tok = f.readline().strip().split()
             self.name = tok[0]            # molecule name
+            self.reconnect = False
             if len(tok) > 1:              # and eventually ff file
-                self.ff = tok[-1]
+                self.ff = tok[1]
+                if len(tok) > 2:
+                    if tok[2].startswith('rec'):
+                        self.reconnect = True
             else:
                 self.ff = ''
             f.readline()                  # program/date info
             line = f.readline().strip()   # comment (eventually ff file)
             if line and not line.startswith('#') and not self.ff:
-                self.ff = line.split()[0]
+                tok = line.split()
+                self.ff = tok[0]
+                if len(tok) > 1:
+                    if tok[1].startswith('rec'):
+                        self.reconnect = True
             line = f.readline()           # counts line
             natoms = int(line[0:3])
             nbonds = int(line[3:6])
@@ -634,17 +649,20 @@ class mol:
                 self.atom[i].x = float(tok[0])
                 self.atom[i].y = float(tok[1])
                 self.atom[i].z = float(tok[2])
-            if self.ff:                  # topology only if ff defined
-                self.bond = [None] * nbonds
-                for k in range(nbonds):
-                    line = f.readline()
-                    i = int(line[0:3]) - 1
-                    j = int(line[3:6]) - 1
-                    self.bond[k] = bond(i, j)
+            if connect and self.ff:      # topology only if ff defined
+                if not self.reconnect:
+                    self.bond = [None] * nbonds
+                    for k in range(nbonds):
+                        line = f.readline()
+                        i = int(line[0:3]) - 1
+                        j = int(line[3:6]) - 1
+                        self.bond[k] = bond(i, j)
+                else:
+                    self.connectivity()
                 self.anglesdiheds()
         return self
                                 
-    def fromxyz(self, filename, calcbonds = True):
+    def fromxyz(self, filename, connect = False):
         with open(filename, 'r') as f:
             natoms = int(f.readline().strip())
             self.atom = [None] * natoms
@@ -660,7 +678,7 @@ class mol:
                 self.atom[i].x = float(tok[1])
                 self.atom[i].y = float(tok[2])
                 self.atom[i].z = float(tok[3])
-        if calcbonds and self.ff:
+        if connect and self.ff:
             self.connectivity()
             self.anglesdiheds()
         return self
@@ -668,6 +686,7 @@ class mol:
     def connectivity(self):    
         '''determine connectivity from force field bond distances'''
 
+        print '    guessing connectivity'
         ff = forcefield(self.ff)
         error = False
         for at in self.atom:
@@ -1557,7 +1576,7 @@ def main():
         'Then rerun with option to create input files for MD simulation. '\
         'The name of a file with force field parameters can be supplied: '\
         'i) at the end of the .zmat file, '\
-        'ii) in the 3rd line of the .mol file, '\
+        'ii) in the 3rd line of the .mol file (or in the 1st after the molecule name, '\
         'iii) in the 2nd line of the .xyz file after the molecule name.')
     parser.add_argument('-r', '--rho', type=float, default = 0.0,
                         help = 'density in mol/L')
@@ -1598,13 +1617,13 @@ def main():
     if not args.quiet:
         print 'atomic coordinates and force field'
     if args.lammps or args.dlpoly:
-        calcbonds = True
+        connect = True
     else:
-        calcbonds = False
+        connect = False
     for zfile in files:
         if not args.quiet:
             print '  ' + zfile
-        m.append(mol(zfile, calcbonds))
+        m.append(mol(zfile, connect))
         m[i].nmols = int(nmols[i])
         nmol += m[i].nmols
         m[i].writexyz()
