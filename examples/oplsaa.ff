@@ -1,4 +1,4 @@
-# oplsaa.ff (kJ/mol, A, deg) version 2014/04/12
+# oplsaa.ff (kJ/mol, A, deg) version 2014/12/18
 
 ATOMS
 #   type  m/uma    q/e    pot   pars
@@ -136,9 +136,9 @@ CO  CT  HC   harm   109.5   292.9
 DIHEDRALS
 # i j   k   l    pot     v1        v2        v3        v4
 # alkanes JACS 118(1996)11225 ; JPC 100(1996)18010 
-HC  CT  CT  HC   opls    0.0000    0.0000    1.3305    0.0000
-HC  CT  CT  CT   opls    0.0000    0.0000    1.5313    0.0000
-CT  CT  CT  CT   opls    7.2800   -0.6569    1.1673    0.0000
+HC  CT  CT  HC   opls    0.0000    0.0000    1.2552    0.0000
+HC  CT  CT  CT   opls    0.0000    0.0000    1.2552    0.0000
+CT  CT  CT  CT   opls    5.4392   -0.2092    0.8368    0.0000
 # alcohols JACS 118(1996)11225, AMBER98 (OCCO) 117(1995)5179
 HC  CT  OH  HO   opls    0.0000    0.0000    1.8828    0.0000
 CT  CT  OH  HO   opls   -1.4895   -0.7280    2.0585    0.0000
