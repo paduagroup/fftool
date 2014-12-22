@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2014/05/21
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2014/12/22
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio A.H. Padua
@@ -1254,7 +1254,7 @@ class system:
             fi.write('# read_restart restart.*.lmp\n')
             fi.write('# reset_timestep 0\n\n')
 
-            fi.write('pair_style hybrid lj/cut/coul/long 10.0 10.0\n')
+            fi.write('pair_style hybrid lj/cut/coul/long 12.0 12.0\n')
             if not allpairs:
                 if (mix == 'g'):
                     fi.write('pair_modify mix geometric tail yes\n')
