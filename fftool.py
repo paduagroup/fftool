@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2014/12/22
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/01/08
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio A.H. Padua
@@ -20,7 +20,8 @@
 
 import sys, argparse, math
 
-kcal = 4.184                            # kJ
+kcal =  4.184                           # kJ
+eV   = 96.485                           # kJ
 
 # --------------------------------------
 
@@ -684,7 +685,7 @@ class mol:
         return self
 
     def connectivity(self):    
-        '''determine connectivity from force field bond distances'''
+        '''determine connectivity from bond distances in force field'''
 
         print '    guessing connectivity'
         ff = forcefield(self.ff)
@@ -1183,6 +1184,10 @@ class system:
         self.boxy = boxy
         self.boxz = boxz
         self.boxtol = boxtol
+        if boxtol != 0.0:
+            self.centerbox = True
+        else:
+            self.centerbox = False
         
     def writepackmol(self, packfile, boxfile, tol = 2.0):
         with open(packfile, 'w') as f:
@@ -1194,9 +1199,13 @@ class system:
                 xyzfile = (m.filename).rsplit('.', 1)[0] + '_pack.xyz'
                 f.write('\nstructure %s\n' % xyzfile)
                 f.write('  number %s\n' % m.nmols)
-                f.write('  inside box %.1f %.1f %.1f %.1f %.1f %.1f\n' % \
-                        (-self.boxx/2., -self.boxy/2., -self.boxz/2.,
-                         self.boxx/2., self.boxy/2., self.boxz/2.))
+                if self.centerbox:
+                    f.write('  inside box %.1f %.1f %.1f %.1f %.1f %.1f\n' % \
+                            (-self.boxx/2.0, -self.boxy/2.0, -self.boxz/2.0,
+                            self.boxx/2.0, self.boxy/2.0, self.boxz/2.0))
+                else:
+                    f.write('  inside box %.1f %.1f %.1f %.1f %.1f %.1f\n' % \
+                            (0.0, 0.0, 0.0, self.boxx, self.boxy, self.boxz))
                 f.write('end structure\n')
 
     def readsimbox(self, filename):
@@ -1208,27 +1217,17 @@ class system:
                 self.z = [0.0] * self.natoms
                 tok = f.readline().strip().split()
                 self.title = tok[0]
-                if len(tok) >= 5:
-                    self.setbox(float(tok[-3]), float(tok[-2]), flat(tok[-1]))
-                    boxflag = True
-                else:
-                    boxflag = False
                 for i in range(self.natoms):
                     tok = f.readline().strip().split()
                     self.x[i] = float(tok[1])
                     self.y[i] = float(tok[2])
                     self.z[i] = float(tok[3])
-                self.boxtol = 2.0
-                if boxflag:
-                    for i in range(self.natoms):
-                        self.x[i] -= self.boxx / 2.0
-                        self.y[i] -= self.boxy / 2.0
-                        self.z[i] -= self.boxz / 2.0
         except IOError:
             print 'cannot open', filename
             sys.exit(1)
+        
 
-    def writelmp(self, mix = 'g', allpairs = False):
+    def writelmp(self, mix = 'g', allpairs = False, units = 'r'):
         natoms = nbonds = nangles = ndiheds = 0
         for m in self.mol:
             natoms += m.nmols * len(m.atom)
@@ -1238,7 +1237,16 @@ class system:
         
         with open('in.lmp', 'w') as fi:
             fi.write('# created by fftool\n\n')
-            fi.write('units real\n')
+            if units == 'r':
+                fi.write('units real\n')
+                ecnv = kcal
+            elif units == 'm':
+                fi.write('units metal\n')
+                ecnv = eV
+            else:
+                print 'unknown units for lammps files'
+                sys.exit(1)
+                
             fi.write('boundary p p p\n\n')
 
             fi.write('atom_style full\n')
@@ -1262,19 +1270,18 @@ class system:
                     fi.write('pair_modify mix arithmetic tail yes\n')
                 fi.write('kspace_style pppm 1.0e-4\n\n')
                 for att in self.attype:
-                    fi.write('pair_coeff %4d %4d  %s  %8.4f %8.4f  '\
+                    fi.write('pair_coeff %4d %4d %s %12.6f %12.6f  '\
                              '# %s %s\n' % \
                              (att.ityp + 1, att.ityp + 1, 'lj/cut/coul/long',
-                              att.par[1] / kcal, att.par[0],
-                             att.name, att.name))
+                             att.par[1] / ecnv, att.par[0], att.name, att.name))
             else:
                 fi.write('pair_modify tail yes\n')
                 fi.write('kspace_style pppm 1.0e-4\n\n')
                 for nb in self.vdw:
-                    fi.write('pair_coeff %4d %4d  %s  %8.4f %8.4f  '\
+                    fi.write('pair_coeff %4d %4d %s %12.6f %12.6f  '\
                              '# %s %s\n' % \
                              (nb.ityp + 1, nb.jtyp + 1, 'lj/cut/coul/long',
-                              nb.par[1] / kcal, nb.par[0], nb.i, nb.j))
+                              nb.par[1] / ecnv, nb.par[0], nb.i, nb.j))
             fi.write('\n')
 
             fi.write('variable nsteps equal 10000\n')
@@ -1287,12 +1294,12 @@ class system:
 
             fi.write('neighbor 2.0 bin\n\n')
 
-            fi.write('timestep 1.0\n\n')
-
+            if units == 'r':
+                fi.write('timestep 1.0\n\n')
+            elif units == 'm':
+                fi.write('timestep 0.001\n\n')
+                
             fi.write('velocity all create ${temp} 12345\n\n')            
-
-            fi.write('thermo_style multi\n')
-            fi.write('thermo ${nprint}\n\n')
 
             shakebd = shakean = False
             for bdt in self.bdtype:
@@ -1334,6 +1341,9 @@ class system:
                 fi.write(' %s' % atomic_symbol(att.name))
             fi.write('\n\n')
 
+            fi.write('thermo_style multi\n')
+            fi.write('thermo ${nprint}\n\n')
+
             fi.write('# restart ${nrestart} restart.*.lmp\n\n')
 
             fi.write('run ${nsteps}\n\n')
@@ -1361,14 +1371,22 @@ class system:
                 ndht = len(self.dhtype)     # needed later
                 fd.write('%d dihedral types\n' % (ndht + len(self.ditype)))
             fd.write('\n')
-            
-            boxx = self.boxx/2. + self.boxtol
-            boxy = self.boxy/2. + self.boxtol
-            boxz = self.boxz/2. + self.boxtol
-            fd.write('%f %f xlo xhi\n' % (-boxx, boxx))
-            fd.write('%f %f ylo yhi\n' % (-boxy, boxy))
-            fd.write('%f %f zlo zhi\n' % (-boxz, boxz))
 
+            if self.centerbox:            
+                boxx = (self.boxx + self.boxtol) / 2.0
+                boxy = (self.boxy + self.boxtol) / 2.0
+                boxz = (self.boxz + self.boxtol) / 2.0
+                fd.write('%12.6f %12.6f xlo xhi\n' % (-boxx, boxx))
+                fd.write('%12.6f %12.6f ylo yhi\n' % (-boxy, boxy))
+                fd.write('%12.6f %12.6f zlo zhi\n' % (-boxz, boxz))
+            else:
+                fd.write('%12.6f %12.6f xlo xhi\n' %
+                         (0.0, self.boxx + self.boxtol))
+                fd.write('%12.6f %12.6f ylo yhi\n' %
+                         (0.0, self.boxy + self.boxtol))
+                fd.write('%12.6f %12.6f zlo zhi\n' %
+                         (0.0, self.boxz + self.boxtol))
+                
             fd.write('\nMasses\n\n')
             for att in self.attype:
                 fd.write('%4d %8.3f  # %s\n' % (att.ityp + 1, att.m, att.name))
@@ -1376,29 +1394,29 @@ class system:
             if nbonds:
                 fd.write('\nBond Coeffs\n\n')
                 for bdt in self.bdtype:
-                    fd.write('%4d %7.1f %6.3f  # %s\n' % \
-                             (bdt.ityp + 1, bdt.par[1] / (2.0 * kcal),
+                    fd.write('%4d %12.6f %12.6f  # %s\n' % \
+                             (bdt.ityp + 1, bdt.par[1] / (2.0 * ecnv),
                               bdt.par[0], bdt.name))
 
             if nangles:
                 fd.write('\nAngle Coeffs\n\n')
                 for ant in self.antype:
-                    fd.write('%4d %7.2f %7.2f  # %s\n' % \
-                             (ant.ityp + 1, ant.par[1] / (2.0 * kcal),
+                    fd.write('%4d %12.6f %12.6f  # %s\n' % \
+                             (ant.ityp + 1, ant.par[1] / (2.0 * ecnv),
                               ant.par[0], ant.name))
 
             if ndiheds:
                 fd.write('\nDihedral Coeffs\n\n')
                 for dht in self.dhtype:
-                    fd.write('%4d %9.4f %9.4f %9.4f %9.4f  # %s\n' % \
+                    fd.write('%4d %12.6f %12.6f %12.6f %12.6f  # %s\n' % \
                              (dht.ityp + 1,
-                              dht.par[0] / kcal, dht.par[1] / kcal,
-                              dht.par[2] / kcal, dht.par[3] / kcal, dht.name))
+                              dht.par[0] / ecnv, dht.par[1] / ecnv,
+                              dht.par[2] / ecnv, dht.par[3] / ecnv, dht.name))
                 for dit in self.ditype:
-                    fd.write('%4d %9.4f %9.4f %9.4f %9.4f  # %s\n' % \
+                    fd.write('%4d %12.6f %12.6f %12.6f %12.6f  # %s\n' % \
                              (ndht + dit.ityp + 1,
-                              dit.par[0] / kcal, dit.par[1] / kcal,
-                              dit.par[2] / kcal, dit.par[3] / kcal, dit.name))
+                              dit.par[0] / ecnv, dit.par[1] / ecnv,
+                              dit.par[2] / ecnv, dit.par[3] / ecnv, dit.name))
 
             fd.write('\nAtoms\n\n')
             i = nmol = 0
@@ -1555,13 +1573,19 @@ class system:
                          (0.0, self.boxy + self.boxtol, 0.0))
                 fc.write(' %19.9f %19.9f %19.9f\n' % \
                          (0.0, 0.0, self.boxz + self.boxtol))
+
+                # for dlpoly origin of coordinates is center of cell
+                boxx = (self.boxx + self.boxtol) / 2.0
+                boxy = (self.boxy + self.boxtol) / 2.0
+                boxz = (self.boxz + self.boxtol) / 2.0
                 i = 0
                 for m in self.mol:
                     for im in range(m.nmols):
                         for at in m.atom:
                             fc.write('%-8s %9d\n' % (at.name, i + 1))
                             fc.write(' %19.9f %19.9f %19.9f\n' % \
-                                    (self.x[i], self.y[i], self.z[i]))
+                                    (self.x[i] - boxx, self.y[i] - boxy,
+                                     self.z[i] - boxz))
                             i += 1
 
 
@@ -1593,6 +1617,8 @@ def main():
                         '(needs simbox.xyz built using packmol)')
     parser.add_argument('-a', '--allpairs', action = 'store_true', 
                         help = 'write all I J pairs to lammps input files.')
+    parser.add_argument('-u', '--units', default = 'r',
+                        help = 'lammps units [r]eal or [m]etal (default: r)')
     parser.add_argument('-d', '--dlpoly', action = 'store_true',
                         help = 'save in dlpoly format '\
                         '(needs simbox.xyz built using packmol)')
@@ -1640,15 +1666,16 @@ def main():
         tok = args.box.split(',')
         if len(tok) == 1:
             boxlen = float(tok[0])
-            s.setbox(boxlen, boxlen, boxlen)
+            s.setbox(boxlen, boxlen, boxlen, boxtol = 2.0)
         elif len(tok) == 3:
-            s.setbox(float(tok[0]), float(tok[1]), float(tok[2]))
+            s.setbox(float(tok[0]), float(tok[1]), float(tok[2]),
+                     boxtol = 0.0)
         else:
             print 'packmol file\n  not created: wrong box length'
             sys.exit(1)
     elif args.rho != 0.0:
         boxlen = math.pow(nmol / (args.rho * 6.022e+23 * 1.0e-27), 1./3.)
-        s.setbox(boxlen, boxlen, boxlen)
+        s.setbox(boxlen, boxlen, boxlen, boxtol = 2.0)
     else:
         print 'packmol file\n  not created: supply density or box length'
         sys.exit(1)
@@ -1657,7 +1684,7 @@ def main():
         s.readsimbox('simbox.xyz')
         if not args.quiet:
             print 'lammps files\n  in.lmp\n  data.lmp'
-        s.writelmp(args.mix, args.allpairs)
+        s.writelmp(args.mix, args.allpairs, args.units)
     elif args.dlpoly:
         s.readsimbox('simbox.xyz')
         if not args.quiet:
