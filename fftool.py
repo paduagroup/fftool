@@ -145,13 +145,42 @@ class atom:
         self.par = par
 
 
-def dist2atoms(ati, atj):
-    vij = vector(atj.x - ati.x, atj.y - ati.y, atj.z - ati.z)
-    return abs(vij)
+def dist2atoms(ati, atj, box = None):
+    dx = atj.x - ati.x
+    dy = atj.y - ati.y
+    dz = atj.z - ati.z
+    if isinstance(box, cell):
+        if 'x' in box.pbc:
+            dx = math.round(dx / box.a) * box.a
+        if 'y' in box.pbc:
+            dy = math.round(dy / box.b) * box.b
+        if 'z' in box.pbc:
+            dz = math.round(dz / box.c) * box.c
+    return abs(vector(dx, dy, dz))
 
-def angle3atoms(ati, atj, atk):
-    vji = vector(ati.x - atj.x, ati.y - atj.y, ati.z - atj.z)
-    vjk = vector(atk.x - atj.x, atk.y - atj.y, atk.z - atj.z)
+
+def angle3atoms(ati, atj, atk, box = None):
+    djix = ati.x - atj.x
+    djiy = ati.y - atj.y
+    djiz = ati.z - atj.z
+
+    djkx = atk.x - atj.x
+    djky = atk.y - atj.y
+    djkz = atk.z - atj.z
+
+    if isinstance(box, cell):
+        if 'x' in box.pbc:
+            djix = math.round(djix / box.a) * box.a
+            djkx = math.round(djkx / box.a) * box.a
+        if 'y' in box.pbc:
+            djiy = math.round(djiy / box.b) * box.b
+            djky = math.round(djky / box.b) * box.b
+        if 'z' in box.pbc:
+            djiz = math.round(djiz / box.c) * box.c
+            djkz = math.round(djkz / box.c) * box.c
+
+    vji = vector(djix, djiy, djiz)
+    vjk = vector(djkx, djky, djkz)
     return math.acos((vji * vjk) / (abs(vji) * abs(vjk))) * 180.0 / math.pi
 
 
@@ -684,7 +713,7 @@ class mol:
             self.anglesdiheds()
         return self
 
-    def connectivity(self):    
+    def connectivity(self, box = None):    
         '''determine connectivity from bond distances in force field'''
 
         print '    guessing connectivity'
@@ -706,7 +735,7 @@ class mol:
         natoms = len(self.atom)
         for i in range(0, natoms-1):
             for j in range(i+1, natoms):
-                r = dist2atoms(self.atom[i], self.atom[j])
+                r = dist2atoms(self.atom[i], self.atom[j], box)
                 bdname = '%s-%s' % (self.atom[i].type, self.atom[j].type)
                 for ffbd in ff.bond:
                     namestr = '%s-%s' % (ffbd.iatp, ffbd.jatp)
@@ -1104,6 +1133,27 @@ class vdw:
 
 # --------------------------------------
 
+
+class cell:
+    '''Simulation cell/box'''
+
+    def __init__(self, a, b, c, pbc = '', tol = 0.0, center = False):
+        self.a = a
+        self.b = b
+        self.c = c
+        self.pbc = pbc                    # 'x', 'xy', 'xyz', etc.
+        if self.pbc:
+            self.tol = 0.0
+        else:
+            self.tol = tol
+        self.center = center
+
+    def volume(self):
+        return self.a * self.b * self.c
+
+
+# --------------------------------------
+
     
 class system:
     '''Molecular system to be simulated'''
@@ -1179,33 +1229,23 @@ class system:
         for nb in self.vdw:
             print nb
 
-    def setbox(self, boxx, boxy, boxz, boxtol = 0.0):
-        self.boxx = boxx
-        self.boxy = boxy
-        self.boxz = boxz
-        self.boxtol = boxtol
-        if boxtol != 0.0:
-            self.centerbox = True
-        else:
-            self.centerbox = False
-        
-    def writepackmol(self, packfile, boxfile, tol = 2.0):
+    def writepackmol(self, packfile, outfile, tol = 2.5):
         with open(packfile, 'w') as f:
             f.write('# created by fftool\n')
             f.write('tolerance %3.1f\n' % tol)
             f.write('filetype xyz\n')
-            f.write('output %s\n' % boxfile)
+            f.write('output %s\n' % outfile)
             for m in self.mol:
                 xyzfile = (m.filename).rsplit('.', 1)[0] + '_pack.xyz'
                 f.write('\nstructure %s\n' % xyzfile)
                 f.write('  number %s\n' % m.nmols)
-                if self.centerbox:
+                if self.box.center:
                     f.write('  inside box %.1f %.1f %.1f %.1f %.1f %.1f\n' % \
-                            (-self.boxx/2.0, -self.boxy/2.0, -self.boxz/2.0,
-                            self.boxx/2.0, self.boxy/2.0, self.boxz/2.0))
+                            (-self.box.a/2.0, -self.box.b/2.0, -self.box.c/2.0,
+                            self.box.a/2.0, self.box.b/2.0, self.box.c/2.0))
                 else:
                     f.write('  inside box %.1f %.1f %.1f %.1f %.1f %.1f\n' % \
-                            (0.0, 0.0, 0.0, self.boxx, self.boxy, self.boxz))
+                            (0.0, 0.0, 0.0, self.box.a, self.box.b, self.box.c))
                 f.write('end structure\n')
 
     def readsimbox(self, filename):
@@ -1372,21 +1412,21 @@ class system:
                 fd.write('%d dihedral types\n' % (ndht + len(self.ditype)))
             fd.write('\n')
 
-            if self.centerbox:            
-                boxx = (self.boxx + self.boxtol) / 2.0
-                boxy = (self.boxy + self.boxtol) / 2.0
-                boxz = (self.boxz + self.boxtol) / 2.0
+            if self.box.center:            
+                boxx = (self.box.a + self.box.tol) / 2.0
+                boxy = (self.box.b + self.box.tol) / 2.0
+                boxz = (self.box.c + self.box.tol) / 2.0
                 fd.write('%12.6f %12.6f xlo xhi\n' % (-boxx, boxx))
                 fd.write('%12.6f %12.6f ylo yhi\n' % (-boxy, boxy))
                 fd.write('%12.6f %12.6f zlo zhi\n' % (-boxz, boxz))
             else:
                 fd.write('%12.6f %12.6f xlo xhi\n' %
-                         (0.0, self.boxx + self.boxtol))
+                         (0.0, self.box.a + self.box.tol))
                 fd.write('%12.6f %12.6f ylo yhi\n' %
-                         (0.0, self.boxy + self.boxtol))
+                         (0.0, self.box.b + self.box.tol))
                 fd.write('%12.6f %12.6f zlo zhi\n' %
-                         (0.0, self.boxz + self.boxtol))
-                
+                         (0.0, self.box.c + self.box.tol))
+            
             fd.write('\nMasses\n\n')
             for att in self.attype:
                 fd.write('%4d %8.3f  # %s\n' % (att.ityp + 1, att.m, att.name))
@@ -1559,25 +1599,25 @@ class system:
 
             with open('CONFIG', 'w') as fc:
                 fc.write('created by fftool\n')
-                if self.boxx == self.boxy and self.boxy == self.boxz:
+                if self.box.a == self.box.b and self.box.b == self.box.c:
                     imcon = 1
-                elif self.boxx == self.boxy or self.boxy == self.boxz or \
-                   self.boxz == self.boxx:
+                elif self.box.a == self.box.b or self.box.b == self.box.c or \
+                   self.box.c == self.box.a:
                     imcon = 2
                 else:
                     imcon = 3
                 fc.write(' %9d %9d %9d\n' % (0, imcon, self.natoms))
                 fc.write(' %19.9f %19.9f %19.9f\n' % \
-                         (self.boxx + self.boxtol, 0.0, 0.0))
+                         (self.box.a + self.box.tol, 0.0, 0.0))
                 fc.write(' %19.9f %19.9f %19.9f\n' % \
-                         (0.0, self.boxy + self.boxtol, 0.0))
+                         (0.0, self.box.b + self.box.tol, 0.0))
                 fc.write(' %19.9f %19.9f %19.9f\n' % \
-                         (0.0, 0.0, self.boxz + self.boxtol))
+                         (0.0, 0.0, self.box.c + self.box.tol))
 
                 # for dlpoly origin of coordinates is center of cell
-                boxx = (self.boxx + self.boxtol) / 2.0
-                boxy = (self.boxy + self.boxtol) / 2.0
-                boxz = (self.boxz + self.boxtol) / 2.0
+                boxx = (self.box.a + self.box.tol) / 2.0
+                boxy = (self.box.b + self.box.tol) / 2.0
+                boxz = (self.box.c + self.box.tol) / 2.0
                 i = 0
                 for m in self.mol:
                     for im in range(m.nmols):
@@ -1605,9 +1645,8 @@ def main():
     parser.add_argument('-r', '--rho', type=float, default = 0.0,
                         help = 'density in mol/L')
     parser.add_argument('-b', '--box', default = '',
-                        help = 'box length in A (cubic, or else specify '\
-                        'lx,ly,lz)')
-    parser.add_argument('-t', '--tol', type=float, default = 2.0,
+                        help = 'box length in A (cubic, or else specify a,b,c)')
+    parser.add_argument('-t', '--tol', type=float, default = 2.5,
                         help = 'tolerance for packmol (default 2.0)')
     parser.add_argument('-x', '--mix', default = 'g',
                         help = '[a]rithmetic or [g]eometric sigma_ij '\
@@ -1619,6 +1658,9 @@ def main():
                         help = 'write all I J pairs to lammps input files.')
     parser.add_argument('-u', '--units', default = 'r',
                         help = 'lammps units [r]eal or [m]etal (default: r)')
+    parser.add_argument('-p', '--pbc', default = '',
+                        help = 'connect bonds across periodic boundaries in '\
+                        'x, xy, xyz, etc. (default: none)')
     parser.add_argument('-d', '--dlpoly', action = 'store_true',
                         help = 'save in dlpoly format '\
                         '(needs simbox.xyz built using packmol)')
@@ -1665,20 +1707,26 @@ def main():
     if args.box:
         tok = args.box.split(',')
         if len(tok) == 1:
-            boxlen = float(tok[0])
-            s.setbox(boxlen, boxlen, boxlen, boxtol = 2.0)
+            a = b = c = float(tok[0])
+            tol = 2.0
+            center = True
         elif len(tok) == 3:
-            s.setbox(float(tok[0]), float(tok[1]), float(tok[2]),
-                     boxtol = 0.0)
+            a = float(tok[0])
+            b = float(tok[1])
+            c = float(tok[2])
+            tol = 0.0
+            center = False
         else:
             print 'packmol file\n  not created: wrong box length'
             sys.exit(1)
     elif args.rho != 0.0:
-        boxlen = math.pow(nmol / (args.rho * 6.022e+23 * 1.0e-27), 1./3.)
-        s.setbox(boxlen, boxlen, boxlen, boxtol = 2.0)
+        a = b = c = math.pow(nmol / (args.rho * 6.022e+23 * 1.0e-27), 1./3.)
+        tol = 2.0
+        center = True
     else:
         print 'packmol file\n  not created: supply density or box length'
         sys.exit(1)
+    s.box = cell(a, b, c, args.pbc, tol, center)
     
     if args.lammps:
         s.readsimbox('simbox.xyz')
