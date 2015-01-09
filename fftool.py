@@ -1615,17 +1615,13 @@ class system:
                          (0.0, 0.0, self.box.c + self.box.tol))
 
                 # for dlpoly origin of coordinates is center of cell
-                boxx = (self.box.a + self.box.tol) / 2.0
-                boxy = (self.box.b + self.box.tol) / 2.0
-                boxz = (self.box.c + self.box.tol) / 2.0
                 i = 0
                 for m in self.mol:
                     for im in range(m.nmols):
                         for at in m.atom:
                             fc.write('%-8s %9d\n' % (at.name, i + 1))
                             fc.write(' %19.9f %19.9f %19.9f\n' % \
-                                    (self.x[i] - boxx, self.y[i] - boxy,
-                                     self.z[i] - boxz))
+                                    (self.x[i], self.y[i], self.z[i]))
                             i += 1
 
 
