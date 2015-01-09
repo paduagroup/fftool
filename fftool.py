@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys, argparse, math
+from copy import deepcopy
 
 kcal =  4.184                           # kJ
 eV   = 96.485                           # kJ
@@ -485,6 +486,8 @@ class mol:
         self.dihed = []
         self.dimpr = []
         self.m = 0
+        self.nmol = 0
+        self.topol = 'none'
         
         try:
             with open(filename, 'r'):
@@ -527,34 +530,36 @@ class mol:
                     self.bond.append(bond(i, z.zatom[i]['ir'] - 1))
                 for cn in z.connect:
                     self.bond.append(bond(cn[0] - 1, cn[1] - 1))
+                self.topol = 'file'
             else:
                 self.connectivity()
+                self.topol = 'guess'
             self.anglesdiheds()
             for di in z.improper:                 
                 self.dimpr.append(dihed(di[0]-1, di[1]-1, di[2]-1, di[3]-1))
         return self
     
     def zmat2cart(self, z):
-        natoms = len(self.atom)    
-        if natoms != len(z.zatom):
-            print 'error: different values of natoms in zmat', self.name
+        natom = len(self.atom)    
+        if natom != len(z.zatom):
+            print 'error: different numbers of atoms in zmat', self.name
             sys.exit(1)
 
-        if natoms == 0:
+        if natom == 0:
             return self
 
         # first atom at origin
         self.atom[0].x = 0.0
         self.atom[0].y = 0.0
         self.atom[0].z = 0.0
-        if natoms == 1:
+        if natom == 1:
             return self
 
         # second atom at distance r from first along xx
         self.atom[1].x = z.zatom[1]['r']
         self.atom[1].y = 0.0
         self.atom[1].z = 0.0
-        if natoms == 2:
+        if natom == 2:
             return self
 
         # third atom at distance r from ir forms angle a 3-ir-ia in plane xy
@@ -582,12 +587,12 @@ class mol:
         self.atom[2].x = self.atom[ir].x + r * math.cos(ang)
         self.atom[2].y = self.atom[ir].y + r * math.sin(ang)
         self.atom[2].z = 0.0
-        if natoms == 3:
+        if natom == 3:
             return self
         
         # nth atom at distance r from atom ir forms angle a at 3-ir-ia
         # and dihedral angle between planes 3-ir-ia and ir-ia-id
-        for i in range(3, natoms):
+        for i in range(3, natom):
             r = z.zatom[i]['r']
             ir = z.zatom[i]['ir'] - 1
             ang = z.zatom[i]['a'] * math.pi / 180.0
@@ -670,10 +675,10 @@ class mol:
                     if tok[1].startswith('rec'):
                         self.reconnect = True
             line = f.readline()           # counts line
-            natoms = int(line[0:3])
-            nbonds = int(line[3:6])
-            self.atom = [None] * natoms
-            for i in range(natoms):
+            natom = int(line[0:3])
+            nbond = int(line[3:6])
+            self.atom = [None] * natom
+            for i in range(natom):
                 tok = f.readline().strip().split()
                 self.atom[i] = atom(tok[3])
                 self.atom[i].x = float(tok[0])
@@ -681,28 +686,30 @@ class mol:
                 self.atom[i].z = float(tok[2])
             if connect and self.ff:      # topology only if ff defined
                 if not self.reconnect:
-                    self.bond = [None] * nbonds
-                    for k in range(nbonds):
+                    self.bond = [None] * nbond
+                    for k in range(nbond):
                         line = f.readline()
                         i = int(line[0:3]) - 1
                         j = int(line[3:6]) - 1
                         self.bond[k] = bond(i, j)
+                    self.topol = 'file'
                 else:
                     self.connectivity()
+                    self.topol = 'guess'
                 self.anglesdiheds()
         return self
                                 
     def fromxyz(self, filename, connect = False):
         with open(filename, 'r') as f:
-            natoms = int(f.readline().strip())
-            self.atom = [None] * natoms
+            natom = int(f.readline().strip())
+            self.atom = [None] * natom
             tok = f.readline().strip().split()
             self.name = tok[0]            # molecule name
             if len(tok) > 1:              # and eventually ff file
                 self.ff = tok[-1]
             else:
                 self.ff = ''
-            for i in range(natoms):
+            for i in range(natom):
                 tok = f.readline().strip().split()
                 self.atom[i] = atom(tok[0])
                 self.atom[i].x = float(tok[1])
@@ -711,12 +718,12 @@ class mol:
         if connect and self.ff:
             self.connectivity()
             self.anglesdiheds()
+            self.topol = 'guess'
         return self
 
     def connectivity(self, box = None):    
         '''determine connectivity from bond distances in force field'''
 
-        print '    guessing connectivity'
         ff = forcefield(self.ff)
         error = False
         for at in self.atom:
@@ -732,9 +739,9 @@ class mol:
         if error:
             sys.exit(1)
 
-        natoms = len(self.atom)
-        for i in range(0, natoms-1):
-            for j in range(i+1, natoms):
+        natom = len(self.atom)
+        for i in range(0, natom-1):
+            for j in range(i+1, natom):
                 r = dist2atoms(self.atom[i], self.atom[j], box)
                 bdname = '%s-%s' % (self.atom[i].type, self.atom[j].type)
                 for ffbd in ff.bond:
@@ -747,11 +754,11 @@ class mol:
     def anglesdiheds(self):
         '''identify angles and dihedrals based on bond connectivity'''
                  
-        natoms = len(self.atom)
-        nbonds = len(self.bond)
+        natom = len(self.atom)
+        nbond = len(self.bond)
 
         # identify valence angles
-        for i in range(natoms):  # find neighbour atoms to each atom i
+        for i in range(natom):  # find neighbour atoms to each atom i
             nb = 0
             neib = []
             for bd in self.bond:          
@@ -766,12 +773,12 @@ class mol:
                     self.angle.append(angle(neib[k], i, neib[l]))
 
         # identify dihedral angles
-        for k in range(nbonds): # find bonds around non-terminal bonds
-            for l in range(nbonds):
+        for k in range(nbond): # find bonds around non-terminal bonds
+            for l in range(nbond):
                 if k == l:
                     continue
                 if self.bond[k].i == self.bond[l].i:
-                    for j in range(nbonds):
+                    for j in range(nbond):
                         if j == k or j == l:
                             continue
                         if self.bond[k].j == self.bond[j].i:
@@ -785,7 +792,7 @@ class mol:
                                                     self.bond[k].j,
                                                     self.bond[j].i))
                 elif self.bond[k].i == self.bond[l].j:
-                    for j in range(nbonds):
+                    for j in range(nbond):
                         if j == k or j == l:
                             continue
                         if self.bond[k].j == self.bond[j].i:
@@ -940,7 +947,7 @@ class mol:
                 print '    improper type ' + s
 
     def show(self):
-        print '%s: %d molecules' % (self.name, self.nmols)
+        print '%s: %d molecules' % (self.name, self.nmol)
         print '%d atoms' % len(self.atom)
         for at in self.atom:
             print at
@@ -1158,22 +1165,25 @@ class cell:
 class system:
     '''Molecular system to be simulated'''
                 
-    def __init__(self, molecules, mix = 'g'):
-        self.mol = molecules                       # list of molecules
-        self.attype = []                           # atom types
-        self.bdtype = []                           # bond types
-        self.antype = []                           # angle types
-        self.dhtype = []                           # dihedral types
-        self.ditype = []                           # improper types
+    def __init__(self, spec, box, mix = 'g'):
+        self.spec = spec                     # molecular species
+        self.mol = []                        # each molecule
+        self.box = box
+        
+        self.attype = []                     # atom types
+        self.bdtype = []                     # bond types
+        self.antype = []                     # angle types
+        self.dhtype = []                     # dihedral types
+        self.ditype = []                     # improper types
         self.vdw = []
 
         # build lists of different atom and bonded term types in the system
-        for m in self.mol:
-            self.build_type_list(m.atom, self.attype)
-            self.build_type_list(m.bond, self.bdtype)
-            self.build_type_list(m.angle, self.antype)
-            self.build_type_list(m.dihed, self.dhtype)
-            self.build_type_list(m.dimpr, self.ditype)
+        for sp in self.spec:
+            self.build_type_list(sp.atom, self.attype)
+            self.build_type_list(sp.bond, self.bdtype)
+            self.build_type_list(sp.angle, self.antype)
+            self.build_type_list(sp.dihed, self.dhtype)
+            self.build_type_list(sp.dimpr, self.ditype)
 
         nattypes = len(self.attype)
         nbdtypes = len(self.bdtype)
@@ -1182,12 +1192,12 @@ class system:
         nditypes = len(self.ditype)
 
         # assign the type index for all atoms and bonded terms in the system
-        for m in self.mol:
-            self.assign_type_index(m.atom, self.attype)
-            self.assign_type_index(m.bond, self.bdtype)
-            self.assign_type_index(m.angle, self.antype)
-            self.assign_type_index(m.dihed, self.dhtype)
-            self.assign_type_index(m.dimpr, self.ditype)
+        for sp in self.spec:
+            self.assign_type_index(sp.atom, self.attype)
+            self.assign_type_index(sp.bond, self.bdtype)
+            self.assign_type_index(sp.angle, self.antype)
+            self.assign_type_index(sp.dihed, self.dhtype)
+            self.assign_type_index(sp.dimpr, self.ditype)
 
         # set non-bonded parameters for all i-j pairs
         for i in range(nattypes):
@@ -1214,17 +1224,17 @@ class system:
                     break       
 
     def show(self):
-        for m in self.mol:
-            print '%s  %d molecules force field %s' % (m.name, m.nmols, m.ff)
-            for at in m.atom:
+        for sp in self.spec:
+            print '%s  %d molecules force field %s' % (sp.name, sp.nmol, sp.ff)
+            for at in sp.atom:
                 print at
-            for bd in m.bond:
+            for bd in sp.bond:
                 print bd
-            for an in m.angle:
+            for an in sp.angle:
                 print an
-            for dh in m.dihed:
+            for dh in sp.dihed:
                 print dh
-            for di in m.dimpr:
+            for di in sp.dimpr:
                 print di
         for nb in self.vdw:
             print nb
@@ -1235,10 +1245,10 @@ class system:
             f.write('tolerance %3.1f\n' % tol)
             f.write('filetype xyz\n')
             f.write('output %s\n' % outfile)
-            for m in self.mol:
-                xyzfile = (m.filename).rsplit('.', 1)[0] + '_pack.xyz'
+            for sp in self.spec:
+                xyzfile = (sp.filename).rsplit('.', 1)[0] + '_pack.xyz'
                 f.write('\nstructure %s\n' % xyzfile)
-                f.write('  number %s\n' % m.nmols)
+                f.write('  number %s\n' % sp.nmol)
                 if self.box.center:
                     f.write('  inside box %.1f %.1f %.1f %.1f %.1f %.1f\n' % \
                             (-self.box.a/2.0, -self.box.b/2.0, -self.box.c/2.0,
@@ -1248,16 +1258,16 @@ class system:
                             (0.0, 0.0, 0.0, self.box.a, self.box.b, self.box.c))
                 f.write('end structure\n')
 
-    def readsimbox(self, filename):
+    def readcoords(self, filename):
         try:
             with open(filename, 'r') as f:
-                self.natoms = int(f.readline().strip())
-                self.x = [0.0] * self.natoms
-                self.y = [0.0] * self.natoms
-                self.z = [0.0] * self.natoms
+                self.natom = int(f.readline().strip())
+                self.x = [0.0] * self.natom
+                self.y = [0.0] * self.natom
+                self.z = [0.0] * self.natom
                 tok = f.readline().strip().split()
                 self.title = tok[0]
-                for i in range(self.natoms):
+                for i in range(self.natom):
                     tok = f.readline().strip().split()
                     self.x[i] = float(tok[1])
                     self.y[i] = float(tok[2])
@@ -1265,15 +1275,27 @@ class system:
         except IOError:
             print 'cannot open', filename
             sys.exit(1)
-        
 
-    def writelmp(self, mix = 'g', allpairs = False, units = 'r'):
-        natoms = nbonds = nangles = ndiheds = 0
+        self.mol = []
+        for sp in self.spec:
+            for isp in range(sp.nmol):
+                self.mol.append(deepcopy(sp))
+        i = 0                       # update atom coordinates from box
         for m in self.mol:
-            natoms += m.nmols * len(m.atom)
-            nbonds += m.nmols * len(m.bond)
-            nangles += m.nmols * len(m.angle)
-            ndiheds += m.nmols * (len(m.dihed) + len(m.dimpr))
+            for at in m.atom:
+                at.x = self.x[i]
+                at.y = self.y[i]
+                at.z = self.z[i]
+                i += 1
+
+                    
+    def writelmp(self, mix = 'g', allpairs = False, units = 'r'):
+        natom = nbond = nangle = ndihed = 0
+        for sp in self.spec:
+            natom += sp.nmol * len(sp.atom)
+            nbond += sp.nmol * len(sp.bond)
+            nangle += sp.nmol * len(sp.angle)
+            ndihed += sp.nmol * (len(sp.dihed) + len(sp.dimpr))
         
         with open('in.lmp', 'w') as fi:
             fi.write('# created by fftool\n\n')
@@ -1290,11 +1312,11 @@ class system:
             fi.write('boundary p p p\n\n')
 
             fi.write('atom_style full\n')
-            if nbonds:
+            if nbond:
                 fi.write('bond_style harmonic\n')
-            if nangles:
+            if nangle:
                 fi.write('angle_style harmonic\n')
-            if ndiheds:
+            if ndihed:
                 fi.write('dihedral_style opls\n')
             fi.write('special_bonds lj/coul 0.0 0.0 0.5\n\n')
 
@@ -1393,21 +1415,21 @@ class system:
 
         with open('data.lmp', 'w') as fd:
             fd.write('created by fftool\n\n')
-            fd.write('%d atoms\n' % natoms)
-            if nbonds:
-                fd.write('%d bonds\n' % nbonds)
-            if nangles:
-                fd.write('%d angles\n' % nangles)
-            if ndiheds:
-                fd.write('%d dihedrals\n' % ndiheds)
+            fd.write('%d atoms\n' % natom)
+            if nbond:
+                fd.write('%d bonds\n' % nbond)
+            if nangle:
+                fd.write('%d angles\n' % nangle)
+            if ndihed:
+                fd.write('%d dihedrals\n' % ndihed)
             fd.write('\n')
                 
             fd.write('%d atom types\n' % len(self.attype))
-            if nbonds:
+            if nbond:
                 fd.write('%d bond types\n' % len(self.bdtype))
-            if nangles:
+            if nangle:
                 fd.write('%d angle types\n' % len(self.antype))
-            if ndiheds:
+            if ndihed:
                 ndht = len(self.dhtype)     # needed later
                 fd.write('%d dihedral types\n' % (ndht + len(self.ditype)))
             fd.write('\n')
@@ -1431,21 +1453,21 @@ class system:
             for att in self.attype:
                 fd.write('%4d %8.3f  # %s\n' % (att.ityp + 1, att.m, att.name))
 
-            if nbonds:
+            if nbond:
                 fd.write('\nBond Coeffs\n\n')
                 for bdt in self.bdtype:
                     fd.write('%4d %12.6f %12.6f  # %s\n' % \
                              (bdt.ityp + 1, bdt.par[1] / (2.0 * ecnv),
                               bdt.par[0], bdt.name))
 
-            if nangles:
+            if nangle:
                 fd.write('\nAngle Coeffs\n\n')
                 for ant in self.antype:
                     fd.write('%4d %12.6f %12.6f  # %s\n' % \
                              (ant.ityp + 1, ant.par[1] / (2.0 * ecnv),
                               ant.par[0], ant.name))
 
-            if ndiheds:
+            if ndihed:
                 fd.write('\nDihedral Coeffs\n\n')
                 for dht in self.dhtype:
                     fd.write('%4d %12.6f %12.6f %12.6f %12.6f  # %s\n' % \
@@ -1460,62 +1482,70 @@ class system:
 
             fd.write('\nAtoms\n\n')
             i = nmol = 0
-            for m in self.mol:
-                for im in range(m.nmols):
-                    for at in m.atom:
+            for sp in self.spec:
+                for im in range(sp.nmol):
+                    for at in sp.atom:
                         fd.write('%7d %7d %4d %6.3f %13.6e %13.6e %13.6e  '\
                                  '# %-6s %s\n' % \
                                  (i + 1, nmol + 1, at.ityp + 1, at.q, 
                                   self.x[i], self.y[i], self.z[i],
-                                    at.name, m.name))
+                                  at.name, sp.name))
                         i += 1
                     nmol += 1
+            # for m in self.mol:
+            #     for at in m.atom:
+            #         fd.write('%7d %7d %4d %6.3f %13.6e %13.6e %13.6e  '\
+            #                  '# %-6s %s\n' % \
+            #                 (i + 1, nmol + 1, at.ityp + 1, at.q, 
+            #                 at.x, at.y, at.z, at.name, m.name))
+            #         i += 1
+            #     nmol += 1
 
-            if nbonds:
+            if nbond:
                 fd.write('\nBonds\n\n')
                 i = shift = 1
-                for m in self.mol:
-                    natoms = len(m.atom)
-                    for im in range(m.nmols):
-                        for bd in m.bond:
+                for sp in self.spec:
+                    natom = len(sp.atom)
+                    for im in range(sp.nmol):
+                        for bd in sp.bond:
                             fd.write('%7d %4d %7d %7d  # %s\n' % \
                                      (i, bd.ityp + 1, bd.i + shift,
                                       bd.j + shift, bd.name))
                             i += 1
-                        shift += natoms
+                        shift += natom
 
-            if nangles:
+            if nangle:
                 fd.write('\nAngles\n\n')
                 i = shift = 1
-                for m in self.mol:
-                    natoms = len(m.atom)
-                    for im in range(m.nmols):
-                        for an in m.angle:
+                for sp in self.spec:
+                    natom = len(sp.atom)
+                    for im in range(sp.nmol):
+                        for an in sp.angle:
                             fd.write('%7d %4d %7d %7d %7d  # %s\n' % \
                                      (i, an.ityp + 1, an.i + shift,
                                       an.j + shift, an.k + shift, an.name))
                             i += 1
-                        shift += natoms
+                        shift += natom
 
-            if ndiheds:
+            if ndihed:
                 fd.write('\nDihedrals\n\n')
                 i = shift = 1
-                for m in self.mol:
-                    natoms = len(m.atom)
-                    for im in range(m.nmols):
-                        for dh in m.dihed:
+                for sp in self.spec:
+                    natom = len(sp.atom)
+                    for im in range(sp.nmol):
+                        for dh in sp.dihed:
                             fd.write('%7d %4d %7d %7d %7d %7d  # %s\n' % \
                                      (i, dh.ityp + 1, dh.i + shift,
                                       dh.j + shift, dh.k + shift,
                                      dh.l + shift, dh.name))
                             i += 1
-                        for di in m.dimpr:
+                        for di in sp.dimpr:
                             fd.write('%7d %4d %7d %7d %7d %7d  # %s\n' % \
                                      (i, ndht + di.ityp + 1, di.i + shift,
                                       di.j + shift, di.k + shift,
                                      di.l + shift, di.name))
                             i += 1
-                        shift += natoms
+                        shift += natom
                     
             fd.write('\n')
                     
@@ -1524,40 +1554,40 @@ class system:
             f.write('created by fftool\n')
             f.write('units kJ\n\n')
             
-            f.write('molecular types %d\n' % (len(self.mol)))
-            for mol in self.mol:
-                f.write('%s\n' % mol.name)
-                f.write('nummols %d\n' % mol.nmols)
+            f.write('molecular types %d\n' % (len(self.spec)))
+            for sp in self.spec:
+                f.write('%s\n' % sp.name)
+                f.write('nummols %d\n' % sp.nmol)
 
-                f.write('atoms %d\n' % len(mol.atom))
-                for at in mol.atom:
+                f.write('atoms %d\n' % len(sp.atom))
+                for at in sp.atom:
                     f.write('%-5s %8.4f %6.3f 1  # %s\n' % \
                             (at.name, at.m, at.q, at.type))
 
                 ncons = 0
-                for bd in mol.bond: 
+                for bd in sp.bond: 
                     if bd.pot == 'cons':
                         ncons += 1
                 f.write('constraints %d\n' % ncons)
-                for bd in mol.bond:
+                for bd in sp.bond:
                     if bd.pot == 'cons':
                         f.write('%4d %4d %6.3f  # %s\n' % \
                                 (bd.i + 1, bd.j + 1, bd.par[0], bd.name))
-                f.write('bonds %d\n' % (len(mol.bond) - ncons))
-                for bd in mol.bond:
+                f.write('bonds %d\n' % (len(sp.bond) - ncons))
+                for bd in sp.bond:
                     if bd.pot != 'cons':
                         f.write('%4s %4d %4d %7.1f %6.3f  # %s\n' % \
                                 (bd.pot, bd.i + 1, bd.j + 1,
                                  bd.par[1], bd.par[0], bd.name))
                                                                   
-                f.write('angles %d\n' % len(mol.angle))
-                for an in mol.angle:
+                f.write('angles %d\n' % len(sp.angle))
+                for an in sp.angle:
                     f.write('%4s %4d %4d %4d %7.2f %7.2f  # %s\n' % \
                             (an.pot, an.i + 1, an.j + 1, an.k + 1,
                              an.par[1], an.par[0], an.name))
                              
-                f.write('dihedrals %d\n' % (len(mol.dihed) + len(mol.dimpr)))
-                for dh in mol.dihed:
+                f.write('dihedrals %d\n' % (len(sp.dihed) + len(sp.dimpr)))
+                for dh in sp.dihed:
                     if cos4:
                         pot = 'cos4'
                         f.write('%4s %4d %4d %4d %4d %9.4f %9.4f %9.4f %9.4f'\
@@ -1572,7 +1602,7 @@ class system:
                                 (pot, dh.i + 1, dh.j + 1, dh.k + 1, dh.l + 1,
                                  dh.par[0], dh.par[1], dh.par[2],
                                  0.5, 0.5, dh.name))
-                for di in mol.dimpr:
+                for di in sp.dimpr:
                     if cos4:
                         pot = 'cos4'
                         f.write('%4s %4d %4d %4d %4d %9.4f %9.4f %9.4f %9.4f'\
@@ -1606,7 +1636,7 @@ class system:
                     imcon = 2
                 else:
                     imcon = 3
-                fc.write(' %9d %9d %9d\n' % (0, imcon, self.natoms))
+                fc.write(' %9d %9d %9d\n' % (0, imcon, self.natom))
                 fc.write(' %19.9f %19.9f %19.9f\n' % \
                          (self.box.a + self.box.tol, 0.0, 0.0))
                 fc.write(' %19.9f %19.9f %19.9f\n' % \
@@ -1614,15 +1644,20 @@ class system:
                 fc.write(' %19.9f %19.9f %19.9f\n' % \
                          (0.0, 0.0, self.box.c + self.box.tol))
 
-                # for dlpoly origin of coordinates is center of cell
                 i = 0
-                for m in self.mol:
-                    for im in range(m.nmols):
-                        for at in m.atom:
+                for sp in self.spec:
+                    for im in range(sp.nmol):
+                        for at in sp.atom:
                             fc.write('%-8s %9d\n' % (at.name, i + 1))
                             fc.write(' %19.9f %19.9f %19.9f\n' % \
-                                    (self.x[i], self.y[i], self.z[i]))
+                                     (self.x[i], self.y[i], self.z[i]))
                             i += 1
+                # for m in self.mol:
+                #     for at in m.atom:
+                #         fc.write('%-8s %9d\n' % (at.name, i + 1))
+                #         fc.write(' %19.9f %19.9f %19.9f\n' % \
+                #                  (at.x, at.y, at.z))
+                #         i += 1
 
 
 # --------------------------------------
@@ -1643,7 +1678,7 @@ def main():
     parser.add_argument('-b', '--box', default = '',
                         help = 'box length in A (cubic, or else specify a,b,c)')
     parser.add_argument('-t', '--tol', type=float, default = 2.5,
-                        help = 'tolerance for packmol (default 2.0)')
+                        help = 'tolerance for packmol (default: 2.5)')
     parser.add_argument('-x', '--mix', default = 'g',
                         help = '[a]rithmetic or [g]eometric sigma_ij '\
                         '(default: g)')
@@ -1662,7 +1697,6 @@ def main():
                         '(needs simbox.xyz built using packmol)')
     parser.add_argument('-c', '--cos4', action = 'store_true', 
                         help = 'use cos4 dihedrals in dlpoly FIELD')
-    parser.add_argument('-q', '--quiet', action = 'store_true')
     parser.add_argument('infiles', nargs='+',
                         help = 'n1 infile1 [n2 infile2 ...], '\
                         'where n_i are the numbers of molecules defined in '\
@@ -1676,30 +1710,27 @@ def main():
         nmols = args.infiles[::2]   # even elements are numbers of molecules
         files = args.infiles[1::2]  # odd elements are zmat files
 
-    m = []
-    i = nmol = 0
-    if not args.quiet:
-        print 'atomic coordinates and force field'
-    if args.lammps or args.dlpoly:
+    if (args.lammps or args.dlpoly) and not args.pbc:
         connect = True
     else:
         connect = False
+
+    print 'molecule descriptions'
+    spec = []
+    i = nmol = 0
     for zfile in files:
-        if not args.quiet:
-            print '  ' + zfile
-        m.append(mol(zfile, connect))
-        m[i].nmols = int(nmols[i])
-        nmol += m[i].nmols
-        m[i].writexyz()
+        print '  ' + zfile
+        spec.append(mol(zfile, connect))
+        spec[i].nmol = int(nmols[i])
+        nmol += spec[i].nmol
+        spec[i].writexyz()
         i += 1
 
-    s = system(m, args.mix)
-
-    if not args.quiet:
-        print 'charges'
-        for spec in m:
-            print '  %+.3f' % spec.charge() 
-
+    print 'species                 nmol  bonds   charge'
+    for sp in spec:
+        print '  %-20s %5d  %-5s %+8.3f' % \
+          (sp.name, sp.nmol, sp.topol, sp.charge()) 
+        
     if args.box:
         tok = args.box.split(',')
         if len(tok) == 1:
@@ -1722,23 +1753,23 @@ def main():
     else:
         print 'packmol file\n  not created: supply density or box length'
         sys.exit(1)
-    s.box = cell(a, b, c, args.pbc, tol, center)
-    
-    if args.lammps:
-        s.readsimbox('simbox.xyz')
-        if not args.quiet:
-            print 'lammps files\n  in.lmp\n  data.lmp'
-        s.writelmp(args.mix, args.allpairs, args.units)
-    elif args.dlpoly:
-        s.readsimbox('simbox.xyz')
-        if not args.quiet:
-            print 'dlpoly files\n  FIELD\n  CONFIG'
-        s.writedlp(args.cos4)
-    else:
-        if not args.quiet:
-            print 'packmol file\n  pack.inp'
-        s.writepackmol('pack.inp', 'simbox.xyz', args.tol)
 
+    box = cell(a, b, c, args.pbc, tol, center)
+
+    sim = system(spec, box, args.mix)
+
+    if not (args.lammps or args.dlpoly):
+        print 'packmol file\n  pack.inp'
+        sim.writepackmol('pack.inp', 'simbox.xyz', args.tol)
+    elif args.lammps:
+        sim.readcoords('simbox.xyz')
+        print 'lammps files\n  in.lmp\n  data.lmp'
+        sim.writelmp(args.mix, args.allpairs, args.units)
+    elif args.dlpoly:
+        sim.readcoords('simbox.xyz')
+        print 'dlpoly files\n  FIELD\n  CONFIG'
+        sim.writedlp(args.cos4)
+    
 if __name__ == '__main__':
     main()
 
