@@ -1686,6 +1686,7 @@ def main():
     else:
         nmols = args.infiles[::2]   # even elements are numbers of molecules
         files = args.infiles[1::2]  # odd elements are zmat files
+    nmol = sum(int(n) for n in nmols)
 
     if args.box:
         tok = args.box.split(',')
@@ -1719,12 +1720,11 @@ def main():
 
     print 'molecule descriptions'
     spec = []
-    i = nmol = 0
+    i = 0
     for zfile in files:
         print '  ' + zfile
         spec.append(mol(zfile, connect, box))
         spec[i].nmol = int(nmols[i])
-        nmol += spec[i].nmol
         spec[i].writexyz()
         i += 1
 
