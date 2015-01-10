@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/01/08
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/01/09
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio A.H. Padua
@@ -152,11 +152,11 @@ def dist2atoms(ati, atj, box = None):
     dz = atj.z - ati.z
     if isinstance(box, cell):
         if 'x' in box.pbc:
-            dx = math.round(dx / box.a) * box.a
+            dx -= round(dx / box.a) * box.a
         if 'y' in box.pbc:
-            dy = math.round(dy / box.b) * box.b
+            dy -= round(dy / box.b) * box.b
         if 'z' in box.pbc:
-            dz = math.round(dz / box.c) * box.c
+            dz -= round(dz / box.c) * box.c
     return abs(vector(dx, dy, dz))
 
 
@@ -171,14 +171,14 @@ def angle3atoms(ati, atj, atk, box = None):
 
     if isinstance(box, cell):
         if 'x' in box.pbc:
-            djix = math.round(djix / box.a) * box.a
-            djkx = math.round(djkx / box.a) * box.a
+            djix -= round(djix / box.a) * box.a
+            djkx -= round(djkx / box.a) * box.a
         if 'y' in box.pbc:
-            djiy = math.round(djiy / box.b) * box.b
-            djky = math.round(djky / box.b) * box.b
+            djiy -= round(djiy / box.b) * box.b
+            djky -= round(djky / box.b) * box.b
         if 'z' in box.pbc:
-            djiz = math.round(djiz / box.c) * box.c
-            djkz = math.round(djkz / box.c) * box.c
+            djiz -= round(djiz / box.c) * box.c
+            djkz -= round(djkz / box.c) * box.c
 
     vji = vector(djix, djiy, djiz)
     vjk = vector(djkx, djky, djkz)
@@ -479,7 +479,7 @@ class zmat:
 class mol:
     '''molecule'''
 
-    def __init__(self, filename, connect = True):
+    def __init__(self, filename, connect = True, box = None):
         self.atom = []
         self.bond = []
         self.angle = []
@@ -498,12 +498,12 @@ class mol:
             elif ext == 'mol':
                 self.frommdlmol(filename, connect)
             elif ext == 'xyz':
-                self.fromxyz(filename, connect)
+                self.fromxyz(filename, connect, box)
         except IOError:
             self.filename = ''
             self.name = filename
 
-        self.setff()
+        self.setff(box)
         
     def __str__(self):
         return 'molecule %s  %d atoms  m = %8.4f' % \
@@ -699,7 +699,7 @@ class mol:
                 self.anglesdiheds()
         return self
                                 
-    def fromxyz(self, filename, connect = False):
+    def fromxyz(self, filename, connect = False, box = None):
         with open(filename, 'r') as f:
             natom = int(f.readline().strip())
             self.atom = [None] * natom
@@ -716,9 +716,12 @@ class mol:
                 self.atom[i].y = float(tok[2])
                 self.atom[i].z = float(tok[3])
         if connect and self.ff:
-            self.connectivity()
+            self.connectivity(box)
             self.anglesdiheds()
-            self.topol = 'guess'
+            if isinstance(box, cell) and box.pbc:
+                self.topol = 'pbc'
+            else:
+                self.topol = 'guess'
         return self
 
     def connectivity(self, box = None):    
@@ -807,7 +810,7 @@ class mol:
                                                     self.bond[j].i))
         return self
     
-    def setff(self):
+    def setff(self, box = None):
         '''set force field parameters'''
         
         if not self.ff:
@@ -839,7 +842,7 @@ class mol:
         # identify bonded terms and set parameters
         for bd in self.bond:
             bd.name = '%s-%s' % (self.atom[bd.i].type, self.atom[bd.j].type)
-            r = dist2atoms(self.atom[bd.i], self.atom[bd.j])
+            r = dist2atoms(self.atom[bd.i], self.atom[bd.j], box)
             found = False
             for ffbd in ff.bond:
                 namestr = '%s-%s' % (ffbd.iatp, ffbd.jatp)
@@ -869,7 +872,8 @@ class mol:
         for an in list(self.angle):
             an.name = '%s-%s-%s' % \
               (self.atom[an.i].type, self.atom[an.j].type, self.atom[an.k].type)
-            th = angle3atoms(self.atom[an.i], self.atom[an.j], self.atom[an.k])
+            th = angle3atoms(self.atom[an.i], self.atom[an.j], self.atom[an.k],
+                             box)
             found = False
             check = True
             for ffan in ff.angle:
@@ -1167,7 +1171,6 @@ class system:
                 
     def __init__(self, spec, box, mix = 'g'):
         self.spec = spec                     # molecular species
-        self.mol = []                        # each molecule
         self.box = box
         
         self.attype = []                     # atom types
@@ -1276,19 +1279,6 @@ class system:
             print 'cannot open', filename
             sys.exit(1)
 
-        self.mol = []
-        for sp in self.spec:
-            for isp in range(sp.nmol):
-                self.mol.append(deepcopy(sp))
-        i = 0                       # update atom coordinates from box
-        for m in self.mol:
-            for at in m.atom:
-                at.x = self.x[i]
-                at.y = self.y[i]
-                at.z = self.z[i]
-                i += 1
-
-                    
     def writelmp(self, mix = 'g', allpairs = False, units = 'r'):
         natom = nbond = nangle = ndihed = 0
         for sp in self.spec:
@@ -1492,14 +1482,6 @@ class system:
                                   at.name, sp.name))
                         i += 1
                     nmol += 1
-            # for m in self.mol:
-            #     for at in m.atom:
-            #         fd.write('%7d %7d %4d %6.3f %13.6e %13.6e %13.6e  '\
-            #                  '# %-6s %s\n' % \
-            #                 (i + 1, nmol + 1, at.ityp + 1, at.q, 
-            #                 at.x, at.y, at.z, at.name, m.name))
-            #         i += 1
-            #     nmol += 1
 
             if nbond:
                 fd.write('\nBonds\n\n')
@@ -1652,12 +1634,6 @@ class system:
                             fc.write(' %19.9f %19.9f %19.9f\n' % \
                                      (self.x[i], self.y[i], self.z[i]))
                             i += 1
-                # for m in self.mol:
-                #     for at in m.atom:
-                #         fc.write('%-8s %9d\n' % (at.name, i + 1))
-                #         fc.write(' %19.9f %19.9f %19.9f\n' % \
-                #                  (at.x, at.y, at.z))
-                #         i += 1
 
 
 # --------------------------------------
@@ -1671,7 +1647,8 @@ def main():
         'Then rerun with option to create input files for MD simulation. '\
         'The name of a file with force field parameters can be supplied: '\
         'i) at the end of the .zmat file, '\
-        'ii) in the 3rd line of the .mol file (or in the 1st after the molecule name, '\
+        'ii) in the 3rd line of the .mol file (or in the 1st after the '\
+        'molecule name, '\
         'iii) in the 2nd line of the .xyz file after the molecule name.')
     parser.add_argument('-r', '--rho', type=float, default = 0.0,
                         help = 'density in mol/L')
@@ -1710,27 +1687,6 @@ def main():
         nmols = args.infiles[::2]   # even elements are numbers of molecules
         files = args.infiles[1::2]  # odd elements are zmat files
 
-    if (args.lammps or args.dlpoly) and not args.pbc:
-        connect = True
-    else:
-        connect = False
-
-    print 'molecule descriptions'
-    spec = []
-    i = nmol = 0
-    for zfile in files:
-        print '  ' + zfile
-        spec.append(mol(zfile, connect))
-        spec[i].nmol = int(nmols[i])
-        nmol += spec[i].nmol
-        spec[i].writexyz()
-        i += 1
-
-    print 'species                 nmol  bonds   charge'
-    for sp in spec:
-        print '  %-20s %5d  %-5s %+8.3f' % \
-          (sp.name, sp.nmol, sp.topol, sp.charge()) 
-        
     if args.box:
         tok = args.box.split(',')
         if len(tok) == 1:
@@ -1744,18 +1700,39 @@ def main():
             tol = 0.0
             center = False
         else:
-            print 'packmol file\n  not created: wrong box length'
+            print 'wrong box length'
             sys.exit(1)
     elif args.rho != 0.0:
         a = b = c = math.pow(nmol / (args.rho * 6.022e+23 * 1.0e-27), 1./3.)
         tol = 2.0
         center = True
     else:
-        print 'packmol file\n  not created: supply density or box length'
+        print 'supply density or box length'
         sys.exit(1)
 
     box = cell(a, b, c, args.pbc, tol, center)
 
+    if args.lammps or args.dlpoly:
+        connect = True
+    else:
+        connect = False
+
+    print 'molecule descriptions'
+    spec = []
+    i = nmol = 0
+    for zfile in files:
+        print '  ' + zfile
+        spec.append(mol(zfile, connect, box))
+        spec[i].nmol = int(nmols[i])
+        nmol += spec[i].nmol
+        spec[i].writexyz()
+        i += 1
+
+    print 'species                 nmol  bonds   charge'
+    for sp in spec:
+        print '  %-20s %5d  %-5s %+8.3f' % \
+          (sp.name, sp.nmol, sp.topol, sp.charge())
+        
     sim = system(spec, box, args.mix)
 
     if not (args.lammps or args.dlpoly):
@@ -1763,13 +1740,21 @@ def main():
         sim.writepackmol('pack.inp', 'simbox.xyz', args.tol)
     elif args.lammps:
         sim.readcoords('simbox.xyz')
-        print 'lammps files\n  in.lmp\n  data.lmp'
+        if args.units == 'r':
+            print 'lammps files units real'
+        elif args.units == 'm':
+            print 'lammps files units metal'
+        else:
+            print 'invalid units: choose [r]eal or [m]etal'
+            sys.exit(1)
+        print '  in.lmp\n  data.lmp'
         sim.writelmp(args.mix, args.allpairs, args.units)
     elif args.dlpoly:
         sim.readcoords('simbox.xyz')
         print 'dlpoly files\n  FIELD\n  CONFIG'
         sim.writedlp(args.cos4)
-    
+
+
 if __name__ == '__main__':
     main()
 
