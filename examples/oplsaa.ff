@@ -1,4 +1,4 @@
-# oplsaa.ff (kJ/mol, A, deg) version 2014/12/18
+# oplsaa.ff (kJ/mol, A, deg) version 2015/01/14
 
 ATOMS
 #   type  m/uma    q/e    pot   pars
@@ -50,13 +50,14 @@ OCVC  OC  15.999  -0.508  lj    2.96   0.87864
 OSVC  OS  15.999  -0.246  lj    3.00   0.71128
 CMVC  CM  12.011  -0.068  lj    3.55   0.31798
 HCVC  HC   1.008   0.176  lj    2.42   0.12552
-# amides, DMF, NMP
+# amides, DMF, NMP, CHP
 CO    CO  12.011   0.500  lj    3.75   0.43932
 OC    OC  15.999  -0.500  lj    2.96   0.87864
 HCO   HC   1.008   0.000  lj    2.42   0.06276
 NCO   N   14.007  -0.140  lj    3.25   0.71128
 CTN   CT  12.011  -0.110  lj    3.50   0.27614
-CT3   CT  12.011  -0.050  lj    3.50   0.27614
+CT2   CT  12.011  -0.050  lj    3.50   0.27614
+CT1   CT  12.011   0.010  lj    3.50   0.27614
 
 BONDS
 # i j    pot    re/A    ka/kJmol-1
