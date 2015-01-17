@@ -193,5 +193,5 @@ CA  CA  CA  HA   opls    0.0000    9.2048    0.0000    0.0000
 # improper toluene AMBER JACS 117: 5179 (1995)
 CA  CA  CA  CT   opls    0.0000    9.2048    0.0000    0.0000
 # improper amides
-#CT  N   C   O    opls    0.0000   43.3       0.0000    0.0000
+CT  N   C   O    opls    0.0000   43.9320    0.0000    0.0000
 
