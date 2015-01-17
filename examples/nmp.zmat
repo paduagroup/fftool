@@ -19,5 +19,6 @@ NMP
 
 connect 6 12
 
-oplsaa.ff
+improper 4 1 2 3
 
+oplsaa.ff
