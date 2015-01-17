@@ -1,10 +1,10 @@
-# oplsaa.ff (kJ/mol, A, deg) version 2015/01/14
+# oplsaa.ff (kJ/mol, A, deg) version 2015/01/17
 
 ATOMS
 #   type  m/uma    q/e    pot   pars
 # rare gases
-Ne  Ne    20.18    0.00   lj    2.780  0.01160
-Ar  Ar    39.95    0.00   lj    3.405  0.99558
+Ne    Ne  20.18    0.00   lj    2.780  0.01160
+Ar    Ar  39.95    0.00   lj    3.405  0.99558
 # cations (Aqvist)
 Li    Li   6.941  +1.00   lj    2.126  0.07648
 Na    Na  22.990  +1.00   lj    3.33   0.01160
@@ -45,14 +45,14 @@ SZ    SZ  32.066   0.130  lj    3.56   1.65268
 OY    OY  15.999  -0.420  lj    2.93   1.17152
 CSZ   CT  12.011  -0.035  lj    3.50   0.27614
 # carbonates OPLS
-COVC  CO  12.011   0.784  lj    3.75   0.43932
-OCVC  OC  15.999  -0.508  lj    2.96   0.87864
-OSVC  OS  15.999  -0.246  lj    3.00   0.71128
-CMVC  CM  12.011  -0.068  lj    3.55   0.31798
-HCVC  HC   1.008   0.176  lj    2.42   0.12552
-# amides, DMF, NMP, CHP
-CO    CO  12.011   0.500  lj    3.75   0.43932
-OC    OC  15.999  -0.500  lj    2.96   0.87864
+C_2   C_2 12.011   0.784  lj    3.75   0.43932
+O_2   O_2 15.999  -0.508  lj    2.96   0.87864
+OS    OS  15.999  -0.246  lj    3.00   0.71128
+CM    CM  12.011  -0.068  lj    3.55   0.31798
+HCM   HC   1.008   0.176  lj    2.42   0.12552
+# amides, pyrrolidones
+CO    C   12.011   0.500  lj    3.75   0.43932
+OC    O   15.999  -0.500  lj    2.96   0.87864
 HCO   HC   1.008   0.000  lj    2.42   0.06276
 NCO   N   14.007  -0.140  lj    3.25   0.71128
 CTN   CT  12.011  -0.110  lj    3.50   0.27614
@@ -62,11 +62,11 @@ CT1   CT  12.011   0.010  lj    3.50   0.27614
 BONDS
 # i j    pot    re/A    ka/kJmol-1
 # alkanes OPLS-AA JACS 118(1996)11225, JPC 100(1996)18010
-HC  CT   cons   1.090   2845.12
-CT  CT   harm   1.529   2242.62
+CT  HC   cons   1.090   2845.1
+CT  CT   harm   1.529   2242.6
 # alcohols OPLS-AA JACS 118(1996)11225, JPC 100(1996)18010
-CT  OH   harm   1.410   2677.76
-HO  OH   cons   0.945   4627.50
+CT  OH   harm   1.410   2677.8
+HO  OH   cons   0.945   4627.5
 # aromatics AMBER JACS 117(1995)5179
 CA  CA   harm   1.400   3924.6
 CA  HA   cons   1.080   3071.1
@@ -79,16 +79,17 @@ CF  CF   harm   1.529   2242.6
 SZ  OY   harm   1.530   5857.6
 SZ  CT   harm   1.790   2845.1
 # carbonates
-CO  OS   harm   1.370   1790.8
+C_2 O_2  harm   1.229   4769.8
+C_2 OS   harm   1.370   1790.8
 CM  OS   harm   1.370   3765.6
 CM  CM   harm   1.340   4594.0
-CM  HC   harm   1.080   2845.1
-# amides, DMF, NMP
-CO  OC   harm   1.229   4769.7
-CO  HC   harm   1.090   2845.1
-CO  N    harm   1.335   4100.3
+CM  HC   cons   1.080   2845.1
+# amides, pyrrolidones
+C   O    harm   1.229   4769.8
+C   HC   cons   1.090   2845.1
+C   N    harm   1.335   4100.3
 CT  N    harm   1.449   2820.0
-CT  CO   harm   1.522   2652.7
+CT  C    harm   1.522   2652.7
 
 ANGLES
 # i  j  k    pot    th/deg  ka/kjmol-1
@@ -115,24 +116,24 @@ OY  SZ  CT   harm   107.0   619.2
 SZ  CT  HC   harm   109.5   292.9
 CT  SZ  CT   harm    96.0   518.8
 # carbonates Kosmus (angles) OPLS (force consants)
-OC  CO  OS   harm   125.6   669.4
-OS  CO  OS   harm   108.8   694.5
-CO  OS  CM   harm   107.0   585.8
+O_2 C_2 OS   harm   125.6   694.5
+OS  C_2 OS   harm   108.8   694.5
+C_2 OS  CM   harm   107.0   585.8
 OS  CM  CM   harm   108.6   585.8
 OS  CM  HC   harm   125.7   292.9
 CM  CM  HC   harm   125.7   292.9
-# amides, DMF, NMP
-N   CO  OC   harm   122.9   669.4
-OC  CO  HC   harm   123.0   292.9
-N   CO  HC   harm   114.0   334.7
-CO  N   CT   harm   121.9   418.4
+# amides, pyrrolidones
+N   C   O    harm   122.9   669.4
+O   C   HC   harm   123.0   292.9
+N   C   HC   harm   114.0   334.7
+C   N   CT   harm   121.9   418.4
 CT  N   CT   harm   118.0   418.4
 HC  CT  N    harm   109.5   292.9
-CT  CO  N    harm   116.6   585.8
-CT  CO  OC   harm   120.4   669.4
+CT  C   N    harm   116.6   585.8
+CT  C   O    harm   120.4   669.4
 CT  CT  N    harm   109.7   669.4
-CO  CT  CT   harm   111.5   527.2
-CO  CT  HC   harm   109.5   292.9
+C   CT  CT   harm   111.5   527.2
+C   CT  HC   harm   109.5   292.9
 
 DIHEDRALS
 # i j   k   l    pot     v1        v2        v3        v4
@@ -146,12 +147,12 @@ CT  CT  OH  HO   opls   -1.4895   -0.7280    2.0585    0.0000
 HC  CT  CT  OH   opls    0.0000    0.0000    1.9581    0.0000
 OH  CT  CT  OH   opls    0.0000   -9.8324    1.2050    0.0000
 # aromatics AMBER JACS 117(1995)5179
-CA  CA  CA  CA   opls    0.0000    30.334    0.0000    0.0000
-CA  CA  CA  HA   opls    0.0000    30.334    0.0000    0.0000
-HA  CA  CA  HA   opls    0.0000    30.334    0.0000    0.0000
+CA  CA  CA  CA   opls    0.0000   30.3340    0.0000    0.0000
+CA  CA  CA  HA   opls    0.0000   30.3340    0.0000    0.0000
+HA  CA  CA  HA   opls    0.0000   30.3340    0.0000    0.0000
 # toluene AMBER JACS 117: 5179 (1995)
-CT  CA  CA  CA   opls    0.0000    30.334    0.0000    0.0000
-CT  CA  CA  HA   opls    0.0000    30.334    0.0000    0.0000
+CT  CA  CA  CA   opls    0.0000   30.3340    0.0000    0.0000
+CT  CA  CA  HA   opls    0.0000   30.3340    0.0000    0.0000
 CA  CA  CT  HC   opls    0.0000    0.0000    0.0000    0.0000
 # perlfuoroalkanes JPCA105(2001)4118
 F   CF  CF  F    opls  -10.4600    0.0000    1.0460    0.0000
@@ -161,32 +162,36 @@ CF  CF  CF  CF   opls   27.7064    3.9664   -5.8074   -8.8617
 HC  CT  SZ  OY   opls    0.0000    0.0000    0.0000    0.0000
 HC  CT  SZ  CT   opls    0.0000    0.0000    0.0000    0.0000
 # carbonates
-OC  CO  OS  CM   opls   21.4388    0.0000  -21.4388    0.0000
-OS  CO  OS  CM   opls   -6.4580    0.8096    5.6819   -0.0335
-CO  OS  CM  CM   opls    5.2300    7.3220  -12.5520    0.0000
-CO  OS  CM  HC   opls    1.5899    4.7698   0.00000   -6.3597
-OS  CM  CM  OS   opls   58.5760    0.0000  -58.5760    0.0000
-OS  CM  CM  HC   opls   58.5760    0.0000  -58.5760    0.0000
-HC  CM  CM  HC   opls   58.5760    0.0000  -58.5760    0.0000
-# amides, DMF, NMP
-CT  N   CO  OC   opls   25.4764    0.0000  -25.4764    0.0000
-CT  N   CO  CT   opls   30.2880   -4.8116  -25.4764    0.0000
-CT  N   CO  HC   opls   30.2880   -4.8116  -25.4764    0.0000
-CO  N   CT  CT   opls   -4.7070    2.9204    1.7866    0.0000
-CO  N   CT  HC   opls   -0.2908   -0.8724    0.0000    1.1632
+O_2 C_2 OS  CM   opls    0.0000   21.4388    0.0000    0.0000
+CM  OS  C_2 OS   opls   -1.5690   -5.6819    0.0167    0.0000
+C_2 OS  CM  CM   opls  -14.6440   12.5520    0.0000    0.0000
+C_2 OS  CM  HC   opls    0.0000    0.0000    3.1798    0.0000
+OS  CM  CM  OS   opls    0.0000   58.5760    0.0000    0.0000
+OS  CM  CM  HC   opls    0.0000   58.5760    0.0000    0.0000
+HC  CM  CM  HC   opls    0.0000   58.5760    0.0000    0.0000
+# amides, pyrrolidones
+CT  N   C   O    opls    0.0000   25.4764    0.0000    0.0000
+CT  N   C   HC   opls    9.6232   25.4764    0.0000    0.0000
+CT  N   C   CT   opls    9.6232   25.4764    0.0000    0.0000
+N   C   CT  CT   opls   13.5980   -1.6820   -0.5690    0.0000
+N   C   CT  HC   opls    0.0000    0.0000    0.0000    0.0000
+CT  N   CT  CT   opls   11.9620    8.6107  -47.1369    0.0000
+# CT  N   CT  CT   opls    0.0000    0.0000    0.0000    0.0000
 CT  N   CT  HC   opls    0.0000    0.0000    0.0000    0.0000
-CT  CT  N   CT   opls   -8.9768  -76.6864   -8.6107   94.2739
-CT  CT  CO  N    opls    4.8325   -7.6525    1.6820    1.1380
-CT  CT  CO  OC   opls    4.8785    0.0000   -4.8785    0.0000
-HC  CT  CO  N    opls    0.0000    0.0000    0.0000    0.0000
-HC  CT  CO  OC   opls    0.0000    0.0000    0.0000    0.0000
-CT  CT  CT  N    opls    5.4873    0.0272    0.0000   -5.5145
-HC  CT  CT  N    opls    0.9707    2.9121    0.0000   -3.8827
-CO  CT  CT  CT   opls   -4.9601    6.2865    1.3096   -2.6359
-CO  CT  CT  HC   opls   -0.2092   -0.6276    0.0000    0.8368
+CT  CT  N   C    opls   -5.8409   -1.7866    0.0000    0.0000
+HC  CT  N   C    opls    0.0000    0.0000   -0.5816    0.0000
+CT  CT  C   O    opls    0.0000    4.8786    0.0000    0.0000
+HC  CT  C   O    opls    0.0000    0.0000    0.0000    0.0000
+CT  CT  CT  N    opls    8.2174    0.0000    2.7573    0.0000
+HC  CT  CT  N    opls    0.0000    0.0000    1.9414    0.0000
+C   CT  CT  CT   opls   -8.6190   -1.3096    1.3180    0.0000
+C   CT  CT  HC   opls    0.0000    0.0000   -0.4184    0.0000
 
 IMPROPER
 # improper aromatics AMBER JACS 117(1995)5179
 CA  CA  CA  HA   opls    0.0000    9.2048    0.0000    0.0000
 # improper toluene AMBER JACS 117: 5179 (1995)
 CA  CA  CA  CT   opls    0.0000    9.2048    0.0000    0.0000
+# improper amides
+#CT  N   C   O    opls    0.0000   43.3       0.0000    0.0000
+
