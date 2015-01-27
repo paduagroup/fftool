@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/01/09
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/01/27
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio A.H. Padua
@@ -1253,11 +1253,11 @@ class system:
                 f.write('\nstructure %s\n' % xyzfile)
                 f.write('  number %s\n' % sp.nmol)
                 if self.box.center:
-                    f.write('  inside box %.1f %.1f %.1f %.1f %.1f %.1f\n' % \
+                    f.write('  inside box %.4f %.4f %.4f %.4f %.4f %.4f\n' % \
                             (-self.box.a/2.0, -self.box.b/2.0, -self.box.c/2.0,
                             self.box.a/2.0, self.box.b/2.0, self.box.c/2.0))
                 else:
-                    f.write('  inside box %.1f %.1f %.1f %.1f %.1f %.1f\n' % \
+                    f.write('  inside box %.4f %.4f %.4f %.4f %.4f %.4f\n' % \
                             (0.0, 0.0, 0.0, self.box.a, self.box.b, self.box.c))
                 f.write('end structure\n')
 
