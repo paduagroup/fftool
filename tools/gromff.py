@@ -29,6 +29,7 @@ for line in f:
     if bond and len(tok) >= 5 and tok[2] == '1' and float(tok[3]):
         kr = r0 = 0.0
         if i == tok[0] and j == tok[1] or j == tok[0] and i == tok[1]:
+            print line,
             kr = float(tok[4]) / 100.0
             r0 = float(tok[3]) * 10.0
             print "%-3s %-3s  harm  %6.3f  %7.1f" % (i, j, r0, kr)
