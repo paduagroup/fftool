@@ -13,10 +13,10 @@ v1, v2, v3, v4 = [ float(v) for v in sys.argv[1:5] ]
 
 phi = np.linspace(0, 360)
 
-u = v1/2.*(1.0+np.cos(phi*np.pi/180.0)) + \
-    v2/2.*(1.0-np.cos(2*phi*np.pi/180.0)) + \
-    v3/2.*(1.0+np.cos(3*phi*np.pi/180.0)) + \
-    v4/2.*(1.0-np.cos(4*phi*np.pi/180.0))
+u = v1 / 2.0 * (1.0 + np.cos(  phi * np.pi/180.0)) + \
+    v2 / 2.0 * (1.0 - np.cos(2*phi * np.pi/180.0)) + \
+    v3 / 2.0 * (1.0 + np.cos(3*phi * np.pi/180.0)) + \
+    v4 / 2.0 * (1.0 - np.cos(4*phi * np.pi/180.0))
 
 plt.plot(phi,u)
 

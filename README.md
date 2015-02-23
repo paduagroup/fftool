@@ -33,7 +33,7 @@ Download the files or else clone the repository (easier to stay updated):
     git clone https://github.com/agiliopadua/fftool.git
 
 
-How to use
+How to Use
 ----------
 
 How to build an initial configuration of systems composed of
@@ -50,9 +50,8 @@ molecules, ions or materials.
     the z-matrix by default. In this case cyclic molecules require
     additional `connect` records to close rings. If a `reconnect`
     record is present, then connectivity is guessed based on bond
-    distances from the force field. Improper dihedrals must be
-    indicated by additional `improper` records. After the z-matrix the
-    name of a file with force field parameters can be supplied.
+    distances from the force field. After the z-matrix the name of a
+    file with force field parameters can be supplied.
 
     A MDL `.mol` file contains a table with coordinates and also
     bonds. The name of a file with force field parameters can be given
@@ -71,17 +70,20 @@ molecules, ions or materials.
     ([Open Babel](http://openbabel.org/),
     [Avogadro](http://avogadro.cc/)). Manual editing of the files is
     usually necessary in order to match the atom names with those of
-    the force field. (One disadvantage of using `.xyz` or `.mol` files
-    is the difficulty to include improper dihedrals, which may be
-    necessary for certain molecules.)
+    the force field.
 
 2. Use the `fftool.py` script to create `.xyz` files with atomic
    coordinates for the components of your system, plus an input file for
    `packmol`. For help type `fftool.py -h`. To build a simulation box
-   with 40 ethanol and 300 water molecules and a density of 40.0 mol/L
+   with 40 ethanol and 300 water molecules and a density of 38.0 mol/L
    do:
 
-        fftool.py 40 ethanol.zmat 300 spce.zmat --rho 40.0
+        fftool.py 40 ethanol.zmat 300 spce.zmat -r 38.0
+
+    Alternatively the side length of the the simulation box (cubic) in
+    angstroms can be supplied:
+
+        fftool.py 40 ethanol.zmat 300 spce.zmat -b 20.0
 
 3. Use `packmol` with the `pack.inp` file just created to buid the
    simulation box (adjust the density if necessary):
@@ -97,15 +99,55 @@ molecules, ions or materials.
 4. Use `fftool.py` to build the input files for LAMMPS or DL_POLY
    containing the force field parameters and the coordinates:
 
-        fftool.py 40 ethanol.zmat 300 spce.zmat --rho 40.0 --lammps
+        fftool.py 40 ethanol.zmat 300 spce.zmat --r 38.0 -l
 
-    If no force field information is given explicitly in the molecule
+    
+    If no force field information was given explicitly in the molecule
     files, a default LJ potential with parameters zeroed will be
-    assigned. No terms for bonds, angles or torsions will be
+    assigned to atoms. No terms for bonds, angles or torsions will be
     created. This is suitable when working with non-additive,
     bond-order or other potentials often used for materials. The input
     files for MD simulations will have to be edited manually to
     include an interaction potential for the material.
+
+
+Improper Dihedrals
+------------------
+
+Improper dihedrals are often used to increase the rigidity of planar
+atoms (sp2). A proper dihedral i-j-k-l is defined between bonded atoms
+i-j, j-k, and k-l and corresponds to torsion around bond j-k, the
+dihedral being the angle between planes ijk and jkl. An improper
+dihedral i-j-k-l is defined between bonded atoms i-k, j-k and k-l,
+therefore k is a central atom bonded to the three others. Often the
+same functional form used for proper torsions is also used for
+improper dihedrals.
+
+The script `fftool.py` searches for improper dihedrals on all atoms
+with three bonds (which may be planar) so a number of warning messages
+may be printed and can be ignored if the atoms in question are not
+concerned. The number and order of the atoms in the improper dihedrals
+should be verified in the files created.
+
+
+Periodic Boundary Conditions
+----------------------------
+
+For molecular systems, the initial configuration will not contain
+molecules crossing the boundaries of the simulation box. If the size
+of the box is indicated by just one value, `-b l`, or by supplying the
+density, then the box will be cubic and an extra space of 1 A is added
+in each dimension so that the initial configuration does not contain
+overlaps (as explained in the `packmol` documentation).
+
+For simulations with extended materials it is possible to create
+chemical bonds across boundaries. The option `-p` allows specification
+of periodic conditions in x, y, z or combinations thereof. It is
+important in this case to supply precise dimensions for the simulation
+box using the option `-b lx,ly,lz`, even for a cubic box. In this
+manner no additional space will be added. The coordinates of the atoms
+of the material have to be prepared carefully, so that distances
+across periodic boundaries are within the tolerance to identify bonds.
 
 
 References

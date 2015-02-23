@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/01/27
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/02/22
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio A.H. Padua
@@ -424,14 +424,14 @@ class zmat:
                         
             # read connects, improper, force field file
             self.ff = ''
-            self.reconnect = False
+            self.guessconnect = False
             while line:
                 if line.strip().startswith('#') or line.strip() == '':
                     line = f.readline()
                     continue
                 tok = line.strip().split()
                 if tok[0] == 'reconnect':
-                    self.reconnect = True
+                    self.guessconnect = True
                 if tok[0] == 'connect':
                     atomi = int(tok[1])
                     atomj = int(tok[2])
@@ -441,6 +441,8 @@ class zmat:
                     atomj = int(tok[2])
                     atomk = int(tok[3])
                     atoml = int(tok[4])
+                    if atomi > atomj:
+                        atomi, atomj = atomj, atomi
                     self.improper.append([atomi, atomj, atomk, atoml])
                 else:
                     self.ff = tok[0]
@@ -518,14 +520,14 @@ class mol:
     def fromzmat(self, filename, connect):
         z = zmat(filename)
         self.name = z.name
-        self.reconnect = z.reconnect
+        self.guessconnect = z.guessconnect
         self.ff = z.ff
         for zat in z.zatom:
             self.atom.append(atom(zat['name']))
             self.m += atomic_weight(zat['name'])
         self.zmat2cart(z)
         if connect and self.ff:          # topology only if ff defined
-            if not self.reconnect:
+            if not self.guessconnect:
                 for i in range(1, len(z.zatom)):
                     self.bond.append(bond(i, z.zatom[i]['ir'] - 1))
                 for cn in z.connect:
@@ -536,7 +538,7 @@ class mol:
                 self.topol = 'guess'
             self.anglesdiheds()
             for di in z.improper:                 
-                self.dimpr.append(dihed(di[0]-1, di[1]-1, di[2]-1, di[3]-1))
+                self.dimpr.append(dimpr(di[0]-1, di[1]-1, di[2]-1, di[3]-1))
         return self
     
     def zmat2cart(self, z):
@@ -658,12 +660,12 @@ class mol:
         with open(filename, 'r') as f:
             tok = f.readline().strip().split()
             self.name = tok[0]            # molecule name
-            self.reconnect = False
+            self.guessconnect = False
             if len(tok) > 1:              # and eventually ff file
                 self.ff = tok[1]
                 if len(tok) > 2:
                     if tok[2].startswith('rec'):
-                        self.reconnect = True
+                        self.guessconnect = True
             else:
                 self.ff = ''
             f.readline()                  # program/date info
@@ -673,7 +675,7 @@ class mol:
                 self.ff = tok[0]
                 if len(tok) > 1:
                     if tok[1].startswith('rec'):
-                        self.reconnect = True
+                        self.guessconnect = True
             line = f.readline()           # counts line
             natom = int(line[0:3])
             nbond = int(line[3:6])
@@ -685,7 +687,7 @@ class mol:
                 self.atom[i].y = float(tok[1])
                 self.atom[i].z = float(tok[2])
             if connect and self.ff:      # topology only if ff defined
-                if not self.reconnect:
+                if not self.guessconnect:
                     self.bond = [None] * nbond
                     for k in range(nbond):
                         line = f.readline()
@@ -778,36 +780,51 @@ class mol:
         # identify dihedral angles
         for k in range(nbond): # find bonds around non-terminal bonds
             for l in range(nbond):
-                if k == l:
+                if l == k:
                     continue
-                if self.bond[k].i == self.bond[l].i:
+                if self.bond[l].i == self.bond[k].i:
                     for j in range(nbond):
                         if j == k or j == l:
                             continue
-                        if self.bond[k].j == self.bond[j].i:
+                        if self.bond[j].i == self.bond[k].j:
                             self.dihed.append(dihed(self.bond[l].j,
                                                     self.bond[k].i,
                                                     self.bond[k].j,
                                                     self.bond[j].j))
-                        elif self.bond[k].j == self.bond[j].j:
+                        elif self.bond[j].j == self.bond[k].j:
                             self.dihed.append(dihed(self.bond[l].j,
                                                     self.bond[k].i,
                                                     self.bond[k].j,
                                                     self.bond[j].i))
-                elif self.bond[k].i == self.bond[l].j:
+                elif self.bond[l].j == self.bond[k].i:
                     for j in range(nbond):
                         if j == k or j == l:
                             continue
-                        if self.bond[k].j == self.bond[j].i:
+                        if self.bond[j].i == self.bond[k].j:
                             self.dihed.append(dihed(self.bond[l].i,
                                                     self.bond[k].i,
                                                     self.bond[k].j,
                                                     self.bond[j].j))
-                        elif self.bond[k].j == self.bond[j].j:
+                        elif self.bond[j].j == self.bond[k].j:
                             self.dihed.append(dihed(self.bond[l].i,
                                                     self.bond[k].i,
                                                     self.bond[k].j,
                                                     self.bond[j].i))
+
+        # identify possible impropers
+        for i in range(natom):  # find atoms with 3 neighbours
+            nb = 0
+            neib = []
+            for bd in self.bond:          
+                if i == bd.i:
+                    neib.append(bd.j)
+                    nb += 1
+                elif i == bd.j:
+                    neib.append(bd.i)
+                    nb += 1
+            if nb == 3:
+                self.dimpr.append(dimpr(neib[0], neib[1], i, neib[2]))
+        
         return self
     
     def setff(self, box = None):
@@ -923,23 +940,113 @@ class mol:
             di.name = '%s-%s-%s-%s' % \
               (self.atom[di.i].type, self.atom[di.j].type,
                 self.atom[di.k].type, self.atom[di.l].type)
+            i = di.i
+            j = di.j
+            k = di.k
+            l = di.l
             found = False
             for ffdi in ff.dimpr:
-                namestr = '%s-%s-%s-%s' % \
-                  (ffdi.iatp, ffdi.jatp, ffdi.katp, ffdi.latp)
-                namerev = '%s-%s-%s-%s' % \
-                  (ffdi.latp, ffdi.katp, ffdi.jatp, ffdi.iatp)
-                if di.name == namestr or di.name == namerev:
+                ti = ffdi.iatp
+                tj = ffdi.jatp
+                tk = ffdi.katp
+                tl = ffdi.latp       
+                namestr1 = '%s-%s-%s-%s' % (ti, tj, tk, tl)
+                namestr2 = '%s-%s-%s-%s' % (tj, ti, tk, tl)
+                namerev1 = '%s-%s-%s-%s' % (tl, tk, tj, ti)
+                namerev2 = '%s-%s-%s-%s' % (tl, tk, ti, tj)
+                  
+                namestr3 = '%s-%s-%s-%s' % (ti, tl, tk, tj)
+                namestr4 = '%s-%s-%s-%s' % (tl, ti, tk, tj)
+                namerev3 = '%s-%s-%s-%s' % (tj, tk, tl, ti)
+                namerev4 = '%s-%s-%s-%s' % (tj, tk, ti, tl)
+                  
+                namestr5 = '%s-%s-%s-%s' % (tj, tl, tk, ti)
+                namestr6 = '%s-%s-%s-%s' % (tl, tj, tk, ti)
+                namerev5 = '%s-%s-%s-%s' % (ti, tk, tl, tj)
+                namerev6 = '%s-%s-%s-%s' % (ti, tk, tj, tl)
+
+                if di.name == namestr1 or di.name == namerev1 or \
+                    di.name == namestr2 or di.name == namerev2 or \
+                    di.name == namestr3 or di.name == namerev3 or \
+                    di.name == namestr4 or di.name == namerev4 or \
+                    di.name == namestr5 or di.name == namerev5 or \
+                    di.name == namestr6 or di.name == namerev6:
                     if found:
                         print '  warning: duplicate improper %s in %s' % \
                           (di.name, self.ff)
+
+                    # sort atom numbering according to impropers in ff
+                    if di.name == namestr2:
+                        if ti != tj:
+                            di.j = i
+                            di.i = j
+                    elif di.name == namerev1:
+                        if tj != tk:
+                            di.k = j
+                            di.j = k
+                        if ti != tl:
+                            di.l = i
+                            di.i = l
+                    elif di.name == namerev2:
+                        di.l = i
+                        di.k = j
+                        di.i = k
+                        di.j = l
+                    elif di.name == namestr3:
+                        if tj != tl:
+                            di.l = j
+                            di.j = l
+                    elif di.name == namestr4:
+                        di.l = i
+                        di.i = j
+                        di.j = l
+                    elif di.name == namerev3:
+                        di.j = i
+                        di.k = j
+                        di.l = k
+                        di.i = l
+                    elif di.name == namerev4:
+                        di.j = i
+                        di.k = j
+                        di.i = k
+                    elif di.name == namestr5:
+                        di.j = i
+                        di.l = j
+                        di.i = l
+                    elif di.name == namestr6:
+                        if ti != tl:
+                            di.l = i
+                            di.i = l
+                    elif di.name == namerev5:
+                        di.k = j
+                        di.l = k
+                        di.j = l
+                    elif di.name == namerev6:
+                        if tj != tk:
+                            di.k = j
+                            di.j = k
+                    
                     di.setpar(ffdi.iatp, ffdi.jatp, ffdi.katp, ffdi.latp,
                               ffdi.pot, ffdi.par)
                     found = True
+                    
             if not found:
                 self.dimpr.remove(di)
                 if di.name not in dimiss:
                     dimiss.append(di.name)
+
+        # remove dupplicate impropers
+        toremove = []
+        for i in range(len(self.dimpr) - 1):
+            for j in range(i + 1, len(self.dimpr)):
+                if self.dimpr[i].i == self.dimpr[j].j and \
+                    self.dimpr[i].j == self.dimpr[j].i or \
+                    self.dimpr[i].i == self.dimpr[j].i and \
+                    self.dimpr[i].j == self.dimpr[j].j:
+                    if self.dimpr[j] not in toremove:
+                        toremove.append(self.dimpr[j])
+        for d in toremove:
+            self.dimpr.remove(d)
 
         if len(anmiss) or len(dhmiss) or len(dimiss): 
             print '  warning: missing force field parameters'
