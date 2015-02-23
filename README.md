@@ -43,27 +43,27 @@ molecules, ions or materials.
    with atomic coordinates and/or connectivity (covalent bonds). The
    formats accepted by this tool are `.zmat`, `.mol` or `.xyz`.
 
-    A `.zmat` file has the molecule name in the first line, thane one
-    empy line, then the z-matrix. See the `examples` directory and the
-    Wikipedia entry for "Z-matrix (chemistry)". Variables can be used
-    for distances, angles and dihedrals. Connectivity is inferred from
-    the z-matrix by default. In this case cyclic molecules require
-    additional `connect` records to close rings. If a `reconnect`
-    record is present, then connectivity is guessed based on bond
-    distances from the force field. After the z-matrix the name of a
-    file with force field parameters can be supplied.
+    A `.zmat` file has the molecule name in the first line, followed
+    by one empy line, then the z-matrix. See the `examples` directory
+    and the Wikipedia entry for "Z-matrix (chemistry)". Variables can
+    be used for distances, angles and dihedrals. Connectivity is
+    inferred from the z-matrix by default. In this case cyclic
+    molecules require additional `connect` records to close rings. If
+    a `reconnect` record is present, then connectivity is guessed
+    based on bond distances from the force field. After the z-matrix
+    the name of a file with force field parameters can be supplied.
 
-    A MDL `.mol` file contains a table with coordinates and also
-    bonds. The name of a file with force field parameters can be given
-    in the first line after the molecule name, or in the third
-    line. If the keyword `reconnect` is present after the force field
-    filename, then connectivity is guessed based on bond distances
-    from the force field.
+    MDL `.mol` is a standard file format, containing a table with
+    coordinates and also bonds. The name of a file with force field
+    parameters can be given in the first line after the molecule name,
+    or in the third line. If the keyword `reconnect` is present after
+    the force field filename, then connectivity is guessed based on
+    bond distances from the force field.
 
-    A `.xyz` file contains atomic coordinates only. The name of a file
-    with force field parameters can be given in the second line after
-    the molecule name, and in this case connectivity is inferred from
-    the bond lengths.
+    The `.xyz` format is also standard, containing atomic coordinates
+    only. The name of a file with force field parameters can be given
+    in the second line after the molecule name, and in this case
+    connectivity is inferred from the bond lengths.
 
     There are many free tools to create MDL mol files, xyz files or
     z-matrices, which are common formats in computational chemistry
@@ -85,8 +85,8 @@ molecules, ions or materials.
 
         fftool.py 40 ethanol.zmat 300 spce.zmat -b 20.0
 
-3. Use `packmol` with the `pack.inp` file just created to buid the
-   simulation box (adjust the density if necessary):
+3. Use `packmol` with the `pack.inp` file just created to build the
+   simulation box (adjust the density/box size if necessary):
 
         packmol < pack.inp
 
@@ -97,11 +97,11 @@ molecules, ions or materials.
     written to `simbox.xyz`.
 
 4. Use `fftool.py` to build the input files for LAMMPS or DL_POLY
-   containing the force field parameters and the coordinates:
+   containing the force field parameters and the coordinates of all
+   the atoms from `simbox.xyz`:
 
         fftool.py 40 ethanol.zmat 300 spce.zmat --r 38.0 -l
 
-    
     If no force field information was given explicitly in the molecule
     files, a default LJ potential with parameters zeroed will be
     assigned to atoms. No terms for bonds, angles or torsions will be
@@ -123,31 +123,36 @@ therefore k is a central atom bonded to the three others. Often the
 same functional form used for proper torsions is also used for
 improper dihedrals.
 
-The script `fftool.py` searches for improper dihedrals on all atoms
+The `fftool.py` script searches for improper dihedrals on all atoms
 with three bonds (which may be planar) so a number of warning messages
 may be printed and can be ignored if the atoms in question are not
-concerned. The number and order of the atoms in the improper dihedrals
+centers of improper torsions.
+
+The number and order of the atoms in the true improper dihedrals
 should be verified in the files created.
 
 
 Periodic Boundary Conditions
 ----------------------------
 
-For molecular systems, the initial configuration will not contain
+For molecular systems the initial configuration will not contain
 molecules crossing the boundaries of the simulation box. If the size
-of the box is indicated by just one value, `-b l`, or by supplying the
+of the box is indicated by just one value, `-b L`, or by supplying the
 density, then the box will be cubic and an extra space of 1 A is added
-in each dimension so that the initial configuration does not contain
-overlaps (as explained in the `packmol` documentation).
+in each dimension to avoid overlaps in the initial configuration (as
+explained in the `packmol` documentation).
 
 For simulations with extended materials it is possible to create
 chemical bonds across boundaries. The option `-p` allows specification
 of periodic conditions in x, y, z or combinations thereof. It is
 important in this case to supply precise dimensions for the simulation
-box using the option `-b lx,ly,lz`, even for a cubic box. In this
+box using the option `-b Lx,Ly,Lz`, even if the box is cubic. In this
 manner no additional space will be added. The coordinates of the atoms
 of the material have to be prepared carefully, so that distances
 across periodic boundaries are within the tolerance to identify bonds.
+
+Also, the `pack.inp` filed will likely need editing in order to
+position the atoms of the material precisely.
 
 
 References
