@@ -875,7 +875,7 @@ class mol:
                     found = True
             if not found:
                 print 'error in %s: no parameters for bond %s' % \
-                  (self.name, bd.name)
+                  (self.name, names[0])
                 error = True
         if error:
             sys.exit(1)
