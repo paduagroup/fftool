@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/02/22
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/02/23
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio A.H. Padua
@@ -441,8 +441,6 @@ class zmat:
                     atomj = int(tok[2])
                     atomk = int(tok[3])
                     atoml = int(tok[4])
-                    if atomi > atomj:
-                        atomi, atomj = atomj, atomi
                     self.improper.append([atomi, atomj, atomk, atoml])
                 else:
                     self.ff = tok[0]
@@ -536,9 +534,9 @@ class mol:
             else:
                 self.connectivity()
                 self.topol = 'guess'
-            self.anglesdiheds()
             for di in z.improper:                 
                 self.dimpr.append(dimpr(di[0]-1, di[1]-1, di[2]-1, di[3]-1))
+            self.anglesdiheds()
         return self
     
     def zmat2cart(self, z):
@@ -748,11 +746,11 @@ class mol:
         for i in range(0, natom-1):
             for j in range(i+1, natom):
                 r = dist2atoms(self.atom[i], self.atom[j], box)
-                bdname = '%s-%s' % (self.atom[i].type, self.atom[j].type)
+                names = [ '%s-%s' % (self.atom[i].type, self.atom[j].type),
+                          '%s-%s' % (self.atom[j].type, self.atom[i].type) ]
                 for ffbd in ff.bond:
-                    namestr = '%s-%s' % (ffbd.iatp, ffbd.jatp)
-                    namerev = '%s-%s' % (ffbd.jatp, ffbd.iatp)
-                    if bdname == namestr or bdname == namerev: 
+                    nameff = '%s-%s' % (ffbd.iatp, ffbd.jatp)
+                    if nameff in names:
                         if ffbd.checkval(r):
                             self.bond.append(bond(i, j))
                                         
@@ -811,19 +809,20 @@ class mol:
                                                     self.bond[k].j,
                                                     self.bond[j].i))
 
-        # identify possible impropers
-        for i in range(natom):  # find atoms with 3 neighbours
-            nb = 0
-            neib = []
-            for bd in self.bond:          
-                if i == bd.i:
-                    neib.append(bd.j)
-                    nb += 1
-                elif i == bd.j:
-                    neib.append(bd.i)
-                    nb += 1
-            if nb == 3:
-                self.dimpr.append(dimpr(neib[0], neib[1], i, neib[2]))
+        # identify possible impropers if not supplied with z-matrix
+        if not self.dimpr:
+            for i in range(natom):  # find atoms with 3 neighbours
+                nb = 0
+                neib = []
+                for bd in self.bond:          
+                    if i == bd.i:
+                        neib.append(bd.j)
+                        nb += 1
+                    elif i == bd.j:
+                        neib.append(bd.i)
+                        nb += 1
+                if nb == 3:
+                    self.dimpr.append(dimpr(neib[0], neib[1], i, neib[2]))
         
         return self
     
@@ -858,20 +857,21 @@ class mol:
             
         # identify bonded terms and set parameters
         for bd in self.bond:
-            bd.name = '%s-%s' % (self.atom[bd.i].type, self.atom[bd.j].type)
+            ti = self.atom[bd.i].type
+            tj = self.atom[bd.j].type
+            names = [ '%s-%s' % (ti, tj), '%s-%s' % (tj, ti) ]
             r = dist2atoms(self.atom[bd.i], self.atom[bd.j], box)
             found = False
             for ffbd in ff.bond:
-                namestr = '%s-%s' % (ffbd.iatp, ffbd.jatp)
-                namerev = '%s-%s' % (ffbd.jatp, ffbd.iatp)
-                if bd.name == namestr or bd.name == namerev: 
-                    if found:
-                        print '  warning: duplicate bond %s in %s' % \
-                          (bd.name, self.ff)
+                nameff = '%s-%s' % (ffbd.iatp, ffbd.jatp)
+                if nameff in names:
                     bd.setpar(ffbd.iatp, ffbd.jatp, ffbd.pot, ffbd.par)
                     if not ffbd.checkval(r):
                         print '  warning: %s bond %s %d-%d %7.3f' % \
                           (self.name, bd.name, bd.i + 1, bd.j + 1, r)
+                    if found:
+                        print '  warning: duplicate bond %s in %s' % \
+                          (bd.name, self.ff)
                     found = True
             if not found:
                 print 'error in %s: no parameters for bond %s' % \
@@ -880,162 +880,116 @@ class mol:
         if error:
             sys.exit(1)
 
-        # for angles and dihedrals iterate over copy of list so that
-        # terms missing in the force field can be removed
         anmiss = []
         dhmiss = []
         dimiss = []
-        
-        for an in list(self.angle):
-            an.name = '%s-%s-%s' % \
-              (self.atom[an.i].type, self.atom[an.j].type, self.atom[an.k].type)
+
+        toremove = []
+        for an in self.angle:
+            ti = self.atom[an.i].type
+            tj = self.atom[an.j].type
+            tk = self.atom[an.k].type
+            names = [ '%s-%s-%s' % (ti, tj, tk), '%s-%s-%s' % (tk, tj, ti) ]
             th = angle3atoms(self.atom[an.i], self.atom[an.j], self.atom[an.k],
                              box)
             found = False
             check = True
             for ffan in ff.angle:
-                namestr = '%s-%s-%s' % (ffan.iatp, ffan.jatp, ffan.katp)
-                namerev = '%s-%s-%s' % (ffan.katp, ffan.jatp, ffan.iatp)
-                if an.name == namestr or an.name == namerev:
+                nameff = '%s-%s-%s' % (ffan.iatp, ffan.jatp, ffan.katp)
+                if nameff in names:
+                    an.setpar(ffan.iatp, ffan.jatp, ffan.katp,
+                              ffan.pot, ffan.par)                        
+                    if not ffan.checkval(th):
+                        check = False
                     if found:
                         print '  warning: duplicate angle %s in %s' % \
                           (an.name, self.ff)
-                    an.setpar(ffan.iatp, ffan.jatp, ffan.katp,
-                              ffan.pot, ffan.par)                        
                     found = True
-                    if not ffan.checkval(th):
-                        check = False
             if not check:
-                self.angle.remove(an)
+                toremove.append(an)
                 print '  warning: %s angle %s %d-%d-%d %.2f removed' % \
                     (self.name, an.name, an.i+1, an.j+1, an.k+1, th)
             if not found:
-                self.angle.remove(an)
-                if an.name not in anmiss:
-                    anmiss.append(an.name)
-                    
-        for dh in list(self.dihed):
-            dh.name = '%s-%s-%s-%s' % \
-              (self.atom[dh.i].type, self.atom[dh.j].type,
-                self.atom[dh.k].type, self.atom[dh.l].type)
+                toremove.append(an)
+                if names[0] not in anmiss:
+                    anmiss.append(names[0])
+        for an in toremove:
+            self.angle.remove(an)
+
+        toremove = []
+        for dh in self.dihed:
+            ti = self.atom[dh.i].type
+            tj = self.atom[dh.j].type
+            tk = self.atom[dh.k].type
+            tl = self.atom[dh.l].type
+            names = [ '%s-%s-%s-%s' % (ti, tj, tk, tl),
+                      '%s-%s-%s-%s' % (tl, tk, tj, ti) ]
             found = False
             for ffdh in ff.dihed:
-                namestr = '%s-%s-%s-%s' % \
+                nameff = '%s-%s-%s-%s' % \
                   (ffdh.iatp, ffdh.jatp, ffdh.katp, ffdh.latp)
-                namerev = '%s-%s-%s-%s' % \
-                  (ffdh.latp, ffdh.katp, ffdh.jatp, ffdh.iatp)
-                if dh.name == namestr or dh.name == namerev:
+                if nameff in names:
+                    dh.setpar(ffdh.iatp, ffdh.jatp, ffdh.katp, ffdh.latp,
+                              ffdh.pot, ffdh.par)
                     if found:
                         print '  warning: duplicate dihedral %s in %s' % \
                           (di.name, self.ff)
-                    dh.setpar(ffdh.iatp, ffdh.jatp, ffdh.katp, ffdh.latp,
-                              ffdh.pot, ffdh.par)
                     found = True
             if not found:
-                self.dihed.remove(dh)
-                if dh.name not in dhmiss:
-                    dhmiss.append(dh.name)
-                
-        for di in list(self.dimpr):
-            di.name = '%s-%s-%s-%s' % \
-              (self.atom[di.i].type, self.atom[di.j].type,
-                self.atom[di.k].type, self.atom[di.l].type)
-            i = di.i
-            j = di.j
-            k = di.k
-            l = di.l
+                toremove.append(dh)
+                if names[0] not in dhmiss:
+                    dhmiss.append(names[0])
+        for dh in toremove:
+            self.dihed.remove(dh)
+        
+        toremove = []
+        for di in self.dimpr:
+            ti = self.atom[di.i].type
+            tj = self.atom[di.j].type
+            tk = self.atom[di.k].type
+            tl = self.atom[di.l].type
+            names = [ '%s-%s-%s-%s' % (ti, tj, tk, tl),
+                      '%s-%s-%s-%s' % (tj, ti, tk, tl),
+                      '%s-%s-%s-%s' % (ti, tl, tk, tj),
+                      '%s-%s-%s-%s' % (tl, ti, tk, tj),
+                      '%s-%s-%s-%s' % (tj, tl, tk, ti),
+                      '%s-%s-%s-%s' % (tl, tj, tk, ti) ]
             found = False
             for ffdi in ff.dimpr:
-                ti = ffdi.iatp
-                tj = ffdi.jatp
-                tk = ffdi.katp
-                tl = ffdi.latp       
-                namestr1 = '%s-%s-%s-%s' % (ti, tj, tk, tl)
-                namestr2 = '%s-%s-%s-%s' % (tj, ti, tk, tl)
-                namerev1 = '%s-%s-%s-%s' % (tl, tk, tj, ti)
-                namerev2 = '%s-%s-%s-%s' % (tl, tk, ti, tj)
-                  
-                namestr3 = '%s-%s-%s-%s' % (ti, tl, tk, tj)
-                namestr4 = '%s-%s-%s-%s' % (tl, ti, tk, tj)
-                namerev3 = '%s-%s-%s-%s' % (tj, tk, tl, ti)
-                namerev4 = '%s-%s-%s-%s' % (tj, tk, ti, tl)
-                  
-                namestr5 = '%s-%s-%s-%s' % (tj, tl, tk, ti)
-                namestr6 = '%s-%s-%s-%s' % (tl, tj, tk, ti)
-                namerev5 = '%s-%s-%s-%s' % (ti, tk, tl, tj)
-                namerev6 = '%s-%s-%s-%s' % (ti, tk, tj, tl)
-
-                if di.name == namestr1 or di.name == namerev1 or \
-                    di.name == namestr2 or di.name == namerev2 or \
-                    di.name == namestr3 or di.name == namerev3 or \
-                    di.name == namestr4 or di.name == namerev4 or \
-                    di.name == namestr5 or di.name == namerev5 or \
-                    di.name == namestr6 or di.name == namerev6:
+                nameff = '%s-%s-%s-%s' % \
+                  (ffdi.iatp, ffdi.jatp, ffdi.katp, ffdi.latp)
+                if nameff in names:
+                    # sort atom numbering according to impropers in ff
+                    if nameff == names[1] and tj != ti:
+                        di.i, di.j = di.j, di.i
+                    elif nameff == names[2] and tl != tj:
+                        di.j, di.l = di.l, di.j
+                    elif nameff == names[3]:
+                        if tl != tj:
+                            di.j, di.l = di.l, di.j
+                        if tj != ti:
+                            di.i, di.j = di.j, di.i
+                    elif nameff == names[4]:
+                        if tl != ti:
+                            di.i, di.l = di.l, di.i
+                        if tj != ti:
+                            di.i, di.j = di.j, di.i
+                    elif nameff == names[5] and tl != ti:
+                        di.i, di.l = di.l, di.i
+                    di.setpar(ffdi.iatp, ffdi.jatp, ffdi.katp, ffdi.latp,
+                              ffdi.pot, ffdi.par)
                     if found:
                         print '  warning: duplicate improper %s in %s' % \
                           (di.name, self.ff)
-
-                    # sort atom numbering according to impropers in ff
-                    if di.name == namestr2:
-                        if ti != tj:
-                            di.j = i
-                            di.i = j
-                    elif di.name == namerev1:
-                        if tj != tk:
-                            di.k = j
-                            di.j = k
-                        if ti != tl:
-                            di.l = i
-                            di.i = l
-                    elif di.name == namerev2:
-                        di.l = i
-                        di.k = j
-                        di.i = k
-                        di.j = l
-                    elif di.name == namestr3:
-                        if tj != tl:
-                            di.l = j
-                            di.j = l
-                    elif di.name == namestr4:
-                        di.l = i
-                        di.i = j
-                        di.j = l
-                    elif di.name == namerev3:
-                        di.j = i
-                        di.k = j
-                        di.l = k
-                        di.i = l
-                    elif di.name == namerev4:
-                        di.j = i
-                        di.k = j
-                        di.i = k
-                    elif di.name == namestr5:
-                        di.j = i
-                        di.l = j
-                        di.i = l
-                    elif di.name == namestr6:
-                        if ti != tl:
-                            di.l = i
-                            di.i = l
-                    elif di.name == namerev5:
-                        di.k = j
-                        di.l = k
-                        di.j = l
-                    elif di.name == namerev6:
-                        if tj != tk:
-                            di.k = j
-                            di.j = k
-                    
-                    di.setpar(ffdi.iatp, ffdi.jatp, ffdi.katp, ffdi.latp,
-                              ffdi.pot, ffdi.par)
                     found = True
-                    
             if not found:
-                self.dimpr.remove(di)
-                if di.name not in dimiss:
-                    dimiss.append(di.name)
+                toremove.append(di)
+                if names[0] not in dimiss:
+                    dimiss.append(names[0])
+        for di in toremove:
+            self.dimpr.remove(di)
 
-        # remove dupplicate impropers
+        # remove dupplicate impropers differing by i-j or j-i
         toremove = []
         for i in range(len(self.dimpr) - 1):
             for j in range(i + 1, len(self.dimpr)):
@@ -1045,7 +999,7 @@ class mol:
                     self.dimpr[i].j == self.dimpr[j].j:
                     if self.dimpr[j] not in toremove:
                         toremove.append(self.dimpr[j])
-        for d in toremove:
+        for di in toremove:
             self.dimpr.remove(d)
 
         if len(anmiss) or len(dhmiss) or len(dimiss): 

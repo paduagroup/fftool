@@ -48,10 +48,12 @@ molecules, ions or materials.
     and the Wikipedia entry for "Z-matrix (chemistry)". Variables can
     be used for distances, angles and dihedrals. Connectivity is
     inferred from the z-matrix by default. In this case cyclic
-    molecules require additional `connect` records to close rings. If
-    a `reconnect` record is present, then connectivity is guessed
-    based on bond distances from the force field. After the z-matrix
-    the name of a file with force field parameters can be supplied.
+    molecules require additional `connect` records to close
+    rings. Improper dihedrals can be indicated by `improper`
+    records. If a `reconnect` record is present, then connectivity
+    will be guessed based on bond distances from the force
+    field. After the z-matrix the informations above,mthe name of a
+    file with force field parameters can be supplied.
 
     MDL `.mol` is a standard file format, containing a table with
     coordinates and also bonds. The name of a file with force field
@@ -119,14 +121,18 @@ atoms (sp2). A proper dihedral i-j-k-l is defined between bonded atoms
 i-j, j-k, and k-l and corresponds to torsion around bond j-k, the
 dihedral being the angle between planes ijk and jkl. An improper
 dihedral i-j-k-l is defined between bonded atoms i-k, j-k and k-l,
-therefore k is a central atom bonded to the three others. Often the
-same functional form used for proper torsions is also used for
-improper dihedrals.
+therefore k is a central atom bonded to the three others. This central
+atom of the improper dihedral is assumed to be the third in the
+list. Often in the force field the same functional form is used both
+for proper and improper torsions.
 
-The `fftool.py` script searches for improper dihedrals on all atoms
-with three bonds (which may be planar) so a number of warning messages
-may be printed and can be ignored if the atoms in question are not
-centers of improper torsions.
+If `improper` records are supplied in a molecule file (in `.zmat`
+format) then those improper dihedrals are assumed. Otherwise, the
+`fftool.py` script searches for improper dihedrals on all atoms with
+three bonds, for `.zmat`, `.mol` or `.  xyz` input formats. A number
+of warning messages may be printed of there are atoms with three
+bonds, which can be ignored if the atoms in question are not centers
+of improper torsions.
 
 The number and order of the atoms in the true improper dihedrals
 should be verified in the files created.
@@ -147,9 +153,11 @@ chemical bonds across boundaries. The option `-p` allows specification
 of periodic conditions in x, y, z or combinations thereof. It is
 important in this case to supply precise dimensions for the simulation
 box using the option `-b Lx,Ly,Lz`, even if the box is cubic. In this
-manner no additional space will be added. The coordinates of the atoms
-of the material have to be prepared carefully, so that distances
-across periodic boundaries are within the tolerance to identify bonds.
+manner no additional space will be added.
+
+The coordinates of the atoms of the material have to be supplied in
+`.xyz` format and prepared carefully so that distances across periodic
+boundaries are within the tolerance to identify bonds.
 
 Also, the `pack.inp` filed will likely need editing in order to
 position the atoms of the material precisely.
