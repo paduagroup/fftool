@@ -1397,7 +1397,8 @@ class system:
                               nb.par[1] / ecnv, nb.par[0], nb.i, nb.j))
             fi.write('\n')
 
-            fi.write('minimize 1.0e-4 1.0e-6 100 1000\n\n')
+            fi.write('minimize 1.0e-4 1.0e-6 100 1000\n')
+            fi.write('reset_timestep 0\n\n')
             
             fi.write('variable nsteps equal 10000\n')
             fi.write('variable nprint equal ${nsteps}/100\n')
