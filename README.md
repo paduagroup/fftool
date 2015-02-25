@@ -27,6 +27,9 @@ Requirements
 
 * [Packmol](http://www.ime.unicamp.br/~martinez/packmol/)
 
+* [PyPy](http://pypy.org) (optional) can bring enormous speed
+  improvements.
+
 
 Obtaining
 ---------
