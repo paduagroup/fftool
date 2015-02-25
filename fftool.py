@@ -1397,6 +1397,8 @@ class system:
                               nb.par[1] / ecnv, nb.par[0], nb.i, nb.j))
             fi.write('\n')
 
+            fi.write('minimize 1.0e-4 1.0e-6 100 1000\n\n')
+            
             fi.write('variable nsteps equal 10000\n')
             fi.write('variable nprint equal ${nsteps}/100\n')
             fi.write('variable ndump equal ${nsteps}/100\n')
@@ -1422,7 +1424,7 @@ class system:
                 if ant.pot == 'cons':
                     shakean = True
             if shakebd or shakean:
-                fi.write('fix fSHAKE all shake 0.0001 20 ${nprint}')
+                fi.write('fix SHAKE all shake 0.0001 20 ${nprint}')
                 if shakebd:
                     fi.write(' b')
                     for bdt in self.bdtype:
@@ -1435,21 +1437,21 @@ class system:
                             fi.write(' %d' % (ant.ityp + 1))
                 fi.write('\n\n')
 
-            fi.write('fix fNPT all npt temp ${temp} ${temp} 100 '\
+            fi.write('fix TPSTAT all npt temp ${temp} ${temp} 100 '\
                      'iso ${press} ${press} 500\n\n')
 
-            fi.write('# compute cRDF all rdf 100 1 1\n')
-            fi.write('# fix fRDF all ave/time 20 100 ${nsteps} '\
-                     'c_cRDF file rdf.lammps mode vector\n\n')
+            fi.write('# compute RDF all rdf 100 1 1\n')
+            fi.write('# fix RDF all ave/time 20 100 ${nsteps} '\
+                     'c_RDF file rdf.lammps mode vector\n\n')
             
             fi.write('# compute cMSD all msd\n')
-            fi.write('# fix fMSD all ave/time 1 1 ${ndump} '\
-                     'c_cMSD[1] c_cMSD[2] c_cMSD[3] c_cMSD[4] file '\
+            fi.write('# fix MSD all ave/time 1 1 ${ndump} '\
+                     'c_MSD[1] c_MSD[2] c_MSD[3] c_MSD[4] file '\
                      'msd.lammps\n\n')
 
-            fi.write('dump dCONF all custom ${ndump} dump.lammpstrj '\
+            fi.write('dump TRAJ all custom ${ndump} dump.lammpstrj '\
                      'id mol type element x y z ix iy iz\n')
-            fi.write('dump_modify dCONF element')
+            fi.write('dump_modify TRAJ element')
             for att in self.attype:
                 fi.write(' %s' % atomic_symbol(att.name))
             fi.write('\n\n')
