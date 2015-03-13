@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/03/13
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/03/14
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio A.H. Padua
@@ -1839,6 +1839,10 @@ def main():
         files = args.infiles[1::2]  # odd elements are zmat files
     nmol = sum(int(n) for n in nmols)
 
+    if args.box and args.rho != 0.0:
+        print('supply density or box length, not both')
+        sys.exit(1)
+    
     if args.box:
         tok = args.box.split(',')
         if len(tok) == 1:
@@ -1859,7 +1863,7 @@ def main():
         tol = 2.0
         center = True
     else:
-        print('supply density or box length')
+        print('density or box length need to be supplied')
         sys.exit(1)
 
     box = cell(a, b, c, args.pbc, tol, center)
