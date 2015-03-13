@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/02/23
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/03/12
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio A.H. Padua
@@ -1700,6 +1700,83 @@ class system:
                             i += 1
 
 
+    def writepsf(self):
+        natom = nbond = nangle = ndihed = 0
+        for sp in self.spec:
+            natom += sp.nmol * len(sp.atom)
+            nbond += sp.nmol * len(sp.bond)
+            nangle += sp.nmol * len(sp.angle)
+            ndihed += sp.nmol * (len(sp.dihed) + len(sp.dimpr))
+            
+        with open("data.psf", 'w') as f:
+            f.write('PSF\n\n')
+            f.write('       1 !NTITLE\n')
+            f.write(' REMARKS Created by fftool\n\n')
+            
+            f.write(' %7d !NATOM\n' % natom)
+            i = nmol = 0
+            for sp in self.spec:
+                for im in range(sp.nmol):
+                    for at in sp.atom:
+                        f.write(' %7d S %4d  %6s %-4s %-4s %10.6f %13.4f'\
+                                ' %11d\n' % \
+                                (i + 1, nmol + 1, sp.name, at.name,
+                                 at.type, at.q, at.m, 0))
+                        i += 1
+                    nmol += 1
+
+            f.write('\n %7d !NBOND: bonds\n' % nbond)
+            i = shift = 1
+            for sp in self.spec:
+                natom = len(sp.atom)
+                for im in range(sp.nmol):
+                    for bd in sp.bond:
+                        f.write(' %7d %7d' % (bd.j + shift, bd.i + shift))
+                        if (i % 4) == 0:
+                            f.write('\n')
+                        i += 1
+                    shift += natom
+            if ((i - 1) % 4) != 0:
+                f.write('\n')
+
+            f.write('\n %7d !NTHETA: angles\n' % nangle)
+            i = shift = 1
+            for sp in self.spec:
+                natom = len(sp.atom)
+                for im in range(sp.nmol):
+                    for an in sp.angle:
+                        f.write(' %7d %7d %7d' % \
+                                (an.i + shift, an.j + shift, an.k + shift))
+                        if (i % 3) == 0:
+                            f.write('\n')
+                        i += 1
+                    shift += natom
+            if ((i - 1) % 3) != 0:
+                f.write('\n')
+
+            f.write('\n %7d !NPHI: dihedrals\n' % ndihed)
+            i = shift = 1
+            for sp in self.spec:
+                natom = len(sp.atom)
+                for im in range(sp.nmol):
+                    for dh in sp.dihed:
+                        f.write(' %7d %7d %7d %7d' % (dh.i + shift,
+                                dh.j + shift, dh.k + shift, dh.l + shift))
+                        if (i % 2) == 0:
+                            f.write('\n')
+                        i += 1
+                    for di in sp.dimpr:
+                        fd.write('%7d %7d %7d %7d' % (di.i + shift,
+                                 di.j + shift, di.k + shift, di.l + shift))
+                        if (i % 2) == 0:
+                            f.write('\n')
+                        i += 1
+                    shift += natom
+            if ((i - 1) % 2) != 0:
+                f.write('\n')
+
+            f.write('\n')
+                    
 # --------------------------------------
 
 
@@ -1738,6 +1815,8 @@ def main():
                         '(needs simbox.xyz built using packmol)')
     parser.add_argument('-c', '--cos4', action = 'store_true', 
                         help = 'use cos4 dihedrals in dlpoly FIELD')
+    parser.add_argument('-f', '--psf', action = 'store_true',
+                        help = 'save connectivity in psf format')
     parser.add_argument('infiles', nargs='+',
                         help = 'n1 infile1 [n2 infile2 ...], '\
                         'where n_i are the numbers of molecules defined in '\
@@ -1777,7 +1856,7 @@ def main():
 
     box = cell(a, b, c, args.pbc, tol, center)
 
-    if args.lammps or args.dlpoly:
+    if args.lammps or args.dlpoly or args.psf:
         connect = True
     else:
         connect = False
@@ -1799,7 +1878,7 @@ def main():
         
     sim = system(spec, box, args.mix)
 
-    if not (args.lammps or args.dlpoly):
+    if not (args.lammps or args.dlpoly or args.psf):
         print 'packmol file\n  pack.inp'
         sim.writepackmol('pack.inp', 'simbox.xyz', args.tol)
     elif args.lammps:
@@ -1817,6 +1896,9 @@ def main():
         sim.readcoords('simbox.xyz')
         print 'dlpoly files\n  FIELD\n  CONFIG'
         sim.writedlp(args.cos4)
+    elif args.psf:
+        print 'psf file\n  data.psf'
+        sim.writepsf()
 
 
 if __name__ == '__main__':
