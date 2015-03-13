@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/03/12
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/03/13
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio A.H. Padua
@@ -39,7 +39,7 @@ def atomic_weight(name):
     elif name[0] in atomic_wt:
         return atomic_wt[name[0]]
     else:
-        print 'warning: unknown atomic weight for atom %s' % (name)
+        print('warning: unknown atomic weight for atom ' + name)
         return 0.0
 
 def atomic_symbol(name):
@@ -48,7 +48,7 @@ def atomic_symbol(name):
     elif name[0] in atomic_wt:
         return name[0]
     else:
-        print 'warning: unknown symbol for atom %s' % (name)
+        print('warning: unknown symbol for atom ' + name)
         return ''
 
 # --------------------------------------
@@ -213,19 +213,19 @@ class bond:
 
     def seteqval(self):
         if not hasattr(self, 'name'):
-            print 'error: bond parameters not set'
+            print('  error: bond parameters not set')
             sys.exit(1)
         if self.pot == 'harm':
             self.eqval = self.par[0]
         elif self.pot == 'cons':
             self.eqval = self.par[0]
         else:
-            print 'error: unkown bond potential', self.pot
+            print('  error: unkown bond potential ' + self.pot)
             sys.exit(1)
 
     def checkval(self, r):
         if not hasattr(self, 'eqval'):
-            print 'error: bond equilibrium value not set'
+            print('  error: bond equilibrium value not set')
             sys.exit(1)
         delta = abs(r - self.eqval)
         if delta < 0.25:                # Angstrom
@@ -265,19 +265,19 @@ class angle:
 
     def seteqval(self):
         if not hasattr(self, 'name'):
-            print 'error: angle parameters not set'
+            print('  error: angle parameters not set')
             sys.exit(1)
         if self.pot == 'harm':
             self.eqval = self.par[0]
         elif self.pot == 'cons':
             self.eqval = self.par[0]
         else:
-            print 'error: unkown angle potential', self.pot
+            print('  error: unkown angle potential ' + self.pot)
             sys.exit(1)
 
     def checkval(self, th):
         if not hasattr(self, 'eqval'):
-            print 'error: angle equilibrium value not set'
+            print('  error: angle equilibrium value not set')
             sys.exit(1)
         delta = abs(th - self.eqval)
         if delta < 15.0:                  # degrees
@@ -447,30 +447,30 @@ class zmat:
                 line = f.readline()
                             
     def show(self):
-        print self.name
+        print(self.name)
         i = 0
         for rec in self.zatom:
             i += 1
             if rec['ir'] == 0:
-                print '%-3d %-5s' % (i, rec['name'])
+                print('%-3d %-5s' % (i, rec['name']))
             elif rec['ia'] == 0:
-                print '%-3d %-5s %3d %6.3f' % (i, rec['name'], rec['ir'],
-                                               rec['r'])
+                print('%-3d %-5s %3d %6.3f' % \
+                      (i, rec['name'], rec['ir'], rec['r']))
             elif rec['id'] == 0:
-                print '%-3d %-5s %3d %6.3f %3d %6.1f' % \
-                    (i, rec['name'], rec['ir'], rec['r'], rec['ia'], rec['a'])
+                print('%-3d %-5s %3d %6.3f %3d %6.1f' % \
+                    (i, rec['name'], rec['ir'], rec['r'], rec['ia'], rec['a']))
             else:
-                print '%-3d %-5s %3d %6.3f %3d %6.1f %3d %6.1f' % \
+                print('%-3d %-5s %3d %6.3f %3d %6.1f %3d %6.1f' % \
                     (i, rec['name'], rec['ir'], rec['r'], rec['ia'], rec['a'],
-                     rec['id'], rec['d'])
+                     rec['id'], rec['d']))
         if len(self.connect) > 0:
-            print 'connects'
+            print('connects')
             for c in self.connect:
-                print '%3d (%5s) -- %3d (%5s)' % \
+                print('%3d (%5s) -- %3d (%5s)' % \
                     (c[0], self.zatom[c[0]-1]['name'],
-                     c[1], self.zatom[c[1]-1]['name'])
+                     c[1], self.zatom[c[1]-1]['name']))
         if self.ff:
-            print 'field:', self.ff
+            print('field: ' + self.ff)
 
 
 # --------------------------------------
@@ -499,9 +499,12 @@ class mol:
                 self.frommdlmol(filename, connect)
             elif ext == 'xyz':
                 self.fromxyz(filename, connect, box)
+            else:
+                print('  error: unsupported molecule file extension')
+                sys.exit(1)
         except IOError:
-            self.filename = ''
-            self.name = filename
+            print('  error: molecule file not found')
+            sys.exit(1)
 
         self.setff(box)
         
@@ -542,7 +545,7 @@ class mol:
     def zmat2cart(self, z):
         natom = len(self.atom)    
         if natom != len(z.zatom):
-            print 'error: different numbers of atoms in zmat', self.name
+            print('  error: different numbers of atoms in zmat ' + self.name)
             sys.exit(1)
 
         if natom == 0:
@@ -736,8 +739,8 @@ class mol:
                     at.type = ffat.type
                     found = True
             if not found:
-                print 'error in %s: no parameters for atom %s' % \
-                  (self.name, at.name)
+                print('  error in %s: no parameters for atom %s' % \
+                    (self.name, at.name))
                 error = True
         if error:
             sys.exit(1)
@@ -843,14 +846,14 @@ class mol:
             for ffat in ff.atom:     
                 if at.name == ffat.name:
                     if found:
-                        print '  warning: duplicate atom %s in %s' % \
-                          (at.name, self.ff)     
+                        print('  warning: duplicate atom %s in %s' % \
+                          (at.name, self.ff))     
                     at.setpar(ffat.type, ffat.q, ffat.pot, ffat.par)
                     at.m = ffat.m
                     found = True
             if not found:
-                print 'error in %s: no parameters for atom %s' % \
-                  (self.name, at.name)
+                print('  error in %s: no parameters for atom %s' % \
+                  (self.name, at.name))
                 error = True
         if error:
             sys.exit(1)
@@ -867,15 +870,15 @@ class mol:
                 if nameff in names:
                     bd.setpar(ffbd.iatp, ffbd.jatp, ffbd.pot, ffbd.par)
                     if not ffbd.checkval(r):
-                        print '  warning: %s bond %s %d-%d %7.3f' % \
-                          (self.name, bd.name, bd.i + 1, bd.j + 1, r)
+                        print('  warning: %s bond %s %d-%d %7.3f' % \
+                          (self.name, bd.name, bd.i + 1, bd.j + 1, r))
                     if found:
-                        print '  warning: duplicate bond %s in %s' % \
-                          (bd.name, self.ff)
+                        print('  warning: duplicate bond %s in %s' % \
+                          (bd.name, self.ff))
                     found = True
             if not found:
-                print 'error in %s: no parameters for bond %s' % \
-                  (self.name, names[0])
+                print('  error in %s: no parameters for bond %s' % \
+                  (self.name, names[0]))
                 error = True
         if error:
             sys.exit(1)
@@ -902,13 +905,13 @@ class mol:
                     if not ffan.checkval(th):
                         check = False
                     if found:
-                        print '  warning: duplicate angle %s in %s' % \
-                          (an.name, self.ff)
+                        print('  warning: duplicate angle %s in %s' % \
+                          (an.name, self.ff))
                     found = True
             if not check:
                 toremove.append(an)
-                print '  warning: %s angle %s %d-%d-%d %.2f removed' % \
-                    (self.name, an.name, an.i+1, an.j+1, an.k+1, th)
+                print('  warning: %s angle %s %d-%d-%d %.2f removed' % \
+                    (self.name, an.name, an.i+1, an.j+1, an.k+1, th))
             if not found:
                 toremove.append(an)
                 if names[0] not in anmiss:
@@ -932,8 +935,8 @@ class mol:
                     dh.setpar(ffdh.iatp, ffdh.jatp, ffdh.katp, ffdh.latp,
                               ffdh.pot, ffdh.par)
                     if found:
-                        print '  warning: duplicate dihedral %s in %s' % \
-                          (di.name, self.ff)
+                        print('  warning: duplicate dihedral %s in %s' % \
+                          (di.name, self.ff))
                     found = True
             if not found:
                 toremove.append(dh)
@@ -979,8 +982,8 @@ class mol:
                     di.setpar(ffdi.iatp, ffdi.jatp, ffdi.katp, ffdi.latp,
                               ffdi.pot, ffdi.par)
                     if found:
-                        print '  warning: duplicate improper %s in %s' % \
-                          (di.name, self.ff)
+                        print('  warning: duplicate improper %s in %s' % \
+                          (di.name, self.ff))
                     found = True
             if not found:
                 toremove.append(di)
@@ -1003,46 +1006,46 @@ class mol:
             self.dimpr.remove(d)
 
         if len(anmiss) or len(dhmiss) or len(dimiss): 
-            print '  warning: missing force field parameters'
+            print('  warning: missing force field parameters')
             for s in anmiss:
-                print '    angle type ' + s
+                print('    angle type ' + s)
             for s in dhmiss:
-                print '    dihedral type ' + s
+                print('    dihedral type ' + s)
             for s in dimiss:
-                print '    improper type ' + s
+                print('    improper type ' + s)
 
     def show(self):
-        print '%s: %d molecules' % (self.name, self.nmol)
-        print '%d atoms' % len(self.atom)
+        print('%s: %d molecules' % (self.name, self.nmol))
+        print('%d atoms' % len(self.atom))
         for at in self.atom:
-            print at
-        print '%d bonds' % len(self.bond)
+            print(at)
+        print('%d bonds' % len(self.bond))
         for bd in self.bond:
-            print bd
-        print '%d angles' % len(self.angle)
+            print(bd)
+        print('%d angles' % len(self.angle))
         for an in self.angle:
-            print an
-        print '%d dihedrals' % len(self.dihed)
+            print(an)
+        print('%d dihedrals' % len(self.dihed))
         for dh in self.dihed:
-            print dh
-        print '%d improper' % len(self.dimpr)
+            print(dh)
+        print('%d improper' % len(self.dimpr))
         for di in self.dimpr:
-            print di
+            print(di)
         if self.ff:
-            print 'field:', self.ff
+            print('field: ' + self.ff)
 
     def showxyz(self, symbol = False):
-        print len(self.atom)
+        print(len(self.atom))
         if self.ff:
-            print self.name, self.ff
+            print(self.name + ' ' + self.ff)
         else:
-            print self.name
+            print(self.name)
         for a in self.atom:
             if symbol:
                 atname = atomic_symbol(a.name)
             else:
                 atname = a.name
-            print '%-5s %15.6f %15.6f %15.6f' % (atname, a.x, a.y, a.z)
+            print('%-5s %15.6f %15.6f %15.6f' % (atname, a.x, a.y, a.z))
 
     def writexyz(self, symbol = True):
         outfile = (self.filename).rsplit('.', 1)[0] + '_pack.xyz'
@@ -1072,83 +1075,88 @@ class forcefield:
         self.angle = []
         self.dihed = []
         self.dimpr = []
-        
-        with open(self.filename, 'r') as f:
-            i = ib = ia = ih = im = 0
-            for line in f:
-                if line.startswith('#') or line.strip() == '':
-                    continue
+
+        try:
+            with open(filename, 'r') as f:
+                i = ib = ia = ih = im = 0
+                for line in f:
+                    if line.startswith('#') or line.strip() == '':
+                        continue
                 
-                if line.lower().startswith('atom'):
-                    section = 'atoms'
-                    continue
-                elif line.lower().startswith('bond'):
-                    section = 'bonds'
-                    continue
-                elif line.lower().startswith('angl'):
-                    section = 'angles'
-                    continue
-                elif line.lower().startswith('dihe'):
-                    section = 'dihedrals'
-                    continue
-                elif line.lower().startswith('impro'):
-                    section = 'improper'
-                    continue
+                    if line.lower().startswith('atom'):
+                        section = 'atoms'
+                        continue
+                    elif line.lower().startswith('bond'):
+                        section = 'bonds'
+                        continue
+                    elif line.lower().startswith('angl'):
+                        section = 'angles'
+                        continue
+                    elif line.lower().startswith('dihe'):
+                        section = 'dihedrals'
+                        continue
+                    elif line.lower().startswith('impro'):
+                        section = 'improper'
+                        continue
 
-                tok = line.strip().split()
+                    tok = line.strip().split()
 
-                if section == 'atoms':
-                    name = tok[0]
-                    attp = tok[1]
-                    m = float(tok[2])
-                    q = float(tok[3])
-                    pot = tok[4]
-                    par = [float(p) for p in tok[5:]]
-                    self.atom.append(atom(name, m))
-                    self.atom[i].setpar(attp, q, pot, par)
-                    i += 1
+                    if section == 'atoms':
+                        name = tok[0]
+                        attp = tok[1]
+                        m = float(tok[2])
+                        q = float(tok[3])
+                        pot = tok[4]
+                        par = [float(p) for p in tok[5:]]
+                        self.atom.append(atom(name, m))
+                        self.atom[i].setpar(attp, q, pot, par)
+                        i += 1
 
-                elif section == 'bonds':
-                    iatp = tok[0]
-                    jatp = tok[1]
-                    pot = tok[2]
-                    par = [float(p) for p in tok[3:]]
-                    self.bond.append(bond())
-                    self.bond[ib].setpar(iatp, jatp, pot, par)
-                    ib += 1
+                    elif section == 'bonds':
+                        iatp = tok[0]
+                        jatp = tok[1]
+                        pot = tok[2]
+                        par = [float(p) for p in tok[3:]]
+                        self.bond.append(bond())
+                        self.bond[ib].setpar(iatp, jatp, pot, par)
+                        ib += 1
 
-                elif section == 'angles':
-                    iatp = tok[0]
-                    jatp = tok[1]
-                    katp = tok[2]
-                    pot = tok[3]
-                    par = [float(p) for p in tok[4:]]
-                    self.angle.append(angle())
-                    self.angle[ia].setpar(iatp, jatp, katp, pot, par)
-                    ia += 1
+                    elif section == 'angles':
+                        iatp = tok[0]
+                        jatp = tok[1]
+                        katp = tok[2]
+                        pot = tok[3]
+                        par = [float(p) for p in tok[4:]]
+                        self.angle.append(angle())
+                        self.angle[ia].setpar(iatp, jatp, katp, pot, par)
+                        ia += 1
 
-                elif section == 'dihedrals':
-                    iatp = tok[0]
-                    jatp = tok[1]
-                    katp = tok[2]
-                    latp = tok[3]
-                    pot = tok[4]
-                    par = [float(p) for p in tok[5:]]
-                    self.dihed.append(dihed())
-                    self.dihed[ih].setpar(iatp, jatp, katp, latp, pot, par)
-                    ih += 1
+                    elif section == 'dihedrals':
+                        iatp = tok[0]
+                        jatp = tok[1]
+                        katp = tok[2]
+                        latp = tok[3]
+                        pot = tok[4]
+                        par = [float(p) for p in tok[5:]]
+                        self.dihed.append(dihed())
+                        self.dihed[ih].setpar(iatp, jatp, katp, latp, pot, par)
+                        ih += 1
 
-                elif section == 'improper':
-                    iatp = tok[0]
-                    jatp = tok[1]
-                    katp = tok[2]
-                    latp = tok[3]
-                    pot = tok[4]
-                    par = [float(p) for p in tok[5:]]
-                    self.dimpr.append(dimpr())
-                    self.dimpr[im].setpar(iatp, jatp, katp, latp, pot, par)
-                    im += 1
+                    elif section == 'improper':
+                        iatp = tok[0]
+                        jatp = tok[1]
+                        katp = tok[2]
+                        latp = tok[3]
+                        pot = tok[4]
+                        par = [float(p) for p in tok[5:]]
+                        self.dimpr.append(dimpr())
+                        self.dimpr[im].setpar(iatp, jatp, katp, latp, pot, par)
+                        im += 1
 
+        except IOError:
+            print('  error: force field file ' + filename + ' not found')
+            sys.exit(1)
+                        
         for bn in self.bond:
             bn.seteqval()
         for an in self.angle:
@@ -1156,15 +1164,15 @@ class forcefield:
                     
     def show(self):
         for at in self.atom:
-            print at
+            print(at)
         for bd in self.bond:
-            print bd
+            print(bd)
         for an in self.angle:
-            print an
+            print(an)
         for dh in self.dihed:
-            print dh
+            print(dh)
         for di in self.dimpr:
-            print di
+            print(di)
 
 
 class vdw:
@@ -1177,15 +1185,15 @@ class vdw:
         self.jtyp = jat.ityp
         
         if iat.pot != jat.pot:
-            print 'error in vdw object: incompatible potential types',\
-              self.i, self.j
+            print('  error in vdw object: incompatible potential types ' + \
+              self.i + ' ' + self.j)
             sys.exit(1)
 
         self.pot = iat.pot
 
         if len(iat.par) != len(jat.par):
-            print 'error in vdw object: different lengths in parameter lists',\
-              self.i, self.j
+            print('  error in vdw object: different lengths in parameter ' \
+                  'lists ' + self.i + ' ' + self.j)
             sys.exit(1)
 
         if self.pot == 'lj':
@@ -1289,19 +1297,19 @@ class system:
 
     def show(self):
         for sp in self.spec:
-            print '%s  %d molecules force field %s' % (sp.name, sp.nmol, sp.ff)
+            print('%s  %d molecules force field %s' % (sp.name, sp.nmol, sp.ff))
             for at in sp.atom:
-                print at
+                print(at)
             for bd in sp.bond:
-                print bd
+                print(bd)
             for an in sp.angle:
-                print an
+                print(an)
             for dh in sp.dihed:
-                print dh
+                print(dh)
             for di in sp.dimpr:
-                print di
+                print(di)
         for nb in self.vdw:
-            print nb
+            print(nb)
 
     def writepackmol(self, packfile, outfile, tol = 2.5):
         with open(packfile, 'w') as f:
@@ -1337,7 +1345,7 @@ class system:
                     self.y[i] = float(tok[2])
                     self.z[i] = float(tok[3])
         except IOError:
-            print 'cannot open', filename
+            print('error: coordinates file ' + filename + ' not found')
             sys.exit(1)
 
     def writelmp(self, mix = 'g', allpairs = False, units = 'r'):
@@ -1357,7 +1365,7 @@ class system:
                 fi.write('units metal\n')
                 ecnv = eV
             else:
-                print 'unknown units for lammps files'
+                print('unknown units for lammps files')
                 sys.exit(1)
                 
             fi.write('boundary p p p\n\n')
@@ -1766,8 +1774,8 @@ class system:
                             f.write('\n')
                         i += 1
                     for di in sp.dimpr:
-                        fd.write('%7d %7d %7d %7d' % (di.i + shift,
-                                 di.j + shift, di.k + shift, di.l + shift))
+                        f.write('%7d %7d %7d %7d' % (di.i + shift,
+                                di.j + shift, di.k + shift, di.l + shift))
                         if (i % 2) == 0:
                             f.write('\n')
                         i += 1
@@ -1844,14 +1852,14 @@ def main():
             tol = 0.0
             center = False
         else:
-            print 'wrong box length'
+            print('wrong box length')
             sys.exit(1)
     elif args.rho != 0.0:
         a = b = c = math.pow(nmol / (args.rho * 6.022e+23 * 1.0e-27), 1./3.)
         tol = 2.0
         center = True
     else:
-        print 'supply density or box length'
+        print('supply density or box length')
         sys.exit(1)
 
     box = cell(a, b, c, args.pbc, tol, center)
@@ -1861,44 +1869,44 @@ def main():
     else:
         connect = False
 
-    print 'molecule descriptions'
+    print('molecule descriptions')
     spec = []
     i = 0
     for zfile in files:
-        print '  ' + zfile
+        print('  ' + zfile)
         spec.append(mol(zfile, connect, box))
         spec[i].nmol = int(nmols[i])
         spec[i].writexyz()
         i += 1
 
-    print 'species                 nmol  bonds   charge'
+    print('species                 nmol  bonds   charge')
     for sp in spec:
-        print '  %-20s %5d  %-5s %+8.3f' % \
-          (sp.name, sp.nmol, sp.topol, sp.charge())
+        print('  %-20s %5d  %-5s %+8.3f' % \
+          (sp.name, sp.nmol, sp.topol, sp.charge()))
         
     sim = system(spec, box, args.mix)
 
-    if not (args.lammps or args.dlpoly or args.psf):
-        print 'packmol file\n  pack.inp'
-        sim.writepackmol('pack.inp', 'simbox.xyz', args.tol)
-    elif args.lammps:
+    if args.lammps:
         sim.readcoords('simbox.xyz')
         if args.units == 'r':
-            print 'lammps files units real'
+            print('lammps files units real')
         elif args.units == 'm':
-            print 'lammps files units metal'
+            print('lammps files units metal')
         else:
-            print 'invalid units: choose [r]eal or [m]etal'
+            print('invalid units: choose [r]eal or [m]etal')
             sys.exit(1)
-        print '  in.lmp\n  data.lmp'
+        print('  in.lmp\n  data.lmp')
         sim.writelmp(args.mix, args.allpairs, args.units)
-    elif args.dlpoly:
+    if args.dlpoly:
         sim.readcoords('simbox.xyz')
-        print 'dlpoly files\n  FIELD\n  CONFIG'
+        print('dlpoly files\n  FIELD\n  CONFIG')
         sim.writedlp(args.cos4)
-    elif args.psf:
-        print 'psf file\n  data.psf'
+    if args.psf:
+        print('psf file\n  data.psf')
         sim.writepsf()
+    if not (args.lammps or args.dlpoly or args.psf):
+        print('packmol file\n  pack.inp')
+        sim.writepackmol('pack.inp', 'simbox.xyz', args.tol)
 
 
 if __name__ == '__main__':
