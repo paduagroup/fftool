@@ -19,16 +19,21 @@ Contents
     [DL_POLY](http://www.stfc.ac.uk/CSE/randd/ccg/software/DL_POLY/25526.aspx)
     molecular dynamics packages.
 
+* `tools/`: several utility scripts.
+
+* `examples/`: examples of molecule files and force field databases.
+
 
 Requirements
 ------------
 
-* [Python 2.7](http://www.python.org/)
+* [Python](http://www.python.org/) versions 2.7 or 3 should work.
 
-* [Packmol](http://www.ime.unicamp.br/~martinez/packmol/)
+* [Packmol](http://www.ime.unicamp.br/~martinez/packmol/) to pack
+  molecules and materials in the simultion box.
 
 * [PyPy](http://pypy.org) (optional) can bring enormous speed
-  improvements.
+  improvements for large systems.
 
 
 Obtaining
@@ -39,10 +44,10 @@ Download the files or else clone the repository (easier to stay updated):
     git clone https://github.com/agiliopadua/fftool.git
 
 
-How to Use
-----------
+Tutorial
+--------
 
-These are instructions on how to build an initial configuration of a
+These are instructions on how to build an initial configuration for a
 system composed of molecules, ions or materials.
 
 1. For each molecule, ion or fragment of a material prepare a file
@@ -124,7 +129,8 @@ Improper Dihedrals
 ------------------
 
 Improper dihedrals are often used to increase the rigidity of planar
-atoms (sp2). A proper dihedral i-j-k-l is defined between bonded atoms
+atoms (sp2), and differ from proper dihedrals in how they are
+defined. A proper dihedral i-j-k-l is defined between bonded atoms
 i-j, j-k, and k-l and corresponds to torsion around bond j-k, the
 dihedral being the angle between planes ijk and jkl. An improper
 dihedral i-j-k-l is defined between bonded atoms i-k, j-k and k-l,
@@ -135,32 +141,32 @@ for proper and improper torsions.
 
 If `improper` records are supplied in a molecule file (in `.zmat`
 format) then those improper dihedrals are assumed by
-`fftool.py`. Otherwise, the script will searche for candidate improper
+`fftool.py`. Otherwise, the script will search for candidate improper
 dihedrals on all atoms with three bonds, with any of `.zmat`, `.mol`
-or `.  xyz` inputs. A number of warning messages may be printed if
-there are atoms with three bonds, which can be ignored if the atoms in
-question are not centers of improper torsions.
-
-The number and order of the atoms in the true improper dihedrals
-should be verified in the files created.
+or `.  xyz` input formats. A number of warning messages may be printed
+if there are atoms with three bonds, which can be ignored if the atoms
+in question are not centers of improper torsions. The number and order
+of the atoms in the true improper dihedrals should be verified in the
+files created.
 
 
 Periodic Boundary Conditions
 ----------------------------
 
-For molecular systems the initial configuration will not contain
-molecules crossing the boundaries of the simulation box. If the size
-of the box is indicated by just one value, `-b L`, or by supplying the
-density, then the box will be cubic and an extra space of 1 A is added
-in each dimension to avoid overlaps in the initial configuration (as
-explained in the `packmol` documentation).
+For molecular systems the initial configuration will generaly not
+contain molecules crossing the boundaries of the simulation box. If
+the size of the box is indicated by just one value, `-b L`, or by
+supplying the density, then the box will be cubic and an extra space
+of 1 A is added in each dimension to avoid overlaps in the initial
+configuration (as explained in the `packmol` documentation).
 
 For simulations with extended materials it is possible to create
 chemical bonds across boundaries. The option `-p` allows specification
 of periodic conditions along x, y, z or combinations thereof. It is
 important in this case to supply precise dimensions for the simulation
 box using the option `-b Lx,Ly,Lz`, even if the box is cubic. In this
-manner no additional space will be added.
+manner no additional space will be added, so an energy minimization
+step prior to start of the MD simulation is highly recommended.
 
 The coordinates of the atoms of the material have to be supplied in
 `.xyz` format and prepared carefully so that distances across periodic
