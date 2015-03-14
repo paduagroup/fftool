@@ -187,9 +187,11 @@ C   CT  CT  CT   opls   -8.6190   -1.3096    1.3180    0.0000
 C   CT  CT  HC   opls    0.0000    0.0000   -0.4184    0.0000
 
 IMPROPER
-# improper aromatics AMBER JACS 117(1995)5179
+# improper C aromatics AMBER JACS 117(1995)5179
 CA  CA  CA  HA   opls    0.0000    9.2048    0.0000    0.0000
 CA  CA  CA  CT   opls    0.0000    9.2048    0.0000    0.0000
-# improper carbonyl
+# improper C carbonyl
 OS  OS  C_2 O_2  opls    0.0000   43.9320    0.0000    0.0000
 CT  N   C   O    opls    0.0000   43.9320    0.0000    0.0000
+# improper N sp2
+CT  CT  N   C    opls    0.0000    8.3680    0.0000    0.0000
