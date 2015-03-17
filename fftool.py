@@ -1388,7 +1388,7 @@ class system:
                 fi.write('kspace_style pppm 1.0e-4\n\n')
 
                 fi.write('read_data data.lmp\n')
-                fi.write('# read_restart restart.*.lmp\n')
+                fi.write('# read_restart restart.*.lmp\n\n')
 
                 for att in self.attype:
                     fi.write('pair_coeff %4d %4d %s %12.6f %12.6f  '\
@@ -1400,7 +1400,7 @@ class system:
                 fi.write('kspace_style pppm 1.0e-4\n\n')
 
                 fi.write('read_data data.lmp\n')
-                fi.write('# read_restart restart.*.lmp\n')
+                fi.write('# read_restart restart.*.lmp\n\n')
                 
                 for nb in self.vdw:
                     fi.write('pair_coeff %4d %4d %s %12.6f %12.6f  '\
