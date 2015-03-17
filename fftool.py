@@ -1379,10 +1379,6 @@ class system:
                 fi.write('dihedral_style opls\n')
             fi.write('special_bonds lj/coul 0.0 0.0 0.5\n\n')
 
-            fi.write('read_data data.lmp\n')
-            fi.write('# read_restart restart.*.lmp\n')
-            fi.write('# reset_timestep 0\n\n')
-
             fi.write('pair_style hybrid lj/cut/coul/long 12.0 12.0\n')
             if not allpairs:
                 if (mix == 'g'):
@@ -1390,6 +1386,10 @@ class system:
                 else:
                     fi.write('pair_modify mix arithmetic tail yes\n')
                 fi.write('kspace_style pppm 1.0e-4\n\n')
+
+                fi.write('read_data data.lmp\n')
+                fi.write('# read_restart restart.*.lmp\n')
+
                 for att in self.attype:
                     fi.write('pair_coeff %4d %4d %s %12.6f %12.6f  '\
                              '# %s %s\n' % \
@@ -1398,6 +1398,10 @@ class system:
             else:
                 fi.write('pair_modify tail yes\n')
                 fi.write('kspace_style pppm 1.0e-4\n\n')
+
+                fi.write('read_data data.lmp\n')
+                fi.write('# read_restart restart.*.lmp\n')
+                
                 for nb in self.vdw:
                     fi.write('pair_coeff %4d %4d %s %12.6f %12.6f  '\
                              '# %s %s\n' % \
@@ -1413,8 +1417,8 @@ class system:
             fi.write('variable ndump equal ${nsteps}/100\n')
             fi.write('# variable nrestart equal ${nsteps}/10\n\n')
 
-            fi.write('variable temp equal 300.0\n')
-            fi.write('variable press equal 1.0\n\n')
+            fi.write('variable TK equal 300.0\n')
+            fi.write('variable PBAR equal 1.0\n\n')
 
             fi.write('neighbor 2.0 bin\n\n')
 
@@ -1423,7 +1427,7 @@ class system:
             elif units == 'm':
                 fi.write('timestep 0.001\n\n')
                 
-            fi.write('velocity all create ${temp} 12345\n\n')            
+            fi.write('velocity all create ${TK} 12345\n\n')            
 
             shakebd = shakean = False
             for bdt in self.bdtype:
@@ -1433,7 +1437,7 @@ class system:
                 if ant.pot == 'cons':
                     shakean = True
             if shakebd or shakean:
-                fi.write('fix SHAKE all shake 0.0001 20 ${nprint}')
+                fi.write('fix SHAKE all shake 0.0001 20 0')
                 if shakebd:
                     fi.write(' b')
                     for bdt in self.bdtype:
@@ -1446,8 +1450,8 @@ class system:
                             fi.write(' %d' % (ant.ityp + 1))
                 fi.write('\n\n')
 
-            fi.write('fix TPSTAT all npt temp ${temp} ${temp} 100 '\
-                     'iso ${press} ${press} 500\n\n')
+            fi.write('fix TPSTAT all npt temp ${TK} ${TK} 100 '\
+                     'iso ${PBAR} ${PBAR} 500\n\n')
 
             fi.write('# compute RDF all rdf 100 1 1\n')
             fi.write('# fix RDF all ave/time 20 100 ${nsteps} '\
