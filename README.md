@@ -173,7 +173,14 @@ The coordinates of the atoms of the material have to be supplied in
 boundaries are within the tolerance to identify bonds. The number of
 bonds in the files created should be verified.
 
-Also, the `pack.inp` filed will likely need editing in order to
+It is important that only the material for which bonds are to be
+established across boudaries is supplied in `.xyz` format. For other
+molecules in the system the initial files should be in `.zmat` or
+`.mol` formats containing connectivity information. This is to avoid
+spurious bonds between those molecules that happen to be positioned
+too close to boudaries.
+
+The `pack.inp` file will likely need manual editing in order to
 position the atoms of the material precisely.
 
 
