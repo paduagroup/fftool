@@ -174,11 +174,11 @@ boundaries are within the tolerance to identify bonds. The number of
 bonds in the files created should be verified.
 
 It is important that only the material for which bonds are to be
-established across boudaries is supplied in `.xyz` format. For other
-molecules in the system the initial files should be in `.zmat` or
-`.mol` formats containing connectivity information. This is to avoid
-spurious bonds between those molecules that happen to be positioned
-too close to boudaries.
+established across boudaries is supplied in `.xyz` format. The initial
+files for other molecules in the system should be in `.zmat` or `.mol`
+formats, which containing connectivity information. This is to avoid
+spurious bonds between atoms that happen to be positioned too close to
+boudaries.
 
 The `pack.inp` file will likely need manual editing in order to
 position the atoms of the material precisely.
