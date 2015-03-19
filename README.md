@@ -143,7 +143,7 @@ If `improper` records are supplied in a molecule file (in `.zmat`
 format) then those improper dihedrals are assumed by
 `fftool.py`. Otherwise, the script will search for candidate improper
 dihedrals on all atoms with three bonds, with any of `.zmat`, `.mol`
-or `.  xyz` input formats. A number of warning messages may be printed
+or `.xyz` input formats. A number of warning messages may be printed
 if there are atoms with three bonds, which can be ignored if the atoms
 in question are not centers of improper torsions. The number and order
 of the atoms in the true improper dihedrals should be verified in the
