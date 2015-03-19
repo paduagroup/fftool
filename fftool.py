@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/03/14
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/03/18
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio A.H. Padua
@@ -1730,7 +1730,7 @@ class system:
             for sp in self.spec:
                 for im in range(sp.nmol):
                     for at in sp.atom:
-                        f.write(' %7d S %4d  %6s %-4s %-4s %10.6f %13.4f'\
+                        f.write(' %7d S    %-4d %4s %-4s %-4s %10.6f %13.4f'\
                                 ' %11d\n' % \
                                 (i + 1, nmol + 1, sp.name, at.name,
                                  at.type, at.q, at.m, 0))
