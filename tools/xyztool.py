@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Manipulate coordinate files in xyz format.
 
 import sys, operator
 
@@ -16,12 +17,12 @@ class Atom:
 
 def main():
     if len(sys.argv) < 2:
-        print 'Manipulate xyz file'
-        print 'usage: xyztool.py command file.xyz'
-        print 'commands:'
-        print '  sort {xyz|zxy|...}'
-        print '  swap {xy|xz|yz}'
-        print '  move {x|y|z} {all|n1:n2} dist/A'
+        print('Manipulate xyz file')
+        print('usage: xyztool.py command file.xyz')
+        print('commands:')
+        print('  sort {xyz|zxy|...}')
+        print('  swap {xy|xz|yz}')
+        print('  move {all|n1:n2} {x|y|z} dist/A')
         sys.exit(1)
     cmd = sys.argv[1]
     file = sys.argv[-1]
@@ -48,14 +49,14 @@ def main():
             setattr(at, key2, val1)
 
     elif cmd.startswith('m'):
-        key = sys.argv[2]
-        index = sys.argv[3]
+        index = sys.argv[2]
         if index.startswith('a'):
             start = 0
             stop = len(atom) - 1
         else:
             tok = index.split(':')
             start, stop = [ int(t) - 1 for t in tok ]
+        key = sys.argv[3]
         d = float(sys.argv[4])
         for index, at in enumerate(atom):
             if index >= start and index <= stop:
@@ -63,13 +64,13 @@ def main():
                 setattr(at, key, val + d)
 
     else:
-        print 'bad command'
+        print('bad command')
         sys.exit(1)
 
-    print natom
-    print title
+    print(natom)
+    print(title)
     for at in atom:
-        print at
+        print(at)
             
 if __name__ == "__main__":
     main()
