@@ -5,8 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 if len(sys.argv) != 5:
-    print 'Plot OPLS cosine dihedral function'
-    print 'usage: plotdih.py V1 V2 V3 V4'
+    print('Plot OPLS cosine dihedral function')
+    print('usage: plotdih.py V1 V2 V3 V4')
     sys.exit(0)
 
 v1, v2, v3, v4 = [ float(v) for v in sys.argv[1:5] ]

@@ -10,8 +10,8 @@ class tersoff:
 
         tok = line.strip().split()
         if len(tok) < 17:
-            print 'Error: Tersoff parameter lines should have 17 fields.\n'
-            print 'See documentation of LAMMPS pair_style tersoff.'
+            print('Error: Tersoff parameter lines should have 17 fields.\n')
+            print('See documentation of LAMMPS pair_style tersoff.')
             sys.exit(1)
 
         self.param = {
@@ -78,7 +78,7 @@ class chi_ij:
     def __init__(self, line):
         tok = line.strip().split()
         if len(tok) < 4:
-            print 'Error: chi_ij lines should have 4 fields.'
+            print('Error: chi_ij lines should have 4 fields.')
             sys.exit(1)
 
         self.data = {'atom1': tok[1], 'atom2': tok[2], 'chi': float(tok[3])}
@@ -90,13 +90,13 @@ class chi_ij:
         return self.data[key]
 
     def __str__(self):
-        return "%-2s %-2s %6.4f" % (self['atom1'], self['atom2'], self['chi'])
+        return("%-2s %-2s %6.4f" % (self['atom1'], self['atom2'], self['chi']))
 
 
 def main():
 
     if len(sys.argv) < 2:
-        print "tersoffmix.py [-p] file"
+        print("tersoffmix.py [-p] file")
         sys.exit(1)
 
     if sys.argv[1] == '-p':
@@ -126,13 +126,13 @@ def main():
             line = f.readline()
 
     if justprint:
-        print atom[0].header()
+        print(atom[0].header())
         for at in atom:
-            print str(at)
+            print(str(at))
         sys.exit(0)
 
     for x in chi:
-        print '# chi', str(x)
+        print('# chi', str(x))
 
     print atom[0].header()
     for ati in atom:
@@ -146,7 +146,7 @@ def main():
                     xij = x['chi']
             for atk in atom:
                 at = ati.mix(atj, chi = xij, atom3 = atk['atom3'])
-                print str(at)
+                print(str(at))
 
 if __name__ == "__main__":
     main()

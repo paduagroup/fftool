@@ -23,7 +23,7 @@ class cell:
             self.basis = [[0.0, 0.0, 0.0]]
             offset = 0.5
         else:
-            print 'unknown lattice, choices are: fcc, bcc, sc'
+            print('unknown lattice, choices are: fcc, bcc, sc')
             sys.exit(1)
 
         for site in self.basis:
@@ -60,7 +60,7 @@ class lattice:
             f.write(title)
             for a in self.site:
                 f.write('%-5s %15.6f %15.6f %15.6f\n' % ('X', a[0], a[1], a[2]))
-        print 'generated %d sites in file %s' % (len(self.site), filename)
+        print('generated %d sites in file %s' % (len(self.site), filename))
 
 
 class atom:
@@ -84,7 +84,7 @@ class mol:
                              float(tok[1]), float(tok[2]), float(tok[3]))
                     self.at.append(a)
         except IOError:
-            print 'error: cannot open', molfile 
+            print('error: cannot open ' + molfile)
             sys.exit(1)
 
         # find geometric center of molecule
@@ -126,14 +126,14 @@ class box:
             for a in self.at:
                 f.write('%-5s %15.6f %15.6f %15.6f\n' %
                         (a.name, a.pos[0], a.pos[1], a.pos[2]))
-        print 'coordinates for %d molecules in file %s' % \
-          (len(self.lat.site), filename)
+        print('coordinates for %d molecules in file %s' % \
+          (len(self.lat.site), filename))
         
         
 def main():
     if len(sys.argv) != 7:
-        print "Generate molecular coordinates on a lattice"
-        print "usage: lattice.py {fcc|bcc|sc} L/A nx ny nz molecule.xyz"
+        print("Generate molecular coordinates on a lattice")
+        print("usage: lattice.py {fcc|bcc|sc} L/A nx ny nz molecule.xyz")
         sys.exit(1)
 
     ltype = sys.argv[1]
@@ -148,4 +148,3 @@ def main():
     
 if __name__ == '__main__':
     main()
-

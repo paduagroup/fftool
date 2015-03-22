@@ -21,22 +21,22 @@ for line in sys.stdin:
         readeng = True
 
 dashes = "".ljust(76, '-') 
-print dashes
-print "  Total lattice energy (initial) = %10.6f eV" % eini
-print "  Total lattice energy (final)   = %10.6f eV" % efin
-print dashes
-print
-print "  Elastic Constant Matrix (%s):" % units
-print
-print dashes
-print "  ij",
+print(dashes)
+print("  Total lattice energy (initial) = %10.6f eV" % eini)
+print("  Total lattice energy (final)   = %10.6f eV" % efin)
+print(dashes)
+print()
+print("  Elastic Constant Matrix (%s):" % units)
+print()
+print(dashes)
+print("  ij"),
 for j in range(6):
-    print "     %d     " % (j + 1),
-print 
-print dashes
+    print("     %d     " % (j + 1)),
+print()
+print(dashes)
 for i in range(6):
-    print "  %d " % (i + 1),
+    print("  %d " % (i + 1)),
     for j in range(6):
-        print " %10.4f" % c[i][j], 
-    print
-print dashes
+        print(" %10.4f" % c[i][j]), 
+    print()
+print(dashes)
