@@ -936,7 +936,7 @@ class mol:
                               ffdh.pot, ffdh.par)
                     if found:
                         print('  warning: duplicate dihedral %s in %s' % \
-                          (di.name, self.ff))
+                          (dh.name, self.ff))
                     found = True
             if not found:
                 toremove.append(dh)
