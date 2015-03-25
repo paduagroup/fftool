@@ -3,7 +3,7 @@
 import sys
 
 if len(sys.argv) < 4:
-    print('Convert cartesian to factional coordinates')
+    print('Convert cartesian to factional coordinates (orthogonal lattice vectors)')
     print('usage: cart2frac a b c file.xyz')
     sys.exit(1)
 
