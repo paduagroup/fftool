@@ -96,7 +96,13 @@ class chi_ij:
 def main():
 
     if len(sys.argv) < 2:
-        print("tersoffmix.py [-p] file")
+        print("Mixing rules for Tersoff potential parameters.")
+        print("J Tersoff, Phys Rev B 39 (1989) 5566.")
+        print("usage: tersoffmix.py [-p] file")
+        print("  The format for each line for a given atom type is described")
+        print("  in the documentation of LAMMPS pair_style tersoff.")
+        print("  Unlike interaction parameters are given in additional lines:")
+        print("  chi atom_i atom_j value")
         sys.exit(1)
 
     if sys.argv[1] == '-p':
@@ -132,7 +138,7 @@ def main():
         sys.exit(0)
 
     for x in chi:
-        print('# chi', str(x))
+        print('# chi ' + str(x))
 
     print atom[0].header()
     for ati in atom:

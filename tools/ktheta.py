@@ -3,12 +3,13 @@
 import sys, math
 
 if len(sys.argv) < 2:
-    print('Halgren estimation of angle force constants')
+    print('Estimation of angle force constants')
+    print('TA Halgren, J Am Chem Soc 112 (1990) 4710.')
     print('usage: ktheta.py Z_i C_j Z_k r_ij/A r_jk/A theta_ijk/deg')
     print('result in kJ mol-1 rad-2')
     sys.exit(0)
 
-zi, cj, zk, rij, rjk, th = [float(arg) for arg in sys.argv[1:]]
+zi, cj, zk, rij, rjk, th = [ float(arg) for arg in sys.argv[1:] ]
 
 th *= math.pi / 180.0
 d = ((rij - rjk)/(rij + rjk))**2
