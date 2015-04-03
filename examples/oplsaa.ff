@@ -1,7 +1,7 @@
 # oplsaa.ff (kJ/mol, A, deg) version 2015/01/17
 
 ATOMS
-#   type  m/uma    q/e    pot   pars
+#   type   m/u     q/e    pot   pars
 # rare gases
 Ne    Ne  20.18    0.00   lj    2.780  0.01160
 Ar    Ar  39.95    0.00   lj    3.405  0.99558
@@ -16,6 +16,7 @@ C4C   CT  12.011   0.00   lj    3.50   0.27614
 C4H   CT  12.011  -0.24   lj    3.50   0.27614
 C3H   CT  12.011  -0.18   lj    3.50   0.27614
 C2H   CT  12.011  -0.12   lj    3.50   0.27614
+C1H   CT  12.011  -0.06   lj    3.50   0.27614
 H     HC   1.008   0.06   lj    2.50   0.12552
 # alcohols JACS 118(1996)11225, JPC 100(1996)18010
 CTO   CT  12.011   0.145  lj    3.50   0.27614  

@@ -156,17 +156,17 @@ Periodic Boundary Conditions
 For molecular systems the initial configuration will generaly not
 contain molecules crossing the boundaries of the simulation box. If
 the size of the box is indicated by just one value, `-b L`, or by
-supplying the density, then the box will be cubic and an extra space
-of 1 A is added in each dimension to avoid overlaps in the initial
-configuration (as explained in the `packmol` documentation).
+supplying the density, then the box will be cubic, centered on the
+origin, and an extra space of 1 A is reserved in each dimension to
+avoid overlaps in the initial configuration (as explained in the
+`packmol` documentation).
 
 For simulations with extended materials it is possible to create
 chemical bonds across boundaries. The option `-p` allows specification
 of periodic conditions along x, y, z or combinations thereof. It is
 important in this case to supply precise dimensions for the simulation
-box using the option `-b Lx,Ly,Lz`, even if the box is cubic. In this
-manner no additional space will be added, so an energy minimization
-step prior to start of the MD simulation is highly recommended.
+box using the option `-b Lx,Ly,Lz`. An energy minimization step prior
+to start of the MD simulation is highly recommended.
 
 The coordinates of the atoms of the material have to be supplied in
 `.xyz` format and prepared carefully so that distances across periodic
@@ -180,8 +180,8 @@ formats, which containing connectivity information. This is to avoid
 spurious bonds between atoms that happen to be positioned too close to
 boudaries.
 
-The `pack.inp` file will likely need manual editing in order to
-position the atoms of the material precisely.
+The `pack.inp` file will need manual editing in order to position the
+atoms of the material precisely.
 
 
 References

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/03/18
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/04/03
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio A.H. Padua
@@ -18,8 +18,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys, argparse, math
-from copy import deepcopy
+import sys
+import argparse
+import math
 
 kcal =  4.184                           # kJ
 eV   = 96.485                           # kJ
@@ -54,7 +55,7 @@ def atomic_symbol(name):
 # --------------------------------------
 
 class vector:
-    '''minimal 3D vector'''
+    """minimal 3-vector"""
 
     def __init__(self, x = 0.0, y = 0.0, z = 0.0):
         if isinstance(x, tuple) or isinstance(x, list):
@@ -119,7 +120,7 @@ class vector:
 # --------------------------------------
  
 class atom:
-    '''atom in a molecule or in a force field'''
+    """atom in a molecule or in a force field"""
 
     def __init__(self, name, m = 0.0):
         self.name = name
@@ -186,7 +187,7 @@ def angle3atoms(ati, atj, atk, box = None):
 
 
 class bond:
-    '''covalent bond in a molecule or in a force field'''
+    """covalent bond in a molecule or in a force field"""
 
     def __init__(self, i = -1, j = -1, r = 0.0):
         self.i = i
@@ -235,7 +236,7 @@ class bond:
 
 
 class angle:
-    '''valence angle'''
+    """valence angle"""
 
     def __init__(self, i = -1, j = -1, k = -1, theta = 0.0):
         self.i = i
@@ -287,7 +288,7 @@ class angle:
 
 
 class dihed:
-    '''dihedral angle (torsion)'''
+    """dihedral angle (torsion)"""
 
     def __init__(self, i = -1, j = -1, k = -1, l = -1, phi = 0.0):
         self.i = i
@@ -321,7 +322,7 @@ class dihed:
 
 
 class dimpr(dihed):
-    '''dihedral angle (improper)'''
+    """dihedral angle (improper)"""
     
     def __str__(self):
         if hasattr(self, 'name'):
@@ -340,7 +341,7 @@ class dimpr(dihed):
 # --------------------------------------
 
 class zmat:
-    '''z-matrix representing a molecule, read from .zmat file'''
+    """z-matrix representing a molecule, read from .zmat file"""
 
     def __init__(self, filename):
         self.zatom = []
@@ -477,7 +478,7 @@ class zmat:
 
 
 class mol:
-    '''molecule'''
+    """molecule"""
 
     def __init__(self, filename, connect = True, box = None):
         self.atom = []
@@ -728,7 +729,7 @@ class mol:
         return self
 
     def connectivity(self, box = None):    
-        '''determine connectivity from bond distances in force field'''
+        """determine connectivity from bond distances in force field"""
 
         ff = forcefield(self.ff)
         error = False
@@ -758,7 +759,7 @@ class mol:
                             self.bond.append(bond(i, j))
                                         
     def anglesdiheds(self):
-        '''identify angles and dihedrals based on bond connectivity'''
+        """identify angles and dihedrals based on bond connectivity"""
                  
         natom = len(self.atom)
         nbond = len(self.bond)
@@ -830,7 +831,7 @@ class mol:
         return self
     
     def setff(self, box = None):
-        '''set force field parameters'''
+        """set force field parameters"""
         
         if not self.ff:
             for at in self.atom:
@@ -1066,7 +1067,7 @@ class mol:
 # --------------------------------------
 
 class forcefield:
-    '''force field parameter database'''
+    """force field parameter database"""
 
     def __init__(self, filename):
         self.filename = filename
@@ -1176,7 +1177,7 @@ class forcefield:
 
 
 class vdw:
-    '''van der Waals interaction'''        
+    """van der Waals interaction"""        
     
     def __init__(self, iat, jat, mix = 'g'):
         self.i = iat.name
@@ -1215,7 +1216,7 @@ class vdw:
 
 
 class cell:
-    '''Simulation cell/box'''
+    """Simulation cell/box"""
 
     def __init__(self, a, b, c, pbc = '', tol = 0.0, center = False):
         self.a = a
@@ -1236,7 +1237,7 @@ class cell:
 
     
 class system:
-    '''Molecular system to be simulated'''
+    """Molecular system to be simulated"""
                 
     def __init__(self, spec, box, mix = 'g'):
         self.spec = spec                     # molecular species
@@ -1277,7 +1278,7 @@ class system:
                 self.vdw.append(vdw(self.attype[i], self.attype[j], mix))
 
     def build_type_list(self, term, termtype):
-        '''build a list of atom or bonded term types'''        
+        """build a list of atom or bonded term types"""        
         for a in term:
             found = False
             for b in termtype:
@@ -1287,7 +1288,7 @@ class system:
                 termtype.append(a)
 
     def assign_type_index(self, term, termtype):
-        '''assign numbers to the ityp attribute in atoms or bonded terms'''
+        """assign numbers to the ityp attribute in atoms or bonded terms"""
         ntypes = len(termtype)
         for a in term:
             for i in range(ntypes):
@@ -1323,11 +1324,18 @@ class system:
                 f.write('  number %s\n' % sp.nmol)
                 if self.box.center:
                     f.write('  inside box %.4f %.4f %.4f %.4f %.4f %.4f\n' % \
-                            (-self.box.a/2.0, -self.box.b/2.0, -self.box.c/2.0,
-                            self.box.a/2.0, self.box.b/2.0, self.box.c/2.0))
+                            (-self.box.a/2.0 + self.box.tol,
+                             -self.box.b/2.0 + self.box.tol,
+                             -self.box.c/2.0 + self.box.tol,
+                             self.box.a/2.0 - self.box.tol,
+                             self.box.b/2.0 - self.box.tol,
+                             self.box.c/2.0 - self.box.tol))
                 else:
                     f.write('  inside box %.4f %.4f %.4f %.4f %.4f %.4f\n' % \
-                            (0.0, 0.0, 0.0, self.box.a, self.box.b, self.box.c))
+                            (self.box.tol, self.box.tol, self.box.tol,
+                             self.box.a - self.box.tol,
+                             self.box.b - self.box.tol,
+                             self.box.c - self.box.tol))
                 f.write('end structure\n')
 
     def readcoords(self, filename):
@@ -1500,20 +1508,17 @@ class system:
                 fd.write('%d dihedral types\n' % (ndht + len(self.ditype)))
             fd.write('\n')
 
-            if self.box.center:            
-                boxx = (self.box.a + self.box.tol) / 2.0
-                boxy = (self.box.b + self.box.tol) / 2.0
-                boxz = (self.box.c + self.box.tol) / 2.0
-                fd.write('%12.6f %12.6f xlo xhi\n' % (-boxx, boxx))
-                fd.write('%12.6f %12.6f ylo yhi\n' % (-boxy, boxy))
-                fd.write('%12.6f %12.6f zlo zhi\n' % (-boxz, boxz))
-            else:
+            if self.box.center:
                 fd.write('%12.6f %12.6f xlo xhi\n' %
-                         (0.0, self.box.a + self.box.tol))
+                         (-self.box.a / 2.0, self.box.a / 2.0))
                 fd.write('%12.6f %12.6f ylo yhi\n' %
-                         (0.0, self.box.b + self.box.tol))
+                         (-self.box.b / 2.0, self.box.b / 2.0))
                 fd.write('%12.6f %12.6f zlo zhi\n' %
-                         (0.0, self.box.c + self.box.tol))
+                         (-self.box.c / 2.0, self.box.c / 2.0))
+            else:
+                fd.write('%12.6f %12.6f xlo xhi\n' % (0.0, self.box.a))
+                fd.write('%12.6f %12.6f ylo yhi\n' % (0.0, self.box.b))
+                fd.write('%12.6f %12.6f zlo zhi\n' % (0.0, self.box.c))
             
             fd.write('\nMasses\n\n')
             for att in self.attype:
@@ -1695,12 +1700,9 @@ class system:
                 else:
                     imcon = 3
                 fc.write(' %9d %9d %9d\n' % (0, imcon, self.natom))
-                fc.write(' %19.9f %19.9f %19.9f\n' % \
-                         (self.box.a + self.box.tol, 0.0, 0.0))
-                fc.write(' %19.9f %19.9f %19.9f\n' % \
-                         (0.0, self.box.b + self.box.tol, 0.0))
-                fc.write(' %19.9f %19.9f %19.9f\n' % \
-                         (0.0, 0.0, self.box.c + self.box.tol))
+                fc.write(' %19.9f %19.9f %19.9f\n' % (self.box.a, 0.0, 0.0))
+                fc.write(' %19.9f %19.9f %19.9f\n' % (0.0, self.box.b, 0.0))
+                fc.write(' %19.9f %19.9f %19.9f\n' % (0.0, 0.0, self.box.c))
 
                 i = 0
                 for sp in self.spec:
@@ -1807,6 +1809,8 @@ def main():
                         help = 'density in mol/L')
     parser.add_argument('-b', '--box', default = '',
                         help = 'box length in A (cubic, or else specify a,b,c)')
+    parser.add_argument('-o', '--origin', action = 'store_true',
+                        help = 'center box on origin')
     parser.add_argument('-t', '--tol', type=float, default = 2.5,
                         help = 'tolerance for packmol (default: 2.5)')
     parser.add_argument('-x', '--mix', default = 'g',
@@ -1851,26 +1855,21 @@ def main():
         tok = args.box.split(',')
         if len(tok) == 1:
             a = b = c = float(tok[0])
-            tol = 2.0
-            center = True
+            boxtol = 1.0
         elif len(tok) == 3:
-            a = float(tok[0])
-            b = float(tok[1])
-            c = float(tok[2])
-            tol = 0.0
-            center = False
+            a, b, c = [ float(t) for t in tok ]
+            boxtol = 0.0
         else:
             print('wrong box length')
             sys.exit(1)
     elif args.rho != 0.0:
         a = b = c = math.pow(nmol / (args.rho * 6.022e+23 * 1.0e-27), 1./3.)
-        tol = 2.0
-        center = True
+        boxtol = 1.0
     else:
         print('density or box length need to be supplied')
         sys.exit(1)
 
-    box = cell(a, b, c, args.pbc, tol, center)
+    box = cell(a, b, c, args.pbc, boxtol, args.origin)
 
     if args.lammps or args.dlpoly or args.psf:
         connect = True
