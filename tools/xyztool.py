@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # Manipulate coordinate files in xyz format.
 
-import sys, operator
+import sys
+import operator
 
 class Atom:
     def __init__(self, name, x, y, z):

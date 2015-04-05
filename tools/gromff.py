@@ -37,7 +37,7 @@ for line in f:
     elif angle and len(tok) >= 6 and tok[3] == '1' and float(tok[4]):
         kth = th0 = 0.0
         if i == tok[0] and j == tok[1] and k == tok[2] or \
-            k == tok[0] and j == tok[1] and i == tok[2]:
+                k == tok[0] and j == tok[1] and i == tok[2]:
             print(line)
             kth = float(tok[5])
             th0 = float(tok[4])

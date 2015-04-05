@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, pprint
+import sys
 
 c = [ [0.0 for i in range(6)] for j in range(6) ]
 
@@ -20,7 +20,7 @@ for line in sys.stdin:
     elif '  Energy initial, next-to-last, final' in line:
         readeng = True
 
-dashes = "".ljust(76, '-') 
+dashes = '-' * 76 
 print(dashes)
 print("  Total lattice energy (initial) = %10.6f eV" % eini)
 print("  Total lattice energy (final)   = %10.6f eV" % efin)
