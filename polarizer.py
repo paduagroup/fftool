@@ -40,8 +40,8 @@ new bonds to the data file. It will also add a new seciton called
 
 import sys
 import argparse
-import math
 from copy import deepcopy
+
 
 # keywords of header and main sections (from data.py in Pizza.py)
 
@@ -71,10 +71,39 @@ skeywords = [["Masses", "atom types"],
              ["Impropers", "impropers"], ["Velocities", "atoms"],
              ["Molecules", "atoms"], ["Drudes", "atoms"]]
 
+
+def atomline(at):
+    return "{0:7d} {1:7d} {2:4d} {3:8.4f} {4:13.6e} {5:13.6e} {6:13.6e} "\
+           "{7}\n".format(at['n'], at['mol'], at['id'], at['q'],
+                          at['x'], at['y'], at['z'], at['note'])
+
+def massline(att):
+    return "{0:4d} {1:8.3f}  # {2}\n".format(att['id'], att['m'], att['type'])
+
+def bdtline(bdt):
+    return "{0:4d} {1:12.6f} {2:12.6f}  {3}\n".format(bdt['id'], bdt['k'],
+                                                      bdt['r0'], bdt['note'])
+
+def bondline(bd):
+    return "{0:7d} {1:4d} {2:7d} {3:7d}  # {4}\n".format(bd['n'], bd['id'],
+                                            bd['i'], bd['j'], bd['note'])
+
+def drudeline(at):
+    return "{0:7d} {1:1d} {2:7d}\n".format(at['n'], at['dflag'], at['dd'])
+
+
+# --------------------------------------
+
+
 class Data:
     
     def __init__(self, datafile):
         '''read LAMMPS data file (from data.py in Pizza.py)'''
+
+        # for extract method
+        self.atomtypes = []
+        self.bondtypes = []
+        self.atoms = []
         
         self.nselect = 1
 
@@ -157,9 +186,10 @@ class Data:
                     for line in self.sections[keyword]:
                         f.write(line)
 
-    def atomtypes(self):
-        """extract atom IDs from data"""
-        atomtypes = []
+    def extract(self):
+        """extract atom IDs, bond types and atoms from data"""
+        
+        # extract atom IDs
         for line in self.sections['Masses']:
             tok = line.split()
             if len(tok) < 4:
@@ -169,28 +199,22 @@ class Data:
             atomtype['id'] = int(tok[0])
             atomtype['m'] = float(tok[1])
             atomtype['type'] = tok[3]
-            atomtypes.append(atomtype)
-        return atomtypes
+            self.atomtypes.append(atomtype)
 
-    def bondtypes(self):
-        """extract bond types from data"""
-        bondtypes = []
-        for line in self.sections['Bond Coeffs']:
-            tok = line.split()
-            bondtype = {}
-            bondtype['id'] = int(tok[0])
-            bondtype['k'] = float(tok[1])
-            bondtype['r0'] = float(tok[2])
-            note = ''
-            for i in range(3, len(tok)):
-                note += tok[i] + ' '
-            bondtype['note'] = note.strip()
-            bondtypes.append(bondtype)
-        return bondtypes
+        # extract bond types
+        # for line in self.sections['Bond Coeffs']:
+        #     tok = line.split()
+        #     bondtype = {}
+        #     bondtype['id'] = int(tok[0])
+        #     bondtype['k'] = float(tok[1])
+        #     bondtype['r0'] = float(tok[2])
+        #     note = ''
+        #     for i in range(3, len(tok)):
+        #         note += tok[i] + ' '
+        #     bondtype['note'] = note.strip()
+        #     self.bondtypes.append(bondtype)
 
-    def atoms(self):
-        """extract atom registers and atom IDs from data"""
-        atoms = []
+        # extract atom registers
         for line in self.sections['Atoms']:
             tok = line.split()
             atom = {}
@@ -205,15 +229,186 @@ class Data:
             for i in range(7, len(tok)):
                 note += tok[i] + ' '
             atom['note'] = note.strip()
-            atoms.append(atom)
-        return atoms
-        
+            self.atoms.append(atom)
+
+    def polarize(self, drude):
+        """add Drude particles"""
+
+        self.extract()
+
+        natom = self.headers['atoms']
+        nbond = self.headers['bonds']
+        nattype = self.headers['atom types']
+        nbdtype = self.headers['bond types']
+
+        # create new atom types (IDs) for Drude particles and modify cores
+        newattypes = []
+        for att in self.atomtypes:
+            att['dflag'] = 0
+            for ddt in drude.types:
+                if ddt['type'] == att['type']:
+                    nattype += 1
+                    newid = {}
+                    newid['id'] = ddt['id'] = nattype
+                    newid['m'] = ddt['dm']
+                    att['m'] -= ddt['dm']
+                    # label drude particles and cores
+                    att['dflag'] = 1
+                    newid['dflag'] = 2
+                    newid['type'] = att['type'] + ' DP'
+                    att['type'] += ' DC'
+                    ddt['type'] += ' DC'
+                    newattypes.append(newid)
+                    break
+
+        self.headers['atom types'] += len(newattypes)
+        self.sections['Masses'] = []
+        for att in self.atomtypes + newattypes:
+            self.sections['Masses'].append(massline(att))
+
+        # create new bond types for core-drude bonds
+        newbdtypes = []
+        for att in self.atomtypes:
+            for ddt in drude.types:
+                if ddt['type'] == att['type']:
+                    nbdtype += 1
+                    newbdtype = {}
+                    newbdtype['id'] = ddt['bdid'] = nbdtype
+                    newbdtype['k'] = ddt['k']
+                    newbdtype['r0'] = 0.0
+                    newbdtype['note'] = '# ' + ddt['type'] + '-DP'
+                    newbdtypes.append(newbdtype)
+                    break
+
+        self.headers['bond types'] += len(newbdtypes)
+        for bdt in newbdtypes:
+            self.sections['Bond Coeffs'].append(bdtline(bdt))
+
+        # create new atoms for Drude particles and new bonds with their cores
+        newatoms = []
+        newbonds = []
+        for atom in self.atoms:
+            atom['dflag'] = 0            # 1: core, 2: drude, 0: other
+            atom['dd'] = 0               # partner drude or core
+            for att in self.atomtypes:
+                if att['id'] == atom['id']:
+                    break
+            for ddt in drude.types:
+                if ddt['type'] == att['type']:
+                    natom += 1
+                    newatom = deepcopy(atom)
+                    newatom['n'] = natom
+                    newatom['id'] = ddt['id']
+                    newatom['q'] = ddt['dq']
+                    newatom['note'] = atom['note'] + ' DP'
+                    newatom['dflag'] = 2
+                    newatom['dd'] = atom['n']
+                    newatoms.append(newatom)
+                    atom['q'] -= ddt['dq']
+                    atom['dflag'] = 1
+                    atom['dd'] = natom
+                    atom['note'] += ' DC'
+                                
+                    nbond += 1
+                    newbond = {}
+                    newbond['n'] = nbond
+                    newbond['id'] = ddt['bdid']
+                    newbond['i'] = atom['n']
+                    newbond['j'] = newatom['n']
+                    newbond['note'] = ddt['type'] + '-DP'
+                    newbonds.append(newbond) 
+                    break
+            
+        self.headers['atoms'] += len(newatoms)
+        self.headers['bonds'] += len(newbonds)
+        self.sections['Atoms'] = []
+        for atom in self.atoms + newatoms:
+            self.sections['Atoms'].append(atomline(atom))        
+        for bond in newbonds:                  
+            self.sections['Bonds'].append(bondline(bond))
+
+        self.sections['Drudes'] = []
+        for atom in self.atoms + newatoms:
+            self.sections['Drudes'].append(drudeline(atom))
+
+        # update list of atom IDs
+        for att in newattypes:
+            self.atomtypes.append(att)
+
+            
+    def thole(self, drude, outfile, thole = 2.6, cutoff = 12.0):
+        """print lines for pair_style thole"""
+
+        dfound = False
+        for att in self.atomtypes:
+            if att['dflag'] == 2:
+                dfound = True
+                break
+        if not dfound:
+            return
+
+        print("pair_style hybrid/overlay ... coul/long {0:.1f} "\
+              "thole {1:.3f}\n".format(cutoff, thole))
+
+        print("read_data {0}\n".format(outfile))
+
+        # only Coulomb interactions between any atoms and drude particles
+        print("pair_coeff  * {0}* coul/long".format(att['id']))
+
+        # Thole parameters for I,J pairs
+        ifound = False
+        for atti in self.atomtypes:
+            itype = atti['type'].split()[0]
+            for ddt in drude.types:
+                dtype = ddt['type'].split()[0]
+                if dtype == itype:
+                    alphai = ddt['alpha']
+                    tholei = ddt['thole']
+                    ifound = True
+                    break
+            jfound = False
+            for attj in self.atomtypes:
+                if attj['id'] < atti['id']:
+                    continue
+                jtype = attj['type'].split()[0]
+                for ddt in drude.types:
+                    dtype = ddt['type'].split()[0]
+                    if dtype == jtype:
+                        alphaj = ddt['alpha']
+                        tholej = ddt['thole']
+                        jfound = True
+                        break
+                if ifound and jfound:
+                    alphaij = (alphai + alphaj) / 2.0
+                    tholeij = (tholei * tholej)**0.5
+                    print("pair_coeff {0:2} {1:2} thole {2:7.3f} "\
+                          "{3:7.3f}".format(atti['id'], attj['id'],
+                                            alphaij, tholeij))
+                jfound = False
+            ifound = False
+        print("")
+
+        gcores = gdrudes = ""
+        for att in self.atomtypes:
+            if att['dflag'] == 1:
+                gcores += " {0}".format(att['id'])
+            if att['dflag'] == 2:
+                gdrudes += " {0}".format(att['id'])
+        print("group CORES type" + gcores)
+        print("group DRUDES type" + gdrudes)
+        print("")
+
 # --------------------------------------
+
+kcal =  4.184                           # kJ
+eV   = 96.485                           # kJ/mol
+fpe0 =  0.000719756                     # (4 Pi eps0) in e^2/(kJ/mol A)
+
 
 class Drude:
     """specification of drude oscillator types"""
 
-    def __init__(self, drudefile):
+    def __init__(self, drudefile, sign = 'n', polar = 'n', units = 'r'):
         self.types = []
         with open(drudefile, "r") as f:
             for line in f:
@@ -224,142 +419,62 @@ class Drude:
                 drude = {}
                 drude['type'] = tok[0]
                 drude['dm'] = float(tok[1])
-                drude['dq'] = float(tok[2])
-                drude['k'] = float(tok[3])
-                drude['alpha'] = float(tok[4])
+                dq = float(tok[2])
+                k = float(tok[3])
+                drude['alpha'] = alpha = float(tok[4])
                 drude['thole'] = float(tok[5])
+
+                if polar == 'q':
+                    dq = (fpe0 * k * alpha)**0.5
+                elif polar == 'k':
+                    k = dq*dq / (fpe0 * alpha)
+                
+                if sign == 'n':
+                    drude['dq'] = -abs(dq)
+                else:
+                    drude['dq'] = abs(dq)
+
+                if units == 'r':
+                    drude['k'] = k / (2.0 * kcal)
+                else:
+                    drude['k'] = k / (2.0 * eV)
+                    
                 self.types.append(drude)
 
-# --------------------------------------
-
-def atomline(at):
-    return "{0:7d} {1:7d} {2:4d} {3:6.3f} {4:13.6e} {5:13.6e} {6:13.6e} "\
-           "{7}\n".format(at['n'], at['mol'], at['id'], at['q'],
-                          at['x'], at['y'], at['z'], at['note'])
-
-def massline(att):
-    return "{0:4d} {1:8.3f}  # {2}\n".format(att['id'], att['m'], att['type'])
-
-def bdtline(bdt):
-    return "{0:4d} {1:12.6f} {2:12.6f}  {3}\n".format(bdt['id'], bdt['k'],
-                                                      bdt['r0'], bdt['note'])
-
-def bondline(bd):
-    return "{0:7d} {1:4d} {2:7d} {3:7d}  # {4}\n".format(bd['n'], bd['id'],
-                                            bd['i'], bd['j'], bd['note'])
-
-def drudeline(at):
-    return "{0:7d} {1:1d} {2:7d}\n".format(at['n'], at['dflag'], at['dd'])
 
 # --------------------------------------
+
 
 def main():
     parser = argparse.ArgumentParser(
         description = 'Add Drude dipole polarization to LAMMPS data file')
     parser.add_argument('-d', '--drudeff', default = 'drude.ff',
                         help = 'Drude parameter file (default: drude.ff)')
+    parser.add_argument('-t', '--thole', type = float, default = 2.6,
+                        help = 'Thole damping parameter (default: 2.6)')
+    parser.add_argument('-c', '--cutoff', type = float, default = 12.0,
+                        help = 'Coulomb cutoff/A (default: 12.0)')
+    parser.add_argument('-s', '--sign', default = 'n',
+                        help = 'Drude particle charge [n]egative or [p]ositive'\
+                        ' (default: n)')
+    parser.add_argument('-p', '--polar', default = 'n',
+                        help = 'polarizability determines Drude charge [q] '\
+                        ' or force constant [k] (default: read q and k from '\
+                        ' drude.ff)')
+    parser.add_argument('-u', '--units', default = 'r',
+                        help = 'LAMMPS units [r]eal or [m]etal (default: r)')
     parser.add_argument('infile', help = 'input LAMMPS data file')
     parser.add_argument('outfile', help = 'output LAMMPS data file')
     args = parser.parse_args()
     
     data = Data(args.infile)
-    drude = Drude(args.drudeff)
-
-    natom = data.headers['atoms']
-    nbond = data.headers['bonds']
-    nattype = data.headers['atom types']
-    nbdtype = data.headers['bond types']
-
-    # create new atom types (IDs) for Drude particles
-    atomtypes = data.atomtypes()
-    newids = []
-    for att in atomtypes:
-        for ddt in drude.types:
-            if ddt['type'] == att['type']:
-                nattype += 1
-                newid = {}
-                newid['id'] = ddt['id'] = nattype
-                newid['m'] = ddt['dm']
-                att['m'] -= ddt['dm']
-                newid['type'] = att['type'] + ' DD'
-                att['type'] += ' DC'
-                ddt['type'] += ' DC'
-                newids.append(newid)
-                break
-
-    data.headers['atom types'] += len(newids)
-    for att in newids:
-        data.sections['Masses'].append(massline(att))
-
-    # create new bond types for core-Drude bonds
-    bondtypes = data.bondtypes()
-    newbdtypes = []
-    for att in atomtypes:
-        for ddt in drude.types:
-            if ddt['type'] == att['type']:
-                nbdtype += 1
-                newbdtype = {}
-                newbdtype['id'] = ddt['bdid'] = nbdtype
-                newbdtype['k'] = ddt['k']
-                newbdtype['r0'] = 0.0
-                newbdtype['note'] = '# ' + ddt['type'] + '-DD'
-                newbdtypes.append(newbdtype)
-                break
-
-    data.headers['bond types'] += len(newbdtypes)
-    for bdt in newbdtypes:
-        data.sections['Bond Coeffs'].append(bdtline(bdt))
-
-    # create new atoms for Drude particles and bonds with their cores
-    atoms = data.atoms()    
-    newatoms = []
-    newbonds = []
-    for atom in atoms:
-        atom['dflag'] = 0                 # 1: core, 2: drude, 0: other
-        atom['dd'] = 0                    # partner drude or core
-        for att in atomtypes:
-            if att['id'] == atom['id']:
-                break
-        for ddt in drude.types:
-            if ddt['type'] == att['type']:
-                natom += 1
-                newatom = deepcopy(atom)
-                newatom['n'] = natom
-                newatom['id'] = ddt['id']
-                newatom['q'] = ddt['dq']
-                newatom['note'] = atom['note'] + ' DD'
-                newatom['dflag'] = 2
-                newatom['dd'] = atom['n']
-                newatoms.append(newatom)
-                atom['q'] -= ddt['dq']
-                atom['dflag'] = 1
-                atom['dd'] = natom
-                atom['note'] += ' DC'
-                                
-                nbond += 1
-                newbond = {}
-                newbond['n'] = nbond
-                newbond['id'] = ddt['bdid']
-                newbond['i'] = atom['n']
-                newbond['j'] = newatom['n']
-                newbond['note'] = ddt['type'] + '-DD'
-                newbonds.append(newbond) 
-                break
-            
-    data.headers['atoms'] += len(newatoms)
-    data.headers['bonds'] += len(newbonds)
-    data.sections['Atoms'] = []
-    for atom in atoms + newatoms:
-        data.sections['Atoms'].append(atomline(atom))        
-    for bond in newbonds:                  
-        data.sections['Bonds'].append(bondline(bond))
-
-    data.sections['Drudes'] = []
-    for atom in atoms + newatoms:
-        data.sections['Drudes'].append(drudeline(atom))
-        
+    drude = Drude(args.drudeff, sign = args.sign, polar = args.polar,
+                  units = args.units)
+    data.polarize(drude)
     data.write(args.outfile)
-        
+    print("# Copy the lines below into the LAMMPS input file")
+    print("# Adapt the pair_style line as needed\n")
+    data.thole(drude, args.outfile, thole = args.thole, cutoff = args.cutoff)
                                     
 if __name__ == '__main__':
     main()
