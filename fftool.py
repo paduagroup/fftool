@@ -23,7 +23,7 @@ import argparse
 import math
 
 kcal =  4.184                           # kJ
-eV   = 96.485                           # kJ
+eV   = 96.485                           # kJ/mol
 
 # --------------------------------------
 
@@ -1556,7 +1556,7 @@ class system:
             for sp in self.spec:
                 for im in range(sp.nmol):
                     for at in sp.atom:
-                        fd.write('%7d %7d %4d %6.3f %13.6e %13.6e %13.6e  '\
+                        fd.write('%7d %7d %4d %8.4f %13.6e %13.6e %13.6e  '\
                                  '# %-6s %s\n' % \
                                  (i + 1, nmol + 1, at.ityp + 1, at.q, 
                                   self.x[i], self.y[i], self.z[i],
@@ -1798,7 +1798,7 @@ def main():
     parser = argparse.ArgumentParser(
         description = 'Force-field parameters and atomic coordinates for '\
         'molecules described in z-matrix, MDL mol or xyz formats. '\
-        'Produces pack.inp file for use with packmol to build simulation box. '\
+        'Produces pack.inp file for use with Packmol to build simulation box. '\
         'Then rerun with option to create input files for MD simulation. '\
         'The name of a file with force field parameters can be supplied: '\
         'i) at the end of the .zmat file, '\
@@ -1812,25 +1812,25 @@ def main():
     parser.add_argument('-o', '--origin', action = 'store_true',
                         help = 'center box on origin')
     parser.add_argument('-t', '--tol', type=float, default = 2.5,
-                        help = 'tolerance for packmol (default: 2.5)')
+                        help = 'tolerance for Packmol (default: 2.5)')
     parser.add_argument('-x', '--mix', default = 'g',
                         help = '[a]rithmetic or [g]eometric sigma_ij '\
                         '(default: g)')
     parser.add_argument('-l', '--lammps', action = 'store_true', 
-                        help = 'save in lammps format '\
-                        '(needs simbox.xyz built using packmol)')
+                        help = 'save in LAMMPS format '\
+                        '(needs simbox.xyz built using Packmol)')
     parser.add_argument('-a', '--allpairs', action = 'store_true', 
-                        help = 'write all I J pairs to lammps input files.')
+                        help = 'write all I J pairs to LAMMPS input files.')
     parser.add_argument('-u', '--units', default = 'r',
-                        help = 'lammps units [r]eal or [m]etal (default: r)')
+                        help = 'LAMMPS units [r]eal or [m]etal (default: r)')
     parser.add_argument('-p', '--pbc', default = '',
                         help = 'connect bonds across periodic boundaries in '\
                         'x, xy, xyz, etc. (default: none)')
     parser.add_argument('-d', '--dlpoly', action = 'store_true',
-                        help = 'save in dlpoly format '\
-                        '(needs simbox.xyz built using packmol)')
+                        help = 'save in DLPOLY format '\
+                        '(needs simbox.xyz built using Packmol)')
     parser.add_argument('-c', '--cos4', action = 'store_true', 
-                        help = 'use cos4 dihedrals in dlpoly FIELD')
+                        help = 'use cos4 dihedrals in DLPOLY FIELD')
     parser.add_argument('-f', '--psf', action = 'store_true',
                         help = 'save connectivity in psf format')
     parser.add_argument('infiles', nargs='+',
@@ -1888,7 +1888,7 @@ def main():
 
     print('species                 nmol  bonds   charge')
     for sp in spec:
-        print('  %-20s %5d  %-5s %+8.3f' % \
+        print('  %-20s %5d  %-5s %+8.4f' % \
           (sp.name, sp.nmol, sp.topol, sp.charge()))
         
     sim = system(spec, box, args.mix)
