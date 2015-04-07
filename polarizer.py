@@ -40,6 +40,7 @@ new bonds to the data file. It will also add a new seciton called
 
 import sys
 import argparse
+import random
 from copy import deepcopy
 
 
@@ -182,7 +183,7 @@ class Data:
             for pair in skeywords:
                 keyword = pair[0]
                 if keyword in self.sections:
-                    f.write("\n{}\n".format(keyword))
+                    f.write("\n{}\n\n".format(keyword))
                     for line in self.sections[keyword]:
                         f.write(line)
 
@@ -285,6 +286,7 @@ class Data:
             self.sections['Bond Coeffs'].append(bdtline(bdt))
 
         # create new atoms for Drude particles and new bonds with their cores
+        random.seed(123)
         newatoms = []
         newbonds = []
         for atom in self.atoms:
@@ -303,6 +305,12 @@ class Data:
                     newatom['note'] = atom['note'] + ' DP'
                     newatom['dflag'] = 2
                     newatom['dd'] = atom['n']
+                    
+                    # avoid superposition of cores and Drudes
+                    newatom['x'] += 0.1 * (random.random() - 0.5)
+                    newatom['y'] += 0.1 * (random.random() - 0.5)
+                    newatom['z'] += 0.1 * (random.random() - 0.5)
+                    
                     newatoms.append(newatom)
                     atom['q'] -= ddt['dq']
                     atom['dflag'] = 1
@@ -350,7 +358,8 @@ class Data:
         print("pair_style hybrid/overlay ... coul/long {0:.1f} "\
               "thole {1:.3f}\n".format(cutoff, thole))
 
-        print("read_data {0}\n".format(outfile))
+        print("fix Drudes all property/atom i_drudetype i_drudeid ghost yes")
+        print("read_data {0} fix Drude null Drudes\n".format(outfile))
 
         # only Coulomb interactions between any atoms and drude particles
         print("pair_coeff  * {0}* coul/long".format(att['id']))
@@ -408,7 +417,7 @@ fpe0 =  0.000719756                     # (4 Pi eps0) in e^2/(kJ/mol A)
 class Drude:
     """specification of drude oscillator types"""
 
-    def __init__(self, drudefile, sign = 'n', polar = 'n', units = 'r'):
+    def __init__(self, drudefile, polar = '', positive = False, metal = False):
         self.types = []
         with open(drudefile, "r") as f:
             for line in f:
@@ -429,15 +438,15 @@ class Drude:
                 elif polar == 'k':
                     k = dq*dq / (fpe0 * alpha)
                 
-                if sign == 'n':
-                    drude['dq'] = -abs(dq)
-                else:
+                if positive:
                     drude['dq'] = abs(dq)
-
-                if units == 'r':
-                    drude['k'] = k / (2.0 * kcal)
                 else:
+                    drude['dq'] = -abs(dq)
+
+                if metal:
                     drude['k'] = k / (2.0 * eV)
+                else:
+                    drude['k'] = k / (2.0 * kcal)
                     
                 self.types.append(drude)
 
@@ -454,27 +463,35 @@ def main():
                         help = 'Thole damping parameter (default: 2.6)')
     parser.add_argument('-c', '--cutoff', type = float, default = 12.0,
                         help = 'Coulomb cutoff/A (default: 12.0)')
-    parser.add_argument('-s', '--sign', default = 'n',
-                        help = 'Drude particle charge [n]egative or [p]ositive'\
-                        ' (default: n)')
-    parser.add_argument('-p', '--polar', default = 'n',
-                        help = 'polarizability determines Drude charge [q] '\
-                        ' or force constant [k] (default: read q and k from '\
-                        ' drude.ff)')
-    parser.add_argument('-u', '--units', default = 'r',
-                        help = 'LAMMPS units [r]eal or [m]etal (default: r)')
+    parser.add_argument('-q', '--qcalc', action = 'store_true',
+                        help = 'Drude charges calculated from polarisability '\
+                        '(default: q value from parameter file)')
+    parser.add_argument('-k', '--kcalc', action = 'store_true',
+                        help = 'Drude force constants calculated from '\
+                        'polarisability (default: k value from parameter file)')
+    parser.add_argument('-p', '--positive', action = 'store_true',
+                        help = 'Drude particles have positive charge '\
+                        '(default: negative charge)')
+    parser.add_argument('-m', '--metal', action = 'store_true',
+                        help = 'LAMMPS metal units (default: real units)')
     parser.add_argument('infile', help = 'input LAMMPS data file')
     parser.add_argument('outfile', help = 'output LAMMPS data file')
     args = parser.parse_args()
-    
+
+    if args.qcalc:
+        polar = 'q'
+    elif args.kcalc:
+        polar = 'p'
+    else:
+        polar = ''
+        
     data = Data(args.infile)
-    drude = Drude(args.drudeff, sign = args.sign, polar = args.polar,
-                  units = args.units)
+    drude = Drude(args.drudeff, polar, args.positive, args.metal)
     data.polarize(drude)
     data.write(args.outfile)
     print("# Copy the lines below into the LAMMPS input file")
     print("# Adapt the pair_style line as needed\n")
-    data.thole(drude, args.outfile, thole = args.thole, cutoff = args.cutoff)
+    data.thole(drude, args.outfile, args.thole, args.cutoff)
                                     
 if __name__ == '__main__':
     main()
