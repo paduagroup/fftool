@@ -1722,7 +1722,7 @@ class system:
             nangle += sp.nmol * len(sp.angle)
             ndihed += sp.nmol * (len(sp.dihed) + len(sp.dimpr))
             
-        with open("data.psf", 'w') as f:
+        with open('data.psf', 'w') as f:
             f.write('PSF\n\n')
             f.write('       1 !NTITLE\n')
             f.write(' REMARKS Created by fftool\n\n')
@@ -1888,8 +1888,8 @@ def main():
 
     print('species                 nmol  bonds   charge')
     for sp in spec:
-        print('  %-20s %5d  %-5s %+8.4f' % \
-          (sp.name, sp.nmol, sp.topol, sp.charge()))
+        print('  {0:<20s} {1:5d}  {2:<5s} {3:+8.4f}'.format(sp.name,
+              sp.nmol, sp.topol, sp.charge()))
         
     sim = system(spec, box, args.mix)
 
