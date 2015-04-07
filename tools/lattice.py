@@ -54,13 +54,15 @@ class lattice:
     def writexyz(self, filename):
         with open(filename, 'w') as f:
             f.write(str(len(self.site)) + '\n')
-            title = '%s %15.6f %15.6f %15.6f\n' % \
-              (self.ltype, self.scale*self.n[0], self.scale*self.n[1],
-               self.scale*self.n[2])
+            title = "{0} {1:15.6f} {2:15.6f} "\
+              "{3:15.6f}\n".format(self.ltype, self.scale*self.n[0],
+                                   self.scale*self.n[1], self.scale*self.n[2])
             f.write(title)
             for a in self.site:
-                f.write('%-5s %15.6f %15.6f %15.6f\n' % ('X', a[0], a[1], a[2]))
-        print('generated %d sites in file %s' % (len(self.site), filename))
+                f.write("{0:<5s} {1:15.6f} {2:15.6f} "
+                        "{3:15.6f}\n".format('X', a[0], a[1], a[2]))
+        print("generated {0} sites in file {1}".format(len(self.site),
+                                                         filename))
 
 
 class atom:
@@ -119,15 +121,18 @@ class box:
     def writexyz(self, filename):
         with open(filename, 'w') as f:
             f.write(str(len(self.at)) + '\n')
-            title = '%s %s %15.6f %15.6f %15.6f\n' % \
-              (self.m.name, self.lat.ltype, self.lat.scale*self.lat.n[0],
-                self.lat.scale*self.lat.n[1], self.lat.scale*self.lat.n[2])
+            title = "{0} {1} {2:15.6f} {3:15.6f} "\
+              "{4:15.6f}\n".format(self.m.name, self.lat.ltype,
+                                   self.lat.scale*self.lat.n[0],
+                                   self.lat.scale*self.lat.n[1],
+                                   self.lat.scale*self.lat.n[2])
             f.write(title)
             for a in self.at:
-                f.write('%-5s %15.6f %15.6f %15.6f\n' %
-                        (a.name, a.pos[0], a.pos[1], a.pos[2]))
-        print('coordinates for %d molecules in file %s' % \
-          (len(self.lat.site), filename))
+                f.write("{0:<5s} {1:15.6f} {2:15.6f} "\
+                        "{3:15.6f}\n".format(a.name, a.pos[0],
+                                             a.pos[1], a.pos[2]))
+        print("coordinates for {0} molecules in "\
+              "file {1}".format(len(self.lat.site), filename))
         
         
 def main():
@@ -143,7 +148,7 @@ def main():
 
     lat = lattice(ltype, scale, n)
     b = box(lat, mol(molfile))
-    b.writexyz('simbox.xyz')
+    b.writexyz("simbox.xyz")
 
     
 if __name__ == '__main__':

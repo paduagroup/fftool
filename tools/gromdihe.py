@@ -15,5 +15,4 @@ v3 = -c3/2.0
 v2 = -c2 - c4
 v1 = -2.0*c1 - 1.5*c3
 
-print("%f %f %f %f" % (v1, v2, v3, v4))
-
+print("{:f} {:f} {:f} {:f}".format(v1, v2, v3, v4))

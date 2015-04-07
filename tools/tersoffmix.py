@@ -41,13 +41,14 @@ class tersoff:
         return self.param[key]
     
     def __str__(self):
-        return "%-2s %-2s %-2s %3.1f %3.1f %3.1f %8.1f %8.4f %8.4f %8.5f "\
-              "%11.4e %8.4f %8.2f %6.3f %6.3f %8.4f %8.2f" % (
-            self['atom1'], self['atom2'], self['atom3'],
-            self['m'], self['gamma'], self['lambda3'],
-            self['c'], self['d'], self['h'],
-            self['n'], self['beta'], self['lambda2'],
-            self['B'], self['R'], self['D'], self['lambda1'], self['A'] )
+        return "{0:<2s} {1:<2s} {2:<2s} {3:3.1f} {4:3.1f} {5:3.1f} {6:8.1f} "\
+               "{7:8.4f} {8:8.4f} {9:8.5f} {10:11.4e} {11:8.4f} {12:8.2f} "\
+               "{13:6.3f} {14:6.3f} {15:8.4f} {16:8.2f}".format(\
+                self['atom1'], self['atom2'], self['atom3'],
+                self['m'], self['gamma'], self['lambda3'],
+                self['c'], self['d'], self['h'],
+                self['n'], self['beta'], self['lambda2'],
+                self['B'], self['R'], self['D'], self['lambda1'], self['A'])
     
     def mix(self, other, chi = 1.0, atom3 = 'X'):
         new = tersoff(str(self))
@@ -90,7 +91,8 @@ class chi_ij:
         return self.data[key]
 
     def __str__(self):
-        return("%-2s %-2s %6.4f" % (self['atom1'], self['atom2'], self['chi']))
+        return("{0:<2s} {1:<-2s} {2:6.4f}".format(self['atom1'],
+                                                  self['atom2'], self['chi']))
 
 
 def main():

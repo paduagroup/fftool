@@ -32,7 +32,8 @@ for line in f:
             print(line)
             kr = float(tok[4]) / 100.0
             r0 = float(tok[3]) * 10.0
-            print("%-3s %-3s  harm  %6.3f  %7.1f" % (i, j, r0, kr))
+            print("{0:<3s} {1:<3s}  harm  {2:6.3f}  "\
+                  "{3:7.1f}".format(i, j, r0, kr))
         
     elif angle and len(tok) >= 6 and tok[3] == '1' and float(tok[4]):
         kth = th0 = 0.0
@@ -41,7 +42,8 @@ for line in f:
             print(line)
             kth = float(tok[5])
             th0 = float(tok[4])
-            print("%-3s %-3s %-3s  harm  %6.1f %7.1f" % (i, j, k, th0, kth))
+            print("{0:<3s} {1:<3s} {2:<3s}  harm  {3:6.1f} "\
+                  "{3:7.1f}".format(i, j, k, th0, kth))
 
     elif dihed and len(tok) >= 11:
         v1 = v2 = v3 = v4 = 0.0
@@ -59,5 +61,5 @@ for line in f:
             elif tok[4] == '5':
                 print(line)
                 v1, v2, v3, v4 = [ float(v)+1.0e-6 for v in tok[5:9] ]
-            print("%-3s %-3s %-3s %-3s  opls %9.4f %9.4f %9.4f %9.4f" % \
-                (i, j, k, l, v1, v2, v3, v4))
+            print("{0:<3s} {1:<3s} {2:<3s} {3:<3s}  opls {4:9.4f} {5:9.4f} "\
+                  "{6:9.4f} {7:9.4f}".format(i, j, k, l, v1, v2, v3, v4))

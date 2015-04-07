@@ -13,8 +13,8 @@ class Atom:
     def __repr__(self):
         return repr((self.x, self.y, self.z))
     def __str__(self):
-        return "%-4s %11.6f %11.6f %11.6f" % \
-          (self.name, self.x, self.y, self.z)
+        return "{0:<4s} {1:11.6f} {2:11.6f} {3:11.6f}".format(self.name,
+                self.x, self.y, self.z)
 
 def main():
     if len(sys.argv) < 2:
