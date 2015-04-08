@@ -1,4 +1,8 @@
-# oplsaa.ff (kJ/mol, A, deg) version 2015/01/17
+# oplsaa.ff, version 2015/04/08
+# units: kJ/mol, A, deg
+# bond and angle force constants are in the form k/2 (x - x0)^2
+# use cons for constrained bonds and angles
+# improper dihedrals are relative to the third atom in the list
 
 ATOMS
 #   type   m/u     q/e    pot   pars

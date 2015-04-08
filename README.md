@@ -184,6 +184,71 @@ The `pack.inp` file will need manual editing in order to position the
 atoms of the material precisely.
 
 
+
+Force Field File Format
+-----------------------
+
+The `fftool.py` script reads a database of molecular force field terms
+in the format described below. See the `examples` directory.
+
+Blank lines and lines starting with `#` are ignored.
+
+There are five sections, with headings `ATOMS`, `BONDS`, `ANGLES`,
+`DIHEDRALS` and `IMPROPER`. Under each section heading, registers
+concerning the different types of term in the force field are given.
+
+`ATOMS` records describe, for each type of atom:
+- the non-bonded atom type used for intermolecular interactions (these
+  types may differ in the charges or intermolecular potential
+  parameters)
+- the bonded atom type used in intermolecular interactions (these
+  types determine the intramolecular terms such as bonds, angles
+  dihedrals)
+- the mass in atomic units
+- the electrostatic charge in elementary units
+- the non-bonded potential type, e.g. `lj`
+- potential parameters, such as Lennard-Jones `sigma` and `epsilon`
+
+        C3H   CT  12.011  -0.18   lj    3.50   0.27614
+
+`BONDS` records describe covalent bonds between intramolecular atom types:
+- two bonded atom types
+- type of bond potential, e.g. `harm` for harmonic potential or
+  `cons` for a constrained bond.
+- bond potential parameters, with the force constant in the form k/2
+  (x - x0)^2
+
+        CT  CT   harm   1.529   2242.6
+
+`ANGLES` records describe valence angles between intramolecular atom types:
+- three bonded atom types, in which the central atom is bonded to the other
+  two, e.g. i-j and j-k are bonded.
+- type of angle potential, e.g. `harm` for harmonic potential or
+  `cons` for a constrained angle.
+- angle potential parameters, with the force constant in the form k/2
+  (x - x0)^2
+
+        HC  CT  CT   harm   110.7   313.8
+
+`DIHEDRALS` records describe torsion angles between intramolecular
+atom types:
+- four bonded atom types, in which atoms i-j, j-k, k-l are bonded.
+- type of dihedral potential, e.g. `opls` for OPLS cosine series with
+  four terms.
+- dihedral potential parameters, with the coefficients in the form V_n/2
+  (1 +/- cos(n phi)).
+
+        CT  CT  CT  CT   opls    5.4392   -0.2092    0.8368    0.0000
+
+`IMPROPER` records describe improper dihedral angles between
+intramolecular atom types:
+- four bonded atom types, in which atoms i-k, j-k, k-l are bonded.
+- type of dihedral potential, e.g. `opls` for OPLS cosine series with
+  four terms.
+- dihedral potential parameters, with the coefficients in the form V_n/2
+(1 +/- cos(n phi)).
+
+
 References
 ----------
 
@@ -195,5 +260,6 @@ References
   117 (1995) 1, DOI:
   [10.1006/jcph.1995.1039](http://dx.doi.org/10.1006/jcph.1995.1039)
 
-* [DL_POLY](http://www.stfc.ac.uk/CSE/randd/ccg/software/DL_POLY/25526.aspx): I.T. Todorov and W. Smith, Daresbury Lab. 
+* [DL_POLY](http://www.stfc.ac.uk/CSE/randd/ccg/software/DL_POLY/25526.aspx):
+  I.T. Todorov and W. Smith, Daresbury Lab. 
 
