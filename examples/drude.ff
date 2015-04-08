@@ -1,14 +1,14 @@
-# drude.ff, version 2015/04/08
-# units: kJ/mol, A, deg
-# force constant is in the form k/2 (r - r0)^2
+# drude.ff (kJ/mol, A, deg)
 
-# type  dm/u    dq/e  kforce  polar/A3  thole
+# type  dm/uma  dq/e    kforce  polar/A3  thole
+# SPC/E water
+Ow      0.8     2.0824  4184.0  1.440     2.6
 # alkanes
-C3H     1.0      0.0  4184.0  2.051     2.6
-C2H     1.0      0.0  4184.0  1.660     2.6
-C1H     1.0      0.0  4184.0  1.302     2.6
-C4C     1.0      0.0  4184.0  1.302     2.6
-# alcohols
-OH      1.0      0.0  4184.0  1.028     2.6
-CTO     1.0      0.0  4184.0  1.000     2.6
-C2O     1.0      0.0  4184.0  1.400     2.6
+C3H     1.0    -1.0     4184.0  2.051     2.6
+C2H     1.0    -1.0     4184.0  1.660     2.6
+C1H     1.0    -1.0     4184.0  1.302     2.6
+C4C     1.0    -1.0     4184.0  1.302     2.6
+# alcohol
+OH      1.0    -1.0     4184.0  1.028     2.6
+CTO     1.0    -1.0     4184.0  1.000     2.6
+C2O     1.0    -1.0     4184.0  1.400     2.6
