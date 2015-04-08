@@ -206,15 +206,15 @@ concerning the different types of term in the force field are given.
   dihedrals)
 - the mass in atomic units
 - the electrostatic charge in elementary units
-- the non-bonded potential type, e.g. `lj`
-- potential parameters, such as Lennard-Jones `sigma` and `epsilon`
+- the non-bonded potential type, e.g. _lj_
+- potential parameters, such as Lennard-Jones _sigma_ and _epsilon_
 
         C3H   CT  12.011  -0.18   lj    3.50   0.27614
 
 `BONDS` records describe covalent bonds between intramolecular atom types:
 - two bonded atom types
-- type of bond potential, e.g. `harm` for harmonic potential or
-  `cons` for a constrained bond.
+- type of bond potential, e.g. _harm_ for harmonic potential or
+  _cons_ for a constrained bond.
 - bond potential parameters, with the force constant in the form k/2
   (x - x0)^2
 
@@ -223,8 +223,8 @@ concerning the different types of term in the force field are given.
 `ANGLES` records describe valence angles between intramolecular atom types:
 - three bonded atom types, in which the central atom is bonded to the other
   two, e.g. i-j and j-k are bonded.
-- type of angle potential, e.g. `harm` for harmonic potential or
-  `cons` for a constrained angle.
+- type of angle potential, e.g. _harm`_ for harmonic potential or
+  _cons_ for a constrained angle.
 - angle potential parameters, with the force constant in the form k/2
   (x - x0)^2
 
@@ -233,7 +233,7 @@ concerning the different types of term in the force field are given.
 `DIHEDRALS` records describe torsion angles between intramolecular
 atom types:
 - four bonded atom types, in which atoms i-j, j-k, k-l are bonded.
-- type of dihedral potential, e.g. `opls` for OPLS cosine series with
+- type of dihedral potential, e.g. _opls_ for OPLS cosine series with
   four terms.
 - dihedral potential parameters, with the coefficients in the form V_n/2
   (1 +/- cos(n phi)).
@@ -243,7 +243,7 @@ atom types:
 `IMPROPER` records describe improper dihedral angles between
 intramolecular atom types:
 - four bonded atom types, in which atoms i-k, j-k, k-l are bonded.
-- type of dihedral potential, e.g. `opls` for OPLS cosine series with
+- type of dihedral potential, e.g. _opls_ for OPLS cosine series with
   four terms.
 - dihedral potential parameters, with the coefficients in the form V_n/2
 (1 +/- cos(n phi)).
