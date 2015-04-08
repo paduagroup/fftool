@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # polarizer.py - add Drude oscillators to LAMMPS data file.
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/04/04
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/04/08
 # http://tim.univ-bpclermont.fr/apadua
 
 """
@@ -356,7 +356,7 @@ class Data:
             return
 
         print("pair_style hybrid/overlay ... coul/long {0:.1f} "\
-              "thole {1:.3f}\n".format(cutoff, thole))
+              "thole {1:.3f} {0:.1f}\n".format(cutoff, thole))
 
         print("fix Drudes all property/atom i_drudetype i_drudeid ghost yes")
         print("read_data {0} fix Drude null Drudes\n".format(outfile))
@@ -462,7 +462,7 @@ def main():
     parser.add_argument('-t', '--thole', type = float, default = 2.6,
                         help = 'Thole damping parameter (default: 2.6)')
     parser.add_argument('-c', '--cutoff', type = float, default = 12.0,
-                        help = 'Coulomb cutoff/A (default: 12.0)')
+                        help = 'distance cutoff/A (default: 12.0)')
     parser.add_argument('-q', '--qcalc', action = 'store_true',
                         help = 'Drude charges calculated from polarisability '\
                         '(default: q value from parameter file)')
