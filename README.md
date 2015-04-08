@@ -207,7 +207,7 @@ concerning the different types of term in the force field are given.
 - the mass in atomic units
 - the electrostatic charge in elementary units
 - the non-bonded potential type, e.g. `lj`
-- potential parameters, such as Lennard-Jones `sigma` and `epsilon`
+- potential parameters, namely Lennard-Jones `sigma` and `epsilon`
 
         C3H   CT  12.011  -0.18   lj    3.50   0.27614
 
@@ -215,8 +215,8 @@ concerning the different types of term in the force field are given.
 - two bonded atom types
 - type of bond potential, e.g. `harm` for harmonic potential or
   `cons` for a constrained bond.
-- bond potential parameters, with the force constant in the form k/2
-  (x - x0)^2
+- bond potential parameters, namely euqilibrium distance and force
+  constant (the latter in the form k/2 (x - x0)^2)
 
         CT  CT   harm   1.529   2242.6
 
@@ -225,8 +225,8 @@ concerning the different types of term in the force field are given.
   two, e.g. i-j and j-k are bonded.
 - type of angle potential, e.g. `harm` for harmonic potential or
   `cons` for a constrained angle.
-- angle potential parameters, with the force constant in the form k/2
-  (x - x0)^2
+- angle potential parameters, namely equilibrium angle and force
+  constant (the latter in the form k/2 (x - x0)^2
 
         HC  CT  CT   harm   110.7   313.8
 
@@ -245,8 +245,8 @@ intramolecular atom types:
 - four bonded atom types, in which atoms i-k, j-k, k-l are bonded.
 - type of dihedral potential, e.g. `opls` for OPLS cosine series with
   four terms.
-- dihedral potential parameters, with the coefficients in the form V_n/2
-(1 +/- cos(n phi)).
+- dihedral potential parameters, with the coefficients in the form
+  V_n/2 (1 +/- cos(n phi)).
 
         CA  CA  CA  HA   opls    0.0000    9.2048    0.0000    0.0000
 
