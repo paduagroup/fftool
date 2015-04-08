@@ -248,6 +248,8 @@ intramolecular atom types:
 - dihedral potential parameters, with the coefficients in the form V_n/2
 (1 +/- cos(n phi)).
 
+        CA  CA  CA  HA   opls    0.0000    9.2048    0.0000    0.0000
+
 
 References
 ----------
