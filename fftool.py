@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/04/03
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/04/10
 # http://tim.univ-bpclermont.fr/apadua
 
-# Copyright (C) 2013 Agilio A.H. Padua
+# Copyright (C) 2013 Agilio Padua
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,8 +22,11 @@ import sys
 import argparse
 import math
 
-kcal =  4.184                           # kJ
-eV   = 96.485                           # kJ/mol
+BondTol = 0.25                          # Angstrom
+AngleTol = 15.0                         # degrees
+
+kCal = 4.184                            # kJ
+eV = 96.485                             # kJ/mol
 
 # --------------------------------------
 
@@ -31,8 +34,10 @@ atomic_wt = {'H': 1.008, 'Li': 6.941, 'B': 10.811, 'C': 12.011,
              'N': 14.006, 'O': 15.999, 'F': 18.998, 'Ne': 20.180,
              'Na': 22.990, 'Mg': 24.305, 'Al': 26.982, 'Si':  28.086,
              'P': 30.974, 'S': 32.065, 'Cl': 35.453, 'Ar': 39.948,
-             'K': 39.098, 'Ca': 40.078, 'Fe': 55.845, 'Zn': 65.38,
-             'Br': 79.904, 'Mo': 95.96, 'I': 126.904}
+             'K': 39.098, 'Ca': 40.078, 'Ti': 47.867, 'Fe': 55.845,
+             'Zn': 65.38, 'Se': 78.971, 'Br': 79.904, 'Kr': 83.798,
+             'Mo': 95.96, 'Ru': 101.07, 'Sn': 118.710, 'Te': 127.60,
+             'I': 126.904, 'Xe': 131.293}
 
 def atomic_weight(name):
     if name[:2] in atomic_wt:
@@ -92,12 +97,12 @@ class vector:
 
     def __mul__(self, other): 
         if isinstance(other, vector): # dot product
-            return self.x*other.x + self.y*other.y + self.z*other.z
+            return self.x * other.x + self.y * other.y + self.z * other.z
         else:
-            return vector(self.x*other, self.y*other, self.z*other)
+            return vector(self.x * other, self.y * other, self.z * other)
 
     def __div__(self, other):
-        return vector(self.x/other, self.y/other, self.z/other)
+        return vector(self.x / other, self.y / other, self.z / other)
 
     def __neg__(self):
         return vector(-self.x, -self.y, -self.z)
@@ -106,7 +111,7 @@ class vector:
         return '( ' + ', '.join([str(val) for val in (self.x, self.y, self.z)]) + ' )'
 
     def __repr__(self):
-        return str(self) + ' instance at 0x' + str(hex(id(self))[2:].upper())    
+        return str(self) + ' instance at 0x' + str(hex(id(self))[2:].upper())
 
     def cross(self, other):
         return vector(self.y * other.z - self.z * other.y,  
@@ -114,7 +119,8 @@ class vector:
                       self.x * other.y - self.y * other.x)
 
     def unit(self):
-        return self / abs(self)
+        a = abs(self)
+        return vector(self.x / a, self.y / a, self.z / a)
 
 
 # --------------------------------------
@@ -135,10 +141,11 @@ class atom:
 
     def __str__(self):
         if hasattr(self, 'type'):
-            return 'atom %-5s %-2s  m = %7.3f  q = %+6.3f  %s %s' % \
-              (self.name, self.type, self.m, self.q, self.pot, str(self.par))
+            return "atom {0:<5} {1:<2}  m = {2:7.3f}  q = {3:+7.4f}  "\
+                   "{4} {5}".format(self.name, self.type, self.m, self.q,
+                                  self.pot, str(self.par))
         else:
-            return 'atom %-5s  m = %7.3f' % (self.name, self.m)
+            return "atom {0:<5}  m = {1:7.3f}".format(self.name, self.m)
 
     def setpar(self, attp, q, pot, par):
         self.type = attp
@@ -198,15 +205,16 @@ class bond:
     def __str__(self):
         if hasattr(self, 'name'):
             if self.i != -1:
-                return 'bond %5d %5d  %s  %s %s' % \
-                  (self.i + 1, self.j + 1, self.name, self.pot, str(self.par))
+                return "bond {0:5d} {1:5d}  {2}  {3} {4}".format(self.i + 1,
+                        self.j + 1, self.name, self.pot, str(self.par))
             else:
-                return 'bond %s  %s %s' % (self.name, self.pot, str(self.par))
+                return "bond {0}  {1} {2}".format(self.name, self.pot,
+                                                  str(self.par))
         else:
-            return 'bond %5d %5d' % (self.i + 1, self.j + 1)
+            return "bond {0:5d} {1:5d}".format(self.i + 1, self.j + 1)
 
     def setpar(self, iatp, jatp, pot, par):
-        self.name = '%s-%s' % (iatp, jatp)
+        self.name = '{0}-{1}'.format(iatp, jatp)
         self.iatp = iatp
         self.jatp = jatp
         self.pot = pot
@@ -229,7 +237,7 @@ class bond:
             print('  error: bond equilibrium value not set')
             sys.exit(1)
         delta = abs(r - self.eqval)
-        if delta < 0.25:                # Angstrom
+        if delta < BondTol:
             return True
         else:
             return False
@@ -248,16 +256,18 @@ class angle:
     def __str__(self):
         if hasattr(self, 'name'):
             if self.i != -1:
-                return 'angle %5d %5d %5d  %s  %s %s' % \
-                  (self.i + 1, self.j + 1, self.k + 1,
-                   self.name, self.pot, str(self.par))
+                return 'angle {0:5d} {1:5d} {2:5d}  {3}  {4} '\
+                  '{5}'.format(self.i + 1, self.j + 1, self.k + 1,
+                               self.name, self.pot, str(self.par))
             else:
-                return 'angle %s  %s %s' % (self.name, self.pot, str(self.par))
+                return "angle {0}  {1} {2}".format(self.name, self.pot,
+                                                   str(self.par))
         else:
-            return 'angle %5d %5d %5d' % (self.i + 1, self.j + 1, self.k + 1)
+            return 'angle {0:5d} {1:5d} {2:5d}'.format(self.i + 1, self.j + 1,
+                                                       self.k + 1)
 
     def setpar(self, iatp, jatp, katp, pot, par):
-        self.name = '%s-%s-%s' % (iatp, jatp, katp)
+        self.name = '{0}-{1}-{2}'.format(iatp, jatp, katp)
         self.iatp = iatp
         self.jatp = jatp
         self.katp = katp
@@ -281,7 +291,7 @@ class angle:
             print('  error: angle equilibrium value not set')
             sys.exit(1)
         delta = abs(th - self.eqval)
-        if delta < 15.0:                  # degrees
+        if delta < AngleTol:
             return True
         else:
             return False
@@ -301,18 +311,18 @@ class dihed:
     def __str__(self):
         if hasattr(self, 'name'):
             if self.i != -1:
-                return 'dihedral %5d %5d %5d %5d  %s  %s %s' % \
-                  (self.i + 1, self.j + 1, self.k + 1, self.l + 1, \
-                   self.name, self.pot, str(self.par))
+                return "dihedral {0:5d} {1:5d} {2:5d} {3:5d}  {4}  {5} "\
+                  "{6}".format(self.i + 1, self.j + 1, self.k + 1, self.l + 1,
+                               self.name, self.pot, str(self.par))
             else:
-                return 'dihedral %s  %s %s' % \
-                  (self.name, self.pot, str(self.par))                
+                return "dihedral {0}  {1} {2}".format(self.name, self.pot,
+                                                      str(self.par))
         else:
-            return 'dihedral %5d %5d %5d %5d' % \
-              (self.i + 1, self.j + 1, self.k + 1, self.l + 1)
+            return "dihedral {0:5d} {1:5d} {2:5d} {3:5d}".format(self.i + 1,
+                    self.j + 1, self.k + 1, self.l + 1)
 
     def setpar(self, iatp, jatp, katp, latp, pot, par):
-        self.name = '%s-%s-%s-%s' % (iatp, jatp, katp, latp)
+        self.name = '{0}-{1}-{2}-{3}'.format(iatp, jatp, katp, latp)
         self.iatp = iatp
         self.jatp = jatp
         self.katp = katp
@@ -327,15 +337,15 @@ class dimpr(dihed):
     def __str__(self):
         if hasattr(self, 'name'):
             if self.i != -1:
-                return 'improper %5d %5d %5d %5d  %s  %s %s' % \
-                  (self.i + 1, self.j + 1, self.k + 1, self.l + 1, \
-                   self.name, self.pot, str(self.par))
+                return "improper {0:5d} {1:5d} {2:5d} {3:5d}  {4}  {5} "\
+                  "{6}".format(self.i + 1, self.j + 1, self.k + 1, self.l + 1,
+                               self.name, self.pot, str(self.par))
             else:
-                return 'improper %s  %s %s' % \
-                  (self.name, self.pot, str(self.par))                
+                return "improper {0}  {1} {2}".form(self.name, self.pot,
+                                                    str(self.par))  
         else:
-            return 'improper %5d %5d %5d %5d' % \
-              (self.i + 1, self.j + 1, self.k + 1, self.l + 1)
+            return "improper {0:5d} {1:5d} {2:5d} {3:5d}".format(self.i + 1,
+                   self.j + 1, self.k + 1, self.l + 1)
 
 
 # --------------------------------------
@@ -740,8 +750,8 @@ class mol:
                     at.type = ffat.type
                     found = True
             if not found:
-                print('  error in %s: no parameters for atom %s' % \
-                    (self.name, at.name))
+                print("  error in {0}: no parameters for atom "\
+                      "{1}".format(self.name, at.name))
                 error = True
         if error:
             sys.exit(1)
@@ -750,10 +760,12 @@ class mol:
         for i in range(0, natom-1):
             for j in range(i+1, natom):
                 r = dist2atoms(self.atom[i], self.atom[j], box)
-                names = [ '%s-%s' % (self.atom[i].type, self.atom[j].type),
-                          '%s-%s' % (self.atom[j].type, self.atom[i].type) ]
+                names = [ '{0}-{1}'.format(self.atom[i].type,
+                                           self.atom[j].type),
+                          '{0}-{1}'.format(self.atom[j].type,
+                                           self.atom[i].type) ]
                 for ffbd in ff.bond:
-                    nameff = '%s-%s' % (ffbd.iatp, ffbd.jatp)
+                    nameff = '{0}-{1}'.format(ffbd.iatp, ffbd.jatp)
                     if nameff in names:
                         if ffbd.checkval(r):
                             self.bond.append(bond(i, j))
@@ -847,14 +859,14 @@ class mol:
             for ffat in ff.atom:     
                 if at.name == ffat.name:
                     if found:
-                        print('  warning: duplicate atom %s in %s' % \
-                          (at.name, self.ff))     
+                        print("  warning: duplicate atom {0} in "\
+                              "{1}".format(at.name, self.ff))     
                     at.setpar(ffat.type, ffat.q, ffat.pot, ffat.par)
                     at.m = ffat.m
                     found = True
             if not found:
-                print('  error in %s: no parameters for atom %s' % \
-                  (self.name, at.name))
+                print("  error in {0}: no parameters for atom "\
+                      "{1}".format(self.name, at.name))
                 error = True
         if error:
             sys.exit(1)
@@ -863,23 +875,23 @@ class mol:
         for bd in self.bond:
             ti = self.atom[bd.i].type
             tj = self.atom[bd.j].type
-            names = [ '%s-%s' % (ti, tj), '%s-%s' % (tj, ti) ]
+            names = [ '{0}-{1}'.format(ti, tj), '{0}-{1}'.format(tj, ti) ]
             r = dist2atoms(self.atom[bd.i], self.atom[bd.j], box)
             found = False
             for ffbd in ff.bond:
-                nameff = '%s-%s' % (ffbd.iatp, ffbd.jatp)
+                nameff = '{0}-{1}'.format(ffbd.iatp, ffbd.jatp)
                 if nameff in names:
                     bd.setpar(ffbd.iatp, ffbd.jatp, ffbd.pot, ffbd.par)
                     if not ffbd.checkval(r):
                         print('  warning: %s bond %s %d-%d %7.3f' % \
                           (self.name, bd.name, bd.i + 1, bd.j + 1, r))
                     if found:
-                        print('  warning: duplicate bond %s in %s' % \
-                          (bd.name, self.ff))
+                        print("  warning: duplicate bond {0} in "\
+                              "{1}".format(bd.name, self.ff))
                     found = True
             if not found:
-                print('  error in %s: no parameters for bond %s' % \
-                  (self.name, names[0]))
+                print("  error in {0}: no parameters for bond "\
+                      "{1}".format(self.name, names[0]))
                 error = True
         if error:
             sys.exit(1)
@@ -906,8 +918,8 @@ class mol:
                     if not ffan.checkval(th):
                         check = False
                     if found:
-                        print('  warning: duplicate angle %s in %s' % \
-                          (an.name, self.ff))
+                        print("  warning: duplicate angle {0} in "\
+                              "{1}".format(an.name, self.ff))
                     found = True
             if not check:
                 toremove.append(an)
@@ -936,8 +948,8 @@ class mol:
                     dh.setpar(ffdh.iatp, ffdh.jatp, ffdh.katp, ffdh.latp,
                               ffdh.pot, ffdh.par)
                     if found:
-                        print('  warning: duplicate dihedral %s in %s' % \
-                          (dh.name, self.ff))
+                        print("  warning: duplicate dihedral {0} in "\
+                              "{1}".format(dh.name, self.ff))
                     found = True
             if not found:
                 toremove.append(dh)
@@ -983,8 +995,8 @@ class mol:
                     di.setpar(ffdi.iatp, ffdi.jatp, ffdi.katp, ffdi.latp,
                               ffdi.pot, ffdi.par)
                     if found:
-                        print('  warning: duplicate improper %s in %s' % \
-                          (di.name, self.ff))
+                        print("  warning: duplicate improper {0} in "\
+                              "{1}".format(di.name, self.ff))
                     found = True
             if not found:
                 toremove.append(di)
@@ -1016,20 +1028,22 @@ class mol:
                 print('    improper type ' + s)
 
     def show(self):
-        print('%s: %d molecules' % (self.name, self.nmol))
-        print('%d atoms' % len(self.atom))
+        print("{0}: {1:d} molecules".format(self.name, self.nmol))
+        print("{0:d} atoms".format(len(self.atom)))
+        n = 0
         for at in self.atom:
-            print(at)
-        print('%d bonds' % len(self.bond))
+            n += 1
+            print("{0:5d} ".format(n) + str(at))
+        print("{0:d} bonds".format(len(self.bond)))
         for bd in self.bond:
             print(bd)
-        print('%d angles' % len(self.angle))
+        print("{0:d} angles".format(len(self.angle)))
         for an in self.angle:
             print(an)
-        print('%d dihedrals' % len(self.dihed))
+        print("{0:d} dihedrals".format(len(self.dihed)))
         for dh in self.dihed:
             print(dh)
-        print('%d improper' % len(self.dimpr))
+        print("{0:d} improper".format(len(self.dimpr)))
         for di in self.dimpr:
             print(di)
         if self.ff:
@@ -1046,7 +1060,8 @@ class mol:
                 atname = atomic_symbol(a.name)
             else:
                 atname = a.name
-            print('%-5s %15.6f %15.6f %15.6f' % (atname, a.x, a.y, a.z))
+            print("{0:<5s} {1:15.6f} {2:15.6f} {3:15.6f}".format(atname,
+                                                          a.x, a.y, a.z))
 
     def writexyz(self, symbol = True):
         outfile = (self.filename).rsplit('.', 1)[0] + '_pack.xyz'
@@ -1061,7 +1076,8 @@ class mol:
                     atname = atomic_symbol(a.name)
                 else:
                     atname = a.name
-                f.write('%-5s %15.6f %15.6f %15.6f\n' % (atname, a.x, a.y, a.z))
+                f.write("{0:<5s} {1:15.6f} {2:15.6f} {3:15.6f}\n".format(\
+                        atname, a.x, a.y, a.z))
 
             
 # --------------------------------------
@@ -1368,7 +1384,7 @@ class system:
             fi.write('# created by fftool\n\n')
             if units == 'r':
                 fi.write('units real\n')
-                ecnv = kcal
+                ecnv = kCal
             elif units == 'm':
                 fi.write('units metal\n')
                 ecnv = eV
