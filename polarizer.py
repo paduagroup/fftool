@@ -354,7 +354,7 @@ class Data:
         print("read_data {0} fix Drude null Drudes\n".format(outfile))
 
         # only Coulomb interactions between any atoms and drude particles
-        print("pair_coeff  * {0}* coul/long".format(att['id']))
+        print("pair_coeff    *   {0}* coul/long".format(att['id']))
 
         # Thole parameters for I,J pairs
         ifound = False
@@ -382,7 +382,7 @@ class Data:
                 if ifound and jfound:
                     alphaij = (alphai + alphaj) / 2.0
                     tholeij = (tholei * tholej)**0.5
-                    print("pair_coeff {0:2} {1:2} thole {2:7.3f} "\
+                    print("pair_coeff {0:4} {1:4} thole {2:7.3f} "\
                           "{3:7.3f}".format(atti['id'], attj['id'],
                                             alphaij, tholeij))
                 jfound = False
