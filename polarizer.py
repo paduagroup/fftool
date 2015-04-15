@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # polarizer.py - add Drude oscillators to LAMMPS data file.
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/04/08
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/04/14
 # http://tim.univ-bpclermont.fr/apadua
 
 """
@@ -32,9 +32,10 @@ Masses
 ...
 
 
-This script will add new atom types, new atoms, new bond types and
+This script will add new atom types, new bond types, new atoms and
 new bonds to the data file. It will also add a new seciton called
-"Drudes" containing information about core-drude particle relations.
+"Drude Types" containing a flag 0 (non-polarizable atom), 1 (Drude core)
+or 2 (Drude particle).
 
 """
 
@@ -52,6 +53,7 @@ hkeywords = ["atoms", "ellipsoids", "lines", "triangles", "bodies",
              "improper types", "xlo xhi", "ylo yhi", "zlo zhi", "xy xz yz"]
 
 skeywords = [["Masses", "atom types"],
+             ["Drude Types", "atom types"],
              ["Pair Coeffs", "atom types"],
              ["Bond Coeffs", "bond types"], ["Angle Coeffs", "angle types"],
              ["Dihedral Coeffs", "dihedral types"],
@@ -70,27 +72,27 @@ skeywords = [["Masses", "atom types"],
              ["Bonds", "bonds"],
              ["Angles", "angles"], ["Dihedrals", "dihedrals"],
              ["Impropers", "impropers"], ["Velocities", "atoms"],
-             ["Molecules", "atoms"], ["Drudes", "atoms"]]
+             ["Molecules", "atoms"]]
 
+
+def massline(att):
+    return "{0:4d} {1:8.3f}  # {2}\n".format(att['id'], att['m'], att['type'])
+
+def drudeline(att):
+    return "{0:4d} {1:1d}\n".format(att['id'], att['dflag'])
+
+def bdtline(bdt):
+    return "{0:4d} {1:12.6f} {2:12.6f}  {3}\n".format(bdt['id'], bdt['k'],
+                                                      bdt['r0'], bdt['note'])
 
 def atomline(at):
     return "{0:7d} {1:7d} {2:4d} {3:8.4f} {4:13.6e} {5:13.6e} {6:13.6e} "\
            "{7}\n".format(at['n'], at['mol'], at['id'], at['q'],
                           at['x'], at['y'], at['z'], at['note'])
 
-def massline(att):
-    return "{0:4d} {1:8.3f}  # {2}\n".format(att['id'], att['m'], att['type'])
-
-def bdtline(bdt):
-    return "{0:4d} {1:12.6f} {2:12.6f}  {3}\n".format(bdt['id'], bdt['k'],
-                                                      bdt['r0'], bdt['note'])
-
 def bondline(bd):
     return "{0:7d} {1:4d} {2:7d} {3:7d}  # {4}\n".format(bd['n'], bd['id'],
                                             bd['i'], bd['j'], bd['note'])
-
-def drudeline(at):
-    return "{0:7d} {1:1d} {2:7d}\n".format(at['n'], at['dflag'], at['dd'])
 
 
 # --------------------------------------
@@ -202,19 +204,6 @@ class Data:
             atomtype['type'] = tok[3]
             self.atomtypes.append(atomtype)
 
-        # extract bond types
-        # for line in self.sections['Bond Coeffs']:
-        #     tok = line.split()
-        #     bondtype = {}
-        #     bondtype['id'] = int(tok[0])
-        #     bondtype['k'] = float(tok[1])
-        #     bondtype['r0'] = float(tok[2])
-        #     note = ''
-        #     for i in range(3, len(tok)):
-        #         note += tok[i] + ' '
-        #     bondtype['note'] = note.strip()
-        #     self.bondtypes.append(bondtype)
-
         # extract atom registers
         for line in self.sections['Atoms']:
             tok = line.split()
@@ -264,9 +253,11 @@ class Data:
 
         self.headers['atom types'] += len(newattypes)
         self.sections['Masses'] = []
+        self.sections['Drude Types'] = []
         for att in self.atomtypes + newattypes:
             self.sections['Masses'].append(massline(att))
-
+            self.sections['Drude Types'].append(drudeline(att))
+            
         # create new bond types for core-drude bonds
         newbdtypes = []
         for att in self.atomtypes:
@@ -335,9 +326,9 @@ class Data:
         for bond in newbonds:                  
             self.sections['Bonds'].append(bondline(bond))
 
-        self.sections['Drudes'] = []
-        for atom in self.atoms + newatoms:
-            self.sections['Drudes'].append(drudeline(atom))
+        # self.sections['Drudes'] = []
+        # for atom in self.atoms + newatoms:
+        #     self.sections['Drudes'].append(drudeline(atom))
 
         # update list of atom IDs
         for att in newattypes:
@@ -355,6 +346,7 @@ class Data:
         if not dfound:
             return
 
+        print("atom_style drude\n")
         print("pair_style hybrid/overlay ... coul/long {0:.1f} "\
               "thole {1:.3f} {0:.1f}\n".format(cutoff, thole))
 
