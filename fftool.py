@@ -1490,7 +1490,7 @@ class system:
                      'id mol type element x y z ix iy iz\n')
             fi.write('dump_modify TRAJ element')
             for att in self.attype:
-                fi.write(' %s' % atomic_symbol(att.name))
+                fi.write(' ' + atomic_symbol(att.name))
             fi.write('\n\n')
 
             fi.write('thermo_style multi\n')
@@ -1504,37 +1504,38 @@ class system:
             fi.write('write_data data.*.lmp\n')
 
         with open('data.lmp', 'w') as fd:
-            fd.write('created by fftool\n\n')
-            fd.write('%d atoms\n' % natom)
+            fd.write("created by fftool\n\n")
+            fd.write("{0:d} atoms\n".format(natom))
             if nbond:
-                fd.write('%d bonds\n' % nbond)
+                fd.write("{0:d} bonds\n".format(nbond))
             if nangle:
-                fd.write('%d angles\n' % nangle)
+                fd.write("{0:d} angles\n".format(nangle))
             if ndihed:
-                fd.write('%d dihedrals\n' % ndihed)
+                fd.write("{0:d} dihedrals\n".format(ndihed))
             fd.write('\n')
                 
-            fd.write('%d atom types\n' % len(self.attype))
+            fd.write("{0:d} atom types\n".format(len(self.attype)))
             if nbond:
-                fd.write('%d bond types\n' % len(self.bdtype))
+                fd.write("{0:d} bond types\n".format(len(self.bdtype)))
             if nangle:
-                fd.write('%d angle types\n' % len(self.antype))
+                fd.write("{0:d} angle types\n".format(len(self.antype)))
             if ndihed:
                 ndht = len(self.dhtype)     # needed later
-                fd.write('%d dihedral types\n' % (ndht + len(self.ditype)))
+                fd.write("{0:d} dihedral types\n".format(ndht +
+                                                         len(self.ditype)))
             fd.write('\n')
 
             if self.box.center:
-                fd.write('%12.6f %12.6f xlo xhi\n' %
-                         (-self.box.a / 2.0, self.box.a / 2.0))
-                fd.write('%12.6f %12.6f ylo yhi\n' %
-                         (-self.box.b / 2.0, self.box.b / 2.0))
-                fd.write('%12.6f %12.6f zlo zhi\n' %
-                         (-self.box.c / 2.0, self.box.c / 2.0))
+                fd.write("{0:f} {1:f} xlo xhi\n".format(-self.box.a / 2.0,
+                                                         self.box.a / 2.0))
+                fd.write("{0:f} {1:f} ylo yhi\n".format(-self.box.b / 2.0,
+                                                         self.box.b / 2.0))
+                fd.write("{0:f} {1:f} zlo zhi\n".format(-self.box.c / 2.0,
+                                                         self.box.c / 2.0))
             else:
-                fd.write('%12.6f %12.6f xlo xhi\n' % (0.0, self.box.a))
-                fd.write('%12.6f %12.6f ylo yhi\n' % (0.0, self.box.b))
-                fd.write('%12.6f %12.6f zlo zhi\n' % (0.0, self.box.c))
+                fd.write("{0:f} {1:f} xlo xhi\n".format(0.0, self.box.a))
+                fd.write("{0:f} {1:f} ylo yhi\n".format(0.0, self.box.b))
+                fd.write("{0:f} {1:f} zlo zhi\n".format(0.0, self.box.c))
             
             fd.write('\nMasses\n\n')
             for att in self.attype:
