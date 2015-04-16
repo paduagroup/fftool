@@ -43,7 +43,7 @@ for line in f:
             kth = float(tok[5])
             th0 = float(tok[4])
             print("{0:<3s} {1:<3s} {2:<3s}  harm  {3:6.1f} "\
-                  "{3:7.1f}".format(i, j, k, th0, kth))
+                  "{4:7.1f}".format(i, j, k, th0, kth))
 
     elif dihed and len(tok) >= 11:
         v1 = v2 = v3 = v4 = 0.0

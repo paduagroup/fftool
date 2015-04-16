@@ -1,9 +1,10 @@
 # TIP4P-Ew water (kJ/mol, A, deg)
+# add special M site using LAMMPS tip4p pair styles
 
 ATOMS
-#   type  m/uma    q/e      pot   pars
-Ow  Ow   15.999   -1.04844  lj    3.16435   0.680946
-Hw  Hw    1.008    0.52422  lj    0.00000   0.000000
+#   type  m/uma   q/e      pot   pars
+Ow  Ow   15.999  -1.04844  lj    3.16435   0.680946
+Hw  Hw    1.008   0.52422  lj    0.00000   0.000000
 
 BONDS
 # i j    pot    re/A    ka/kJmol-1

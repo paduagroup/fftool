@@ -1,4 +1,5 @@
 # TIP4P water (kJ/mol, A, deg)
+# add special M site using LAMMPS tip4p pair styles
 
 ATOMS
 #   type  m/uma    q/e    pot   pars
