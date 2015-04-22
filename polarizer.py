@@ -350,8 +350,7 @@ class Data:
         print("pair_style hybrid/overlay ... coul/long {0:.1f} "\
               "thole {1:.3f} {0:.1f}\n".format(cutoff, thole))
 
-        print("fix Drudes all property/atom i_drudetype i_drudeid ghost yes")
-        print("read_data {0} fix Drude null Drudes\n".format(outfile))
+        print("read_data {0}\n".format(outfile))
 
         # only Coulomb interactions between any atoms and drude particles
         print("pair_coeff    *   {0}* coul/long".format(att['id']))

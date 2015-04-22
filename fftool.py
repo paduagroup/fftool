@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/04/10
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/04/21
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio Padua
@@ -55,7 +55,7 @@ def atomic_symbol(name):
         return name[0]
     else:
         print('warning: unknown symbol for atom ' + name)
-        return ''
+        return name
 
 # --------------------------------------
 
