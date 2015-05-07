@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # polarizer.py - add Drude oscillators to LAMMPS data file.
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/04/14
-# http://tim.univ-bpclermont.fr/apadua
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>
+# Alain Dequidt <alain.dequidt@univ-bpclermont.fr>
+# version 2015/04/14
 
 """
 Add Drude oscillators to LAMMPS data file.
@@ -37,6 +38,8 @@ new bonds to the data file. It will also add a new seciton called
 "Drude Types" containing a flag 0 (non-polarizable atom), 1 (Drude core)
 or 2 (Drude particle).
 
+It can also be used to revert a Drude-polarized data file to a
+non-polarizable one.
 """
 
 import sys
@@ -79,19 +82,19 @@ def massline(att):
     return "{0:4d} {1:8.3f}  # {2}\n".format(att['id'], att['m'], att['type'])
 
 def drudeline(att):
-    return "{0:4d} {1:1d}\n".format(att['id'], att['dflag'])
+    return "{0:4d} {1:1d}  # {2}\n".format(att['id'], att['dflag'], att['type'])
 
 def bdtline(bdt):
     return "{0:4d} {1:12.6f} {2:12.6f}  {3}\n".format(bdt['id'], bdt['k'],
-                                                      bdt['r0'], bdt['note'])
+                                                     bdt['r0'], bdt['note'])
 
 def atomline(at):
     return "{0:7d} {1:7d} {2:4d} {3:8.4f} {4:13.6e} {5:13.6e} {6:13.6e} "\
-           "{7}\n".format(at['n'], at['mol'], at['id'], at['q'],
-                          at['x'], at['y'], at['z'], at['note'])
+           " {7}\n".format(at['n'], at['mol'], at['id'], at['q'],
+                           at['x'], at['y'], at['z'], at['note'])
 
 def bondline(bd):
-    return "{0:7d} {1:4d} {2:7d} {3:7d}  # {4}\n".format(bd['n'], bd['id'],
+    return "{0:7d} {1:4d} {2:7d} {3:7d}  {4}\n".format(bd['n'], bd['id'],
                                             bd['i'], bd['j'], bd['note'])
 
 
@@ -107,6 +110,7 @@ class Data:
         self.atomtypes = []
         self.bondtypes = []
         self.atoms = []
+        self.bonds = []
         
         self.nselect = 1
 
@@ -194,8 +198,8 @@ class Data:
                     for line in self.sections[keyword]:
                         f.write(line)
 
-    def extract(self):
-        """extract atom IDs, bond types and atoms from data"""
+    def extract_nonpol(self):
+        """extract atom and bond info from nonpolarizable data"""
         
         # extract atom IDs
         for line in self.sections['Masses']:
@@ -220,16 +224,13 @@ class Data:
             atom['x'] = float(tok[4])
             atom['y'] = float(tok[5])
             atom['z'] = float(tok[6])
-            note = ''
-            for i in range(7, len(tok)):
-                note += tok[i] + ' '
-            atom['note'] = note.strip()
+            atom['note'] = ''.join([s + ' ' for s in tok[7:]]).strip()
             self.atoms.append(atom)
 
     def polarize(self, drude):
         """add Drude particles"""
 
-        self.extract()
+        self.extract_nonpol()
 
         natom = self.headers['atoms']
         nbond = self.headers['bonds']
@@ -319,7 +320,7 @@ class Data:
                     newbond['id'] = ddt['bdid']
                     newbond['i'] = atom['n']
                     newbond['j'] = newatom['n']
-                    newbond['note'] = ddt['type'] + '-DP'
+                    newbond['note'] = '# ' + ddt['type'] + '-DP'
                     newbonds.append(newbond) 
                     break
             
@@ -339,7 +340,165 @@ class Data:
         for att in newattypes:
             self.atomtypes.append(att)
 
-            
+
+    def extract_pol(self):
+        """extract atom, drude, bonds info from polarizable data"""
+        
+        # extract atom IDs
+        for line in self.sections['Masses']:
+            tok = line.split()
+            if len(tok) < 4:
+                print("warning: missing type for atom ID " + tok[0])
+                continue
+            atomtype = {}
+            atomtype['id'] = int(tok[0])
+            atomtype['m'] = float(tok[1])
+            atomtype['type'] = tok[3]
+            self.atomtypes.append(atomtype)
+
+        # extract atom drude types
+        for itype, line in enumerate(self.sections['Drude Types']):
+            tok = line.split()
+            if len(tok) < 2:
+                print("warning: missing Drude Type for atom type " + tok[0])
+                continue
+            if self.atomtypes[itype]['id'] != int(tok[0]):
+                print("warning: Drude Types or Masses are in wrong order")
+            self.atomtypes[itype]['dflag'] = int(tok[1]) 
+
+        # extract bond type data
+        for line in self.sections['Bond Coeffs']:
+            tok = line.split()
+            bondtype = {}
+            bondtype['id'] = int(tok[0])
+            bondtype['k'] = float(tok[1])
+            bondtype['r0'] = float(tok[2])
+            bondtype['note'] = ''.join([s + ' ' for s in tok[3:]]).strip()
+            self.bondtypes.append(bondtype)
+
+        # extract atom registers
+        for line in self.sections['Atoms']:
+            tok = line.split()
+            atom = {}
+            atom['n'] = int(tok[0])
+            atom['mol'] = int(tok[1])
+            atom['id'] = int(tok[2])
+            atom['q'] = float(tok[3])
+            atom['x'] = float(tok[4])
+            atom['y'] = float(tok[5])
+            atom['z'] = float(tok[6])
+            atom['note'] = ''.join([s + ' ' for s in tok[7:-1]]).strip()
+            if tok[-1] != 'DC':
+                atom['note'] += ' ' + tok[-1]
+            self.atoms.append(atom)
+
+        # extract bond data
+        for line in self.sections['Bonds']:
+            tok = line.split()
+            bond = {}
+            bond['n'] = int(tok[0])
+            bond['id'] = int(tok[1])
+            bond['i'] = int(tok[2])
+            bond['j'] = int(tok[3])
+            bond['note'] = ''.join([s + ' ' for s in tok[4:]]).strip()
+            self.bonds.append(bond)
+
+    def depolarize(self):
+        """remove Drude particles"""
+
+        self.extract_pol()
+        
+        atom_tp_map = {}
+        bond_tp_map = {}
+        atom_map = {}
+        bond_map = {}
+        q = {}
+        atom_tp = {}
+        m = {}
+
+        for att in self.atomtypes:
+            if att['dflag'] != 2:
+                atom_tp_map[att['id']] = len(atom_tp_map) + 1
+            m[att['id']] = att['m']
+        for atom in self.atoms:
+            if atom['id'] in atom_tp_map:
+                atom_map[atom['n']] = len(atom_map) + 1
+            q[atom['n']] = atom['q']
+            atom_tp[atom['n']] = atom['id']
+        for bond in self.bonds:
+            if bond['i'] in atom_map and bond['j'] in atom_map:
+                bond_map[bond['n']] = len(bond_map) + 1
+                if bond['id'] not in bond_tp_map:
+                    bond_tp_map[bond['id']] = len(bond_tp_map) + 1
+            else:
+                if bond['i'] in atom_map:
+                    q[bond['i']] += q[bond['j']] 
+                    if atom_tp[bond['j']] in m:
+                        m[atom_tp[bond['i']]] += m.pop(atom_tp[bond['j']])
+                else:
+                    q[bond['j']] += q[bond['i']]
+                    if atom_tp[bond['i']] in m:
+                        m[atom_tp[bond['j']]] += m.pop(atom_tp[bond['i']])
+
+        size = len(self.atomtypes)
+        for iatom_tp in reversed(range(size)):
+            att = self.atomtypes[iatom_tp]
+            if att['id'] not in atom_tp_map:
+                del self.atomtypes[iatom_tp]
+            else:
+                att['m'] = m[att['id']]
+                att['id'] = atom_tp_map[att['id']]
+
+        size = len(self.bondtypes)
+        for ibond_tp in reversed(range(size)):
+            bdt = self.bondtypes[ibond_tp]
+            if bdt['id'] not in bond_tp_map:
+                del self.bondtypes[ibond_tp]
+            else:
+                bdt['id'] = bond_tp_map[bdt['id']]
+
+        size = len(self.atoms)
+        for iatom in reversed(range(size)):
+            atom = self.atoms[iatom]
+            if atom['n'] not in atom_map:
+                del self.atoms[iatom]
+            else:
+                atom['q'] = q[atom['n']]
+                atom['n'] = atom_map[atom['n']]
+                atom['id'] = atom_tp_map[atom['id']]
+
+        size = len(self.bonds)
+        for ibond in reversed(range(size)):
+            bond = self.bonds[ibond]
+            if bond['n'] not in bond_map:
+                del self.bonds[ibond]
+            else:
+                bond['n'] = bond_map[bond['n']]
+                bond['id'] = bond_tp_map[bond['id']]
+                bond['i'] = atom_map[bond['i']]
+                bond['j'] = atom_map[bond['j']]
+
+        natom = self.headers['atoms'] = len(self.atoms)
+        nbond = self.headers['bonds'] = len(self.bonds)
+        nattype = self.headers['atom types'] = len(self.atomtypes)
+        nbdtype = self.headers['bond types'] = len(self.bondtypes)
+
+        self.sections['Atoms'] = []
+        for atom in self.atoms:
+            self.sections['Atoms'].append(atomline(atom))        
+        self.sections['Masses'] = []
+        for att in self.atomtypes:                  
+            self.sections['Masses'].append(massline(att))
+        self.sections['Bonds'] = []
+        for bond in self.bonds:                  
+            self.sections['Bonds'].append(bondline(bond))
+        self.sections['Bond Coeffs'] = []
+        for bdt in self.bondtypes:
+            self.sections['Bond Coeffs'].append(bdtline(bdt))
+
+        del self.sections['Drude Types']
+
+ 
     def thole(self, drude, outfile, thole = 2.6, cutoff = 12.0):
         """print lines for pair_style thole"""
 
@@ -453,7 +612,7 @@ class Drude:
 def main():
     parser = argparse.ArgumentParser(
         description = 'Add Drude dipole polarization to LAMMPS data file')
-    parser.add_argument('-d', '--drudeff', default = 'drude.ff',
+    parser.add_argument('-f', '--ffdrude', default = 'drude.ff',
                         help = 'Drude parameter file (default: drude.ff)')
     parser.add_argument('-t', '--thole', type = float, default = 2.6,
                         help = 'Thole damping parameter (default: 2.6)')
@@ -470,6 +629,9 @@ def main():
                         '(default: negative charge)')
     parser.add_argument('-m', '--metal', action = 'store_true',
                         help = 'LAMMPS metal units (default: real units)')
+    parser.add_argument('-d', '--depolarize', action = 'store_true',
+                        help = 'remove Drude dipole polarization from '\
+                        'LAMMPS data file')
     parser.add_argument('infile', help = 'input LAMMPS data file')
     parser.add_argument('outfile', help = 'output LAMMPS data file')
     args = parser.parse_args()
@@ -480,14 +642,17 @@ def main():
         polar = 'p'
     else:
         polar = ''
-        
+
     data = Data(args.infile)
-    drude = Drude(args.drudeff, polar, args.positive, args.metal)
-    data.polarize(drude)
+    if not args.depolarize:
+        drude = Drude(args.ffdrude, polar, args.positive, args.metal)
+        data.polarize(drude)
+        print("# Copy the lines below into the LAMMPS input file")
+        print("# Adapt the pair_style line as needed\n")
+        data.thole(drude, args.outfile, args.thole, args.cutoff)
+    else:
+        data.depolarize()
     data.write(args.outfile)
-    print("# Copy the lines below into the LAMMPS input file")
-    print("# Adapt the pair_style line as needed\n")
-    data.thole(drude, args.outfile, args.thole, args.cutoff)
                                     
 if __name__ == '__main__':
     main()
