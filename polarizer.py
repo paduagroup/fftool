@@ -118,6 +118,8 @@ class Data:
         headers = {}
         while 1:
             line = f.readline().strip()
+            if '#' in line:
+                line = line[:line.index('#')].strip()
             if len(line) == 0:
                 continue
             found = 0
@@ -138,26 +140,29 @@ class Data:
     
         sections = {}
         while 1:
-            found = 0
-            for pair in skeywords:
-                keyword, length = pair[0], pair[1]
-                if keyword == line:
-                    found = 1
-                    if length not in headers:
-                        raise RuntimeError("data section {} has no matching"\
-                                           " header value".format(line))
-                    f.readline()
-                    list = []
-                    for i in range(headers[length]):
-                        list.append(f.readline())
-                    sections[keyword] = list
-            if not found:
-                raise RuntimeError("invalid section {} in data"\
-                                   " file".format(line))
-            f.readline()
+            if len(line) > 0:
+                found = 0
+                for pair in skeywords:
+                    keyword, length = pair[0], pair[1]
+                    if keyword == line:
+                        found = 1
+                        if length not in headers:
+                            raise RuntimeError("data section {} has no matching"\
+                                               " header value".format(line))
+                        f.readline()
+                        list = []
+                        for i in range(headers[length]):
+                            list.append(f.readline())
+                        sections[keyword] = list
+                if not found:
+                    raise RuntimeError("invalid section {} in data"\
+                                       " file".format(line))
+            #f.readline()
             line = f.readline()
             if not line:
                 break
+            if '#' in line:
+                line = line[:line.index('#')]
             line = line.strip()
         
         f.close()
