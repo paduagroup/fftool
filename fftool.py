@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/04/21
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/05/07
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio Padua
@@ -1481,7 +1481,7 @@ class system:
             fi.write('# fix RDF all ave/time 20 100 ${nsteps} '\
                      'c_RDF file rdf.lammps mode vector\n\n')
             
-            fi.write('# compute cMSD all msd\n')
+            fi.write('# compute MSD all msd\n')
             fi.write('# fix MSD all ave/time 1 1 ${ndump} '\
                      'c_MSD[1] c_MSD[2] c_MSD[3] c_MSD[4] file '\
                      'msd.lammps\n\n')
