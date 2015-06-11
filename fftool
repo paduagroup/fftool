@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/05/07
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/06/04
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio Padua
@@ -1512,7 +1512,7 @@ class system:
                 fd.write("{0:d} angles\n".format(nangle))
             if ndihed:
                 fd.write("{0:d} dihedrals\n".format(ndihed))
-            fd.write('\n')
+            # fd.write('\n')
                 
             fd.write("{0:d} atom types\n".format(len(self.attype)))
             if nbond:
@@ -1523,7 +1523,7 @@ class system:
                 ndht = len(self.dhtype)     # needed later
                 fd.write("{0:d} dihedral types\n".format(ndht +
                                                          len(self.ditype)))
-            fd.write('\n')
+            # fd.write('\n')
 
             if self.box.center:
                 fd.write("{0:f} {1:f} xlo xhi\n".format(-self.box.a / 2.0,
@@ -1574,7 +1574,7 @@ class system:
                 for im in range(sp.nmol):
                     for at in sp.atom:
                         fd.write('%7d %7d %4d %8.4f %13.6e %13.6e %13.6e  '\
-                                 '# %-6s %s\n' % \
+                                 '# %s %s\n' % \
                                  (i + 1, nmol + 1, at.ityp + 1, at.q, 
                                   self.x[i], self.y[i], self.z[i],
                                   at.name, sp.name))
@@ -1627,7 +1627,7 @@ class system:
                             i += 1
                         shift += natom
                     
-            fd.write('\n')
+            # fd.write('\n')
                     
     def writedlp(self, cos4 = False):
         with open('FIELD', 'w') as f:

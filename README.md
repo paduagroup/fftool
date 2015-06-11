@@ -10,7 +10,7 @@ dynamics.
 Contents
 --------
 
-* `fftool.py`: builds a simulation box and the corresponding force
+* `fftool`: builds a simulation box and the corresponding force
     field for systems containing molecules, ions or extended
     materials. It requires the
     [Packmol](http://www.ime.unicamp.br/~martinez/packmol/) software
@@ -41,7 +41,7 @@ Obtaining
 
 Download the files or else clone the repository (easier to stay updated):
 
-    git clone https://github.com/agiliopadua/fftool.git
+git clone https://github.com/agiliopadua/fftool.git
 
 
 Tutorial
@@ -85,18 +85,18 @@ system composed of molecules, ions or materials.
     usually necessary in order to match the atom names with those of
     the force field.
 
-2. Use the `fftool.py` script to create `.xyz` files with atomic
+2. Use the `fftool` script to create `.xyz` files with atomic
    coordinates for the components of your system, plus an input file
-   for `packmol`. For help type `fftool.py -h`. For example, to build
+   for `packmol`. For help type `fftool -h`. For example, to build
    a simulation box with 40 ethanol and 300 water molecules and a
    density of 38.0 mol/L do:
 
-        fftool.py 40 ethanol.zmat 300 spce.zmat -r 38.0
+        fftool 40 ethanol.zmat 300 spce.zmat -r 38.0
 
     Alternatively the side length of the the simulation box (cubic) in
     angstroms can be supplied:
 
-        fftool.py 40 ethanol.zmat 300 spce.zmat -b 20.0
+        fftool 40 ethanol.zmat 300 spce.zmat -b 20.0
 
 3. Use `packmol` with the `pack.inp` file just created to generate the
    atomic coordinates in the simulation box (adjust the density/box
@@ -110,11 +110,11 @@ system composed of molecules, ions or materials.
     documentation).  Atomic coordinates for the full system will be
     written to `simbox.xyz`.
 
-4. Use `fftool.py` to build the input files for LAMMPS or DL_POLY
+4. Use `fftool` to build the input files for LAMMPS or DL_POLY
    containing the force field parameters and the coordinates of all
    the atoms (from `simbox.xyz`):
 
-        fftool.py 40 ethanol.zmat 300 spce.zmat --r 38.0 -l
+        fftool 40 ethanol.zmat 300 spce.zmat --r 38.0 -l
 
     If no force field information was given explicitly in the molecule
     files, a default LJ potential with parameters zeroed will be
@@ -141,7 +141,7 @@ for proper and improper torsions.
 
 If `improper` records are supplied in a molecule file (in `.zmat`
 format) then those improper dihedrals are assumed by
-`fftool.py`. Otherwise, the script will search for candidate improper
+`fftool`. Otherwise, the script will search for candidate improper
 dihedrals on all atoms with three bonds, with any of `.zmat`, `.mol`
 or `.xyz` input formats. A number of warning messages may be printed
 if there are atoms with three bonds, which can be ignored if the atoms
@@ -188,7 +188,7 @@ atoms of the material precisely.
 Force Field File Format
 -----------------------
 
-The `fftool.py` script reads a database of molecular force field terms
+The `fftool` script reads a database of molecular force field terms
 in the format described below. See the `examples` directory.
 
 Blank lines and lines starting with `#` are ignored.

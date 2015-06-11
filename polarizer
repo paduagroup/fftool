@@ -1,24 +1,27 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # polarizer.py - add Drude oscillators to LAMMPS data file.
 # Agilio Padua <agilio.padua@univ-bpclermont.fr>
 # Alain Dequidt <alain.dequidt@univ-bpclermont.fr>
-# version 2015/04/14
+# version 2015/06/04
 
-"""
-Add Drude oscillators to LAMMPS data file.
+import sys
+import argparse
+import random
+from copy import deepcopy
+
+usage = """Add Drude oscillators to LAMMPS data file.
 
 The format of file containing specification of Drude oscillators is:
 
-# type  dm/u  dq/e  k/(kJ/molA2)  alpha/A3  thole
-C3H     1.0   0.0   4184.0        2.051     2.6
-...
+  # type  dm/u  dq/e  k/(kJ/molA2)  alpha/A3  thole
+  C3H     1.0   0.0   4184.0        2.051     2.6
+  ...
 
-where:
-dm is the mass to put on the Drude particle (taken from its core),
-dq is the charge to put on the Drude particle (taken from its core),
-k is the garmonic force constant of the bond between Drude and core,
-alpha is the polarizability,
-thole is a Thole damping parameter.
+* dm is the mass to put on the Drude particle (taken from its core),
+* dq is the charge to put on the Drude particle (taken from its core),
+* k is the garmonic force constant of the bond between Drude and core,
+* alpha is the polarizability,
+* thole is a Thole damping parameter.
 
 A Drude particle is created for each atom in the LAMMPS data file
 that corresponds to an atom type given in the Drude file.
@@ -26,27 +29,20 @@ Since LAMMPS uses numbers for atom types in the data file, a comment
 after each line in the Masses section has to be introduced to allow
 identification of the atom types within the force field database:
 
-Masses
+  Masses
 
-   1   12.011  # C3H
-   2   12.011  # CTO
-...
-
+     1   12.011  # C3H
+     2   12.011  # CTO
+  ...
 
 This script will add new atom types, new bond types, new atoms and
-new bonds to the data file. It will also add a new seciton called
+new bonds to the data file. It will also add a new section called
 "Drude Types" containing a flag 0 (non-polarizable atom), 1 (Drude core)
 or 2 (Drude particle).
 
-It can also be used to revert a Drude-polarized data file to a
+This tool can also be used to revert a Drude-polarized data file to a
 non-polarizable one.
 """
-
-import sys
-import argparse
-import random
-from copy import deepcopy
-
 
 # keywords of header and main sections (from data.py in Pizza.py)
 
@@ -69,13 +65,13 @@ skeywords = [["Masses", "atom types"],
              ["AngleAngleTorsion Coeffs", "dihedral types"],
              ["BondBond13 Coeffs", "dihedral types"],
              ["AngleAngle Coeffs", "improper types"],
-             ["Atoms", "atoms"], ["Ellipsoids", "ellipsoids"],
+             ["Atoms", "atoms"], ["Velocities", "atoms"],
+             ["Ellipsoids", "ellipsoids"],
              ["Lines", "lines"], ["Triangles", "triangles"],
              ["Bodies", "bodies"],
              ["Bonds", "bonds"],
              ["Angles", "angles"], ["Dihedrals", "dihedrals"],
-             ["Impropers", "impropers"], ["Velocities", "atoms"],
-             ["Molecules", "atoms"]]
+             ["Impropers", "impropers"], ["Molecules", "atoms"]]
 
 
 def massline(att):
@@ -97,12 +93,15 @@ def bondline(bd):
     return "{0:7d} {1:4d} {2:7d} {3:7d}  {4}\n".format(bd['n'], bd['id'],
                                             bd['i'], bd['j'], bd['note'])
 
+def velline(at):
+    return "{0:7d} {1:13.6e} {2:13.6e} {3:13.6e} \n".format(at['n'],
+                                       at['vx'], at['vy'], at['vz'])
 
 # --------------------------------------
 
 
-class Data:
-    
+class Data(object):
+
     def __init__(self, datafile):
         '''read LAMMPS data file (from data.py in Pizza.py)'''
 
@@ -111,7 +110,8 @@ class Data:
         self.bondtypes = []
         self.atoms = []
         self.bonds = []
-        
+        self.idmap = {}
+
         self.nselect = 1
 
         f = open(datafile, "r")
@@ -141,7 +141,7 @@ class Data:
                         headers[keyword] = int(words[0])
             if not found:
                 break
-    
+
         sections = {}
         while 1:
             if len(line) > 0:
@@ -151,13 +151,13 @@ class Data:
                     if keyword == line:
                         found = 1
                         if length not in headers:
-                            raise RuntimeError("data section {} has no matching"\
-                                               " header value".format(line))
+                            raise RuntimeError("data section {} "\
+                                  "has no matching header value".format(line))
                         f.readline()
-                        list = []
-                        for i in range(headers[length]):
-                            list.append(f.readline())
-                        sections[keyword] = list
+                        list_ = []
+                        for _ in range(headers[length]):
+                            list_.append(f.readline())
+                        sections[keyword] = list_
                 if not found:
                     raise RuntimeError("invalid section {} in data"\
                                        " file".format(line))
@@ -168,11 +168,11 @@ class Data:
             if '#' in line:
                 line = line[:line.index('#')]
             line = line.strip()
-        
+
         f.close()
         self.headers = headers
         self.sections = sections
-        
+
     def write(self, filename):
         '''write out a LAMMPS data file (from data.py in Pizza.py)'''
 
@@ -182,15 +182,17 @@ class Data:
                 if keyword in self.headers:
                     if keyword == "xlo xhi" or keyword == "ylo yhi" or \
                        keyword == "zlo zhi":
-                        pair = [ str(p) for p in self.headers[keyword] ]
-                        f.write(pair[0] + ' ' + pair[1] + ' ' + keyword + '\n')
+                        f.write("{0:f} {1:f} {2}\n".format(
+                            self.headers[keyword][0],
+                            self.headers[keyword][1], keyword))
                     elif keyword == "xy xz yz":
-                        triple = [ str(t) for t in self.headers[keyword] ]
-                        f.write(triple[0] + ' ' + triple[1] + ' ' + triple[2] +
-                                ' ' + keyword + '\n')
+                        f.write("{0:f} {1:f} {2:f} {3}\n".format(
+                            self.headers[keyword][0],
+                            self.headers[keyword][1],
+                            self.headers[keyword][2], keyword))
                     else:
-                        f.write(str(self.headers[keyword]) + ' ' +
-                                keyword + '\n')
+                        f.write("{0:d} {1}\n".format(self.headers[keyword],
+                                                   keyword))
             for pair in skeywords:
                 keyword = pair[0]
                 if keyword in self.sections:
@@ -200,18 +202,24 @@ class Data:
 
     def extract_nonpol(self):
         """extract atom and bond info from nonpolarizable data"""
-        
+
         # extract atom IDs
+        missinglabels = False
         for line in self.sections['Masses']:
             tok = line.split()
             if len(tok) < 4:
-                print("warning: missing type for atom ID " + tok[0])
+                print("error: missing type for atom ID " + tok[0] +
+                      " in Masses section")
+                missinglabels = True
                 continue
             atomtype = {}
             atomtype['id'] = int(tok[0])
             atomtype['m'] = float(tok[1])
             atomtype['type'] = tok[3]
             self.atomtypes.append(atomtype)
+
+        if missinglabels:
+            sys.exit(0)
 
         # extract atom registers
         for line in self.sections['Atoms']:
@@ -224,8 +232,18 @@ class Data:
             atom['x'] = float(tok[4])
             atom['y'] = float(tok[5])
             atom['z'] = float(tok[6])
-            atom['note'] = ''.join([s + ' ' for s in tok[7:]]).strip()
+            #atom['note'] = ''.join([s + ' ' for s in tok[7:]]).strip()
+            atom['note'] = ' '.join(tok[7:])
             self.atoms.append(atom)
+            self.idmap[atom['n']] = atom
+
+        if 'Velocities' in self.sections:
+            for line in self.sections['Velocities']:
+                tok = line.split()
+                atom = self.idmap[int(tok[0])]
+                atom['vx'] = float(tok[1])
+                atom['vy'] = float(tok[2])
+                atom['vz'] = float(tok[3])
 
     def polarize(self, drude):
         """add Drude particles"""
@@ -263,7 +281,7 @@ class Data:
         for att in self.atomtypes + newattypes:
             self.sections['Masses'].append(massline(att))
             self.sections['Drude Types'].append(drudeline(att))
-            
+
         # create new bond types for core-drude bonds
         newbdtypes = []
         for att in self.atomtypes:
@@ -297,23 +315,33 @@ class Data:
                     natom += 1
                     newatom = deepcopy(atom)
                     newatom['n'] = natom
+                    self.idmap[natom] = newatom
                     newatom['id'] = ddt['id']
                     newatom['q'] = ddt['dq']
-                    newatom['note'] = atom['note'] + ' DP'
+                    newatom['note'] = atom['note']
+                    if '#' not in newatom['note']:
+                        newatom['note'] += ' #'
+                    newatom['note'] += ' DP'
                     newatom['dflag'] = 2
                     newatom['dd'] = atom['n']
-                    
+
                     # avoid superposition of cores and Drudes
                     newatom['x'] += 0.1 * (random.random() - 0.5)
                     newatom['y'] += 0.1 * (random.random() - 0.5)
                     newatom['z'] += 0.1 * (random.random() - 0.5)
-                    
+                    if 'Velocities' in self.sections:
+                        newatom['vx'] = atom['vx']
+                        newatom['vy'] = atom['vy']
+                        newatom['vz'] = atom['vz']
+
                     newatoms.append(newatom)
                     atom['q'] -= ddt['dq']
                     atom['dflag'] = 1
                     atom['dd'] = natom
+                    if '#' not in atom['note']:
+                        atom['note'] += ' #'
                     atom['note'] += ' DC'
-                                
+
                     nbond += 1
                     newbond = {}
                     newbond['n'] = nbond
@@ -321,20 +349,20 @@ class Data:
                     newbond['i'] = atom['n']
                     newbond['j'] = newatom['n']
                     newbond['note'] = '# ' + ddt['type'] + '-DP'
-                    newbonds.append(newbond) 
+                    newbonds.append(newbond)
                     break
-            
+
         self.headers['atoms'] += len(newatoms)
         self.headers['bonds'] += len(newbonds)
         self.sections['Atoms'] = []
         for atom in self.atoms + newatoms:
-            self.sections['Atoms'].append(atomline(atom))        
-        for bond in newbonds:                  
+            self.sections['Atoms'].append(atomline(atom))
+        for bond in newbonds:
             self.sections['Bonds'].append(bondline(bond))
-
-        # self.sections['Drudes'] = []
-        # for atom in self.atoms + newatoms:
-        #     self.sections['Drudes'].append(drudeline(atom))
+        if 'Velocities' in self.sections:
+            self.sections['Velocities'] = []
+            for atom in self.atoms + newatoms:
+                self.sections['Velocities'].append(velline(atom))
 
         # update list of atom IDs
         for att in newattypes:
@@ -343,17 +371,17 @@ class Data:
 
     def extract_pol(self):
         """extract atom, drude, bonds info from polarizable data"""
-        
+
         # extract atom IDs
         for line in self.sections['Masses']:
             tok = line.split()
-            if len(tok) < 4:
-                print("warning: missing type for atom ID " + tok[0])
-                continue
             atomtype = {}
             atomtype['id'] = int(tok[0])
             atomtype['m'] = float(tok[1])
-            atomtype['type'] = tok[3]
+            if len(tok) >= 4:
+                atomtype['type'] = tok[3]
+            else:
+                atomtype['type'] = ""
             self.atomtypes.append(atomtype)
 
         # extract atom drude types
@@ -364,7 +392,7 @@ class Data:
                 continue
             if self.atomtypes[itype]['id'] != int(tok[0]):
                 print("warning: Drude Types or Masses are in wrong order")
-            self.atomtypes[itype]['dflag'] = int(tok[1]) 
+            self.atomtypes[itype]['dflag'] = int(tok[1])
 
         # extract bond type data
         for line in self.sections['Bond Coeffs']:
@@ -387,10 +415,20 @@ class Data:
             atom['x'] = float(tok[4])
             atom['y'] = float(tok[5])
             atom['z'] = float(tok[6])
-            atom['note'] = ''.join([s + ' ' for s in tok[7:-1]]).strip()
+            # atom['note'] = ''.join([s + ' ' for s in tok[7:-1]]).strip()
+            atom['note'] = ' '.join(tok[7:])
             if tok[-1] != 'DC':
                 atom['note'] += ' ' + tok[-1]
             self.atoms.append(atom)
+            self.idmap[atom['n']] = atom
+
+        if 'Velocities' in self.sections:
+            for line in self.sections['Velocities']:
+                tok = line.split()
+                atom = self.idmap[int(tok[0])]
+                atom['vx'] = float(tok[1])
+                atom['vy'] = float(tok[2])
+                atom['vz'] = float(tok[3])
 
         # extract bond data
         for line in self.sections['Bonds']:
@@ -403,11 +441,20 @@ class Data:
             bond['note'] = ''.join([s + ' ' for s in tok[4:]]).strip()
             self.bonds.append(bond)
 
+        if 'Velocities' in self.sections:
+            for line in self.sections['Velocities']:
+                tok = line.split()
+                atom = self.idmap[int(tok[0])]
+                atom['vx'] = float(tok[1])
+                atom['vy'] = float(tok[2])
+                atom['vz'] = float(tok[3])
+
+
     def depolarize(self):
         """remove Drude particles"""
 
         self.extract_pol()
-        
+
         atom_tp_map = {}
         bond_tp_map = {}
         atom_map = {}
@@ -432,7 +479,7 @@ class Data:
                     bond_tp_map[bond['id']] = len(bond_tp_map) + 1
             else:
                 if bond['i'] in atom_map:
-                    q[bond['i']] += q[bond['j']] 
+                    q[bond['i']] += q[bond['j']]
                     if atom_tp[bond['j']] in m:
                         m[atom_tp[bond['i']]] += m.pop(atom_tp[bond['j']])
                 else:
@@ -478,27 +525,27 @@ class Data:
                 bond['i'] = atom_map[bond['i']]
                 bond['j'] = atom_map[bond['j']]
 
-        natom = self.headers['atoms'] = len(self.atoms)
-        nbond = self.headers['bonds'] = len(self.bonds)
-        nattype = self.headers['atom types'] = len(self.atomtypes)
-        nbdtype = self.headers['bond types'] = len(self.bondtypes)
-
         self.sections['Atoms'] = []
         for atom in self.atoms:
-            self.sections['Atoms'].append(atomline(atom))        
+            self.sections['Atoms'].append(atomline(atom))
         self.sections['Masses'] = []
-        for att in self.atomtypes:                  
+        for att in self.atomtypes:
             self.sections['Masses'].append(massline(att))
         self.sections['Bonds'] = []
-        for bond in self.bonds:                  
+        for bond in self.bonds:
             self.sections['Bonds'].append(bondline(bond))
         self.sections['Bond Coeffs'] = []
         for bdt in self.bondtypes:
             self.sections['Bond Coeffs'].append(bdtline(bdt))
 
+        if 'Velocities' in self.sections:
+            self.sections['Velocities'] = []
+            for atom in self.atoms:
+                self.sections['Velocities'].append(velline(atom))
+
         del self.sections['Drude Types']
 
- 
+
     def thole(self, drude, outfile, thole = 2.6, cutoff = 12.0):
         """print lines for pair_style thole"""
 
@@ -543,8 +590,8 @@ class Data:
                         jfound = True
                         break
                 if ifound and jfound:
-                    alphaij = (alphai + alphaj) / 2.0
-                    tholeij = (tholei * tholej)**0.5
+                    alphaij = (alphai * alphaj)**0.5
+                    tholeij = (tholei + tholej) / 2.0
                     print("pair_coeff {0:4} {1:4} thole {2:7.3f} "\
                           "{3:7.3f}".format(atti['id'], attj['id'],
                                             alphaij, tholeij))
@@ -569,7 +616,7 @@ eV   = 96.485                           # kJ/mol
 fpe0 =  0.000719756                     # (4 Pi eps0) in e^2/(kJ/mol A)
 
 
-class Drude:
+class Drude(object):
     """specification of drude oscillator types"""
 
     def __init__(self, drudefile, polar = '', positive = False, metal = False):
@@ -592,7 +639,7 @@ class Drude:
                     dq = (fpe0 * k * alpha)**0.5
                 elif polar == 'k':
                     k = dq*dq / (fpe0 * alpha)
-                
+
                 if positive:
                     drude['dq'] = abs(dq)
                 else:
@@ -602,18 +649,17 @@ class Drude:
                     drude['k'] = k / (2.0 * eV)
                 else:
                     drude['k'] = k / (2.0 * kcal)
-                    
+
                 self.types.append(drude)
 
 
 # --------------------------------------
 
-
 def main():
-    parser = argparse.ArgumentParser(
-        description = 'Add Drude dipole polarization to LAMMPS data file')
-    parser.add_argument('-f', '--ffdrude', default = 'drude.ff',
-                        help = 'Drude parameter file (default: drude.ff)')
+    parser = argparse.ArgumentParser(description = usage,
+             formatter_class = argparse.RawTextHelpFormatter)
+    parser.add_argument('-f', '--ffdrude', default = 'drude.dff',
+                        help = 'Drude parameter file (default: drude.dff)')
     parser.add_argument('-t', '--thole', type = float, default = 2.6,
                         help = 'Thole damping parameter (default: 2.6)')
     parser.add_argument('-c', '--cutoff', type = float, default = 12.0,
@@ -653,6 +699,6 @@ def main():
     else:
         data.depolarize()
     data.write(args.outfile)
-                                    
+
 if __name__ == '__main__':
     main()
