@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/06/04
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/06/15
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio Padua
@@ -59,7 +59,7 @@ def atomic_symbol(name):
 
 # --------------------------------------
 
-class vector:
+class vector(object):
     """minimal 3-vector"""
 
     def __init__(self, x = 0.0, y = 0.0, z = 0.0):
@@ -108,7 +108,8 @@ class vector:
         return vector(-self.x, -self.y, -self.z)
 
     def __str__(self):
-        return '( ' + ', '.join([str(val) for val in (self.x, self.y, self.z)]) + ' )'
+        return '( ' + ', '.join([str(val) for val in\
+                                  (self.x, self.y, self.z)]) + ' )'
 
     def __repr__(self):
         return str(self) + ' instance at 0x' + str(hex(id(self))[2:].upper())
@@ -125,7 +126,7 @@ class vector:
 
 # --------------------------------------
  
-class atom:
+class atom(object):
     """atom in a molecule or in a force field"""
 
     def __init__(self, name, m = 0.0):
@@ -134,7 +135,7 @@ class atom:
             self.m = atomic_weight(self.name)
         else:
             self.m = m
-        self.ityp = -1                    # index of atom type for this atom
+        self.ityp = -1                    # atom type index for this atom
         self.x = 0.0
         self.y = 0.0
         self.z = 0.0
@@ -193,7 +194,7 @@ def angle3atoms(ati, atj, atk, box = None):
     return math.acos((vji * vjk) / (abs(vji) * abs(vjk))) * 180.0 / math.pi
 
 
-class bond:
+class bond(object):
     """covalent bond in a molecule or in a force field"""
 
     def __init__(self, i = -1, j = -1, r = 0.0):
@@ -243,7 +244,7 @@ class bond:
             return False
 
 
-class angle:
+class angle(object):
     """valence angle"""
 
     def __init__(self, i = -1, j = -1, k = -1, theta = 0.0):
@@ -297,7 +298,7 @@ class angle:
             return False
 
 
-class dihed:
+class dihed(object):
     """dihedral angle (torsion)"""
 
     def __init__(self, i = -1, j = -1, k = -1, l = -1, phi = 0.0):
@@ -350,7 +351,7 @@ class dimpr(dihed):
 
 # --------------------------------------
 
-class zmat:
+class zmat(object):
     """z-matrix representing a molecule, read from .zmat file"""
 
     def __init__(self, filename):
@@ -487,7 +488,7 @@ class zmat:
 # --------------------------------------
 
 
-class mol:
+class mol(object):
     """molecule"""
 
     def __init__(self, filename, connect = True, box = None):
@@ -1082,7 +1083,7 @@ class mol:
             
 # --------------------------------------
 
-class forcefield:
+class forcefield(object):
     """force field parameter database"""
 
     def __init__(self, filename):
@@ -1192,7 +1193,7 @@ class forcefield:
             print(di)
 
 
-class vdw:
+class vdw(object):
     """van der Waals interaction"""        
     
     def __init__(self, iat, jat, mix = 'g'):
@@ -1231,7 +1232,7 @@ class vdw:
 # --------------------------------------
 
 
-class cell:
+class cell(object):
     """Simulation cell/box"""
 
     def __init__(self, a, b, c, pbc = '', tol = 0.0, center = False):
@@ -1252,7 +1253,7 @@ class cell:
 # --------------------------------------
 
     
-class system:
+class system(object):
     """Molecular system to be simulated"""
                 
     def __init__(self, spec, box, mix = 'g'):
