@@ -1,6 +1,8 @@
 fftool
 ======
 
+[![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.18618.svg)](http://dx.doi.org/10.5281/zenodo.18618)
+
 _[Agilio Padua](http://tim.univ-bpclermont.fr/apadua)_
 
 This is a tool to build force field input files for molecular
