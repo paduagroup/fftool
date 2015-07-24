@@ -2,7 +2,7 @@
 # polarizer.py - add Drude oscillators to LAMMPS data file.
 # Agilio Padua <agilio.padua@univ-bpclermont.fr>
 # Alain Dequidt <alain.dequidt@univ-bpclermont.fr>
-# version 2015/06/04
+# version 2015/07/17
 
 import sys
 import argparse
@@ -11,17 +11,17 @@ from copy import deepcopy
 
 usage = """Add Drude oscillators to LAMMPS data file.
 
-The format of file containing specification of Drude oscillators is:
+Format of file containing specification of Drude oscillators:
 
   # type  dm/u  dq/e  k/(kJ/molA2)  alpha/A3  thole
   C3H     1.0   0.0   4184.0        2.051     2.6
   ...
 
-* dm is the mass to put on the Drude particle (taken from its core),
-* dq is the charge to put on the Drude particle (taken from its core),
-* k is the garmonic force constant of the bond between Drude and core,
+* dm is the mass to place on the Drude particle (taken from its core),
+* dq is the charge to place on the Drude particle (taken from its core),
+* k is the harmonic force constant of the bond between core and Drude,
 * alpha is the polarizability,
-* thole is a Thole damping parameter.
+* thole is a parameter of the Thole damping function.
 
 A Drude particle is created for each atom in the LAMMPS data file
 that corresponds to an atom type given in the Drude file.
@@ -31,14 +31,17 @@ identification of the atom types within the force field database:
 
   Masses
 
-     1   12.011  # C3H
-     2   12.011  # CTO
+  1   12.011  # C3H
+  2   12.011  # CTO
   ...
 
 This script will add new atom types, new bond types, new atoms and
-new bonds to the data file. It will also add a new section called
-"Drude Types" containing a flag 0 (non-polarizable atom), 1 (Drude core)
-or 2 (Drude particle).
+new bonds to the data file.
+
+It will also print some commands to be included in the LAMMPS input script,
+which are related to the topology and force field, namely fix drude,
+pair_style and pair coeff_commands. For information on thermostating please
+read the documentation of the USER-DRUDE package.
 
 This tool can also be used to revert a Drude-polarized data file to a
 non-polarizable one.
@@ -52,7 +55,6 @@ hkeywords = ["atoms", "ellipsoids", "lines", "triangles", "bodies",
              "improper types", "xlo xhi", "ylo yhi", "zlo zhi", "xy xz yz"]
 
 skeywords = [["Masses", "atom types"],
-             ["Drude Types", "atom types"],
              ["Pair Coeffs", "atom types"],
              ["Bond Coeffs", "bond types"], ["Angle Coeffs", "angle types"],
              ["Dihedral Coeffs", "dihedral types"],
@@ -76,9 +78,6 @@ skeywords = [["Masses", "atom types"],
 
 def massline(att):
     return "{0:4d} {1:8.3f}  # {2}\n".format(att['id'], att['m'], att['type'])
-
-def drudeline(att):
-    return "{0:4d} {1:1d}  # {2}\n".format(att['id'], att['dflag'], att['type'])
 
 def bdtline(bdt):
     return "{0:4d} {1:12.6f} {2:12.6f}  {3}\n".format(bdt['id'], bdt['k'],
@@ -248,6 +247,9 @@ class Data(object):
     def polarize(self, drude):
         """add Drude particles"""
 
+        if 'Pair Coeffs' in self.sections:
+            raise RuntimeError("cannot polarize a data with Pair Coeffs")
+
         self.extract_nonpol()
 
         natom = self.headers['atoms']
@@ -258,7 +260,7 @@ class Data(object):
         # create new atom types (IDs) for Drude particles and modify cores
         newattypes = []
         for att in self.atomtypes:
-            att['dflag'] = 0
+            att['dflag'] = 'n'
             for ddt in drude.types:
                 if ddt['type'] == att['type']:
                     nattype += 1
@@ -267,8 +269,8 @@ class Data(object):
                     newid['m'] = ddt['dm']
                     att['m'] -= ddt['dm']
                     # label drude particles and cores
-                    att['dflag'] = 1
-                    newid['dflag'] = 2
+                    att['dflag'] = 'c'
+                    newid['dflag'] = 'd'
                     newid['type'] = att['type'] + ' DP'
                     att['type'] += ' DC'
                     ddt['type'] += ' DC'
@@ -277,10 +279,8 @@ class Data(object):
 
         self.headers['atom types'] += len(newattypes)
         self.sections['Masses'] = []
-        self.sections['Drude Types'] = []
         for att in self.atomtypes + newattypes:
             self.sections['Masses'].append(massline(att))
-            self.sections['Drude Types'].append(drudeline(att))
 
         # create new bond types for core-drude bonds
         newbdtypes = []
@@ -305,7 +305,7 @@ class Data(object):
         newatoms = []
         newbonds = []
         for atom in self.atoms:
-            atom['dflag'] = 0            # 1: core, 2: drude, 0: other
+            atom['dflag'] = ''           # [c]ore, [d]rude, [n]on-polarizable
             atom['dd'] = 0               # partner drude or core
             for att in self.atomtypes:
                 if att['id'] == atom['id']:
@@ -322,7 +322,7 @@ class Data(object):
                     if '#' not in newatom['note']:
                         newatom['note'] += ' #'
                     newatom['note'] += ' DP'
-                    newatom['dflag'] = 2
+                    newatom['dflag'] = 'd'
                     newatom['dd'] = atom['n']
 
                     # avoid superposition of cores and Drudes
@@ -336,7 +336,7 @@ class Data(object):
 
                     newatoms.append(newatom)
                     atom['q'] -= ddt['dq']
-                    atom['dflag'] = 1
+                    atom['dflag'] = 'c'
                     atom['dd'] = natom
                     if '#' not in atom['note']:
                         atom['note'] += ' #'
@@ -369,7 +369,7 @@ class Data(object):
             self.atomtypes.append(att)
 
 
-    def extract_pol(self):
+    def extract_pol(self, drude):
         """extract atom, drude, bonds info from polarizable data"""
 
         # extract atom IDs
@@ -380,20 +380,17 @@ class Data(object):
             atomtype['m'] = float(tok[1])
             if len(tok) >= 4:
                 atomtype['type'] = tok[3]
+                atomtype['dflag'] = 'n'
+                if tok[-1] == "DC":
+                    atomtype['dflag'] = 'c'
+                elif tok[-1] == "DP":
+                    atomtype['dflag'] = 'd'
+                print(atomtype['dflag'])
             else:
-                atomtype['type'] = ""
+                raise RuntimeError("comments in Masses section required "\
+                                   "to identify cores (DC) and Drudes (DP)")
             self.atomtypes.append(atomtype)
-
-        # extract atom drude types
-        for itype, line in enumerate(self.sections['Drude Types']):
-            tok = line.split()
-            if len(tok) < 2:
-                print("warning: missing Drude Type for atom type " + tok[0])
-                continue
-            if self.atomtypes[itype]['id'] != int(tok[0]):
-                print("warning: Drude Types or Masses are in wrong order")
-            self.atomtypes[itype]['dflag'] = int(tok[1])
-
+                        
         # extract bond type data
         for line in self.sections['Bond Coeffs']:
             tok = line.split()
@@ -416,9 +413,10 @@ class Data(object):
             atom['y'] = float(tok[5])
             atom['z'] = float(tok[6])
             # atom['note'] = ''.join([s + ' ' for s in tok[7:-1]]).strip()
-            atom['note'] = ' '.join(tok[7:])
-            if tok[-1] != 'DC':
-                atom['note'] += ' ' + tok[-1]
+            if tok[-1] == 'DC':
+              atom['note'] = ' '.join(tok[7:-1])
+            else:
+              atom['note'] = ' '.join(tok[7:])
             self.atoms.append(atom)
             self.idmap[atom['n']] = atom
 
@@ -450,10 +448,10 @@ class Data(object):
                 atom['vz'] = float(tok[3])
 
 
-    def depolarize(self):
+    def depolarize(self, drude):
         """remove Drude particles"""
 
-        self.extract_pol()
+        self.extract_pol(drude)
 
         atom_tp_map = {}
         bond_tp_map = {}
@@ -464,9 +462,10 @@ class Data(object):
         m = {}
 
         for att in self.atomtypes:
-            if att['dflag'] != 2:
+            if att['dflag'] != 'd':
                 atom_tp_map[att['id']] = len(atom_tp_map) + 1
             m[att['id']] = att['m']
+        print(atom_tp_map)
         for atom in self.atoms:
             if atom['id'] in atom_tp_map:
                 atom_map[atom['n']] = len(atom_map) + 1
@@ -528,45 +527,50 @@ class Data(object):
         self.sections['Atoms'] = []
         for atom in self.atoms:
             self.sections['Atoms'].append(atomline(atom))
+        self.headers['atoms'] = len(self.atoms)
         self.sections['Masses'] = []
         for att in self.atomtypes:
             self.sections['Masses'].append(massline(att))
+        self.headers['atom types'] = len(self.atomtypes)
         self.sections['Bonds'] = []
         for bond in self.bonds:
             self.sections['Bonds'].append(bondline(bond))
+        self.headers['bonds'] = len(self.bonds)
         self.sections['Bond Coeffs'] = []
         for bdt in self.bondtypes:
             self.sections['Bond Coeffs'].append(bdtline(bdt))
+        self.headers['bond types'] = len(self.bondtypes)
 
         if 'Velocities' in self.sections:
             self.sections['Velocities'] = []
             for atom in self.atoms:
                 self.sections['Velocities'].append(velline(atom))
 
-        del self.sections['Drude Types']
-
-
-    def thole(self, drude, outfile, thole = 2.6, cutoff = 12.0):
-        """print lines for pair_style thole"""
+    def lmpscript(self, drude, outfile, thole = 2.6, cutoff = 12.0):
+        """print lines for input script, including pair_style thole"""
 
         dfound = False
         for att in self.atomtypes:
-            if att['dflag'] == 2:
+            if att['dflag'] == 'd':
                 dfound = True
                 break
         if not dfound:
+            print("# No polarizable atoms found.")
             return
 
-        print("atom_style drude\n")
+        print("# Commands to include in the LAMMPS input script\n")
+
+        print("# adapt the pair_style line as needed")
         print("pair_style hybrid/overlay ... coul/long {0:.1f} "\
               "thole {1:.3f} {0:.1f}\n".format(cutoff, thole))
 
         print("read_data {0}\n".format(outfile))
 
-        # only Coulomb interactions between any atoms and drude particles
+        print("# add interactions between any atoms and Drude particles")
         print("pair_coeff    *   {0}* coul/long".format(att['id']))
 
         # Thole parameters for I,J pairs
+        print("# add Thole screening if more than 1 Drude per molecule")
         ifound = False
         for atti in self.atomtypes:
             itype = atti['type'].split()[0]
@@ -599,15 +603,35 @@ class Data(object):
             ifound = False
         print("")
 
-        gcores = gdrudes = ""
+        print("# atom groups convenient for thermostats (see package "
+              "documentation), etc.")
+        gatoms = gcores = gdrudes = ""
         for att in self.atomtypes:
-            if att['dflag'] == 1:
+            if att['dflag'] != 'd':
+                gatoms += " {0}".format(att['id'])
+            if att['dflag'] == 'c':
                 gcores += " {0}".format(att['id'])
-            if att['dflag'] == 2:
+            if att['dflag'] == 'd':
                 gdrudes += " {0}".format(att['id'])
+        print("group ATOMS type" + gatoms)
         print("group CORES type" + gcores)
         print("group DRUDES type" + gdrudes)
         print("")
+
+        print("# flag for each atom type: [C]ore, [D]rude, [N]on-polarizable")
+        drudetypes = ""
+        for att in self.atomtypes:
+            drudetypes += " {0}".format(att['dflag'].upper())
+        print("fix DRUDE all drude" + drudetypes)
+        print("")
+
+        print("# ATTENTION!")
+        print("#  * special_bonds may need 'extra' keyword, LAMMPS will exit "
+              "with a message")
+        print("#  * give all I<=J pair interactions, no mixing")
+        print("#  * if using fix shake the group-ID must not include "
+              "Drude particles")
+        print("#    use group ATOMS for example")
 
 # --------------------------------------
 
@@ -690,14 +714,12 @@ def main():
         polar = ''
 
     data = Data(args.infile)
+    drude = Drude(args.ffdrude, polar, args.positive, args.metal)
     if not args.depolarize:
-        drude = Drude(args.ffdrude, polar, args.positive, args.metal)
         data.polarize(drude)
-        print("# Copy the lines below into the LAMMPS input file")
-        print("# Adapt the pair_style line as needed\n")
-        data.thole(drude, args.outfile, args.thole, args.cutoff)
+        data.lmpscript(drude, args.outfile, args.thole, args.cutoff)
     else:
-        data.depolarize()
+        data.depolarize(drude)
     data.write(args.outfile)
 
 if __name__ == '__main__':

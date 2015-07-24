@@ -72,13 +72,13 @@ system composed of molecules, ions or materials.
     coordinates and also bonds. The name of a file with force field
     parameters can be given in the first line after the molecule name,
     or in the third line. If the keyword `reconnect` is present after
-    the force field filename, then connectivity will be guessed based
+    the force field filename, then connectivity will be deduced based
     on bond distances from the force field.
 
     The `.xyz` is also widely used, containing atomic coordinates
     only. The name of a file with force field parameters can be given
     in the second line after the molecule name, and in this case
-    connectivity is inferred from the bond lengths in the force field.
+    connectivity is deduced from the bond lengths in the force field.
 
     There are many free tools to create MDL mol files, xyz files or
     z-matrices, which are common formats in computational chemistry
@@ -125,6 +125,41 @@ system composed of molecules, ions or materials.
     bond-order or other potentials often used for materials. The input
     files for MD simulations will have to be edited manually to
     include an interaction potential for the material.
+
+
+Deducing Bonds and Angles
+-------------------------
+
+When inferring connectivity from distances, a tolerance of 0.25
+angstrom is used to compare interatomic distances in the coordinates
+file with equilibrium distances specified in the force field database,
+and decide if a bond should be present or not. So, the bond lengths in
+the conformation used as input must be sufficiently close to those in
+the force field specification.
+
+Angles will be assigned to groups of three atoms i-j-k, with i-j and
+j-k bonded, if the value of the angle in the conformation used as
+input is within +/-15 degrees of the equilibrium angle in the force
+field specification. If not, even if the atoms i-j-k are bonded, their
+angle will not be present in the final potential energy function
+although topologically it is there. When running `fftool` to create
+a force field file (with `-l` or `-d` option) a warning message shows
+which such topological angles have been "removed" because they deviate
+too much from the equilibrium angles in the force field. This avoids
+issued with atoms which have more than four ligands, such as S or P
+atoms with five or six ligands. Around these centers there are
+topological angles of 180 degrees to which no potential energy of
+bending is attributed in force fields. For example, in the octahedral
+PF6- anion there are two different values of F-P-F angles: twelve 90
+degree angles between adjacent F atoms, and three 180 degree angles
+between opposite F atoms; only the twelve 90 degree angles contribute
+with a harmonic potential energy function in the OPLS-AA force field.
+
+The tolerances for bond distance and angle values, 0.25 angstrom and
+15 degrees, respectively, were chosen somewhat arbitrarily. They can
+be set by editing the `fftool` source, namely the global variables
+`BondTol` and `AngleTol`. Use with care because spurious bonds and
+angles may be created if the tolerances are too wide.
 
 
 Improper Dihedrals
