@@ -64,7 +64,7 @@ CT2   CT  12.011  -0.050  lj    3.50   0.27614
 CT1   CT  12.011   0.010  lj    3.50   0.27614
 
 BONDS
-# i j    pot    re/A    ka/kJmol-1
+# i j    pot    re/A    kr/kJmol-1
 # alkanes OPLS-AA JACS 118(1996)11225, JPC 100(1996)18010
 CT  HC   cons   1.090   2845.1
 CT  CT   harm   1.529   2242.6

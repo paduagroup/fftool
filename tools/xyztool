@@ -19,7 +19,7 @@ class Atom:
 def main():
     if len(sys.argv) < 2:
         print('Manipulate xyz file')
-        print('usage: xyztool.py command file.xyz')
+        print('usage: xyztool command file.xyz')
         print('commands:')
         print('  sort {xyz|zxy|...}')
         print('  swap {xy|xz|yz}')
