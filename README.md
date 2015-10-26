@@ -116,7 +116,7 @@ system composed of molecules, ions or materials.
    containing the force field parameters and the coordinates of all
    the atoms (from `simbox.xyz`):
 
-        fftool 40 ethanol.zmat 300 spce.zmat --r 38.0 -l
+        fftool 40 ethanol.zmat 300 spce.zmat -r 38.0 -l
 
     If no force field information was given explicitly in the molecule
     files, a default LJ potential with parameters zeroed will be
