@@ -1796,7 +1796,7 @@ class system(object):
                             f.write('\n')
                         i += 1
                     for di in sp.dimpr:
-                        f.write('%7d %7d %7d %7d' % (di.i + shift,
+                        f.write(' %7d %7d %7d %7d' % (di.i + shift,
                                 di.j + shift, di.k + shift, di.l + shift))
                         if (i % 2) == 0:
                             f.write('\n')
