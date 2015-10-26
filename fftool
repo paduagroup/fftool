@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/10/21
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/10/26
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio Padua
@@ -132,22 +132,25 @@ class atom(object):
 
     def __init__(self, name, m = 0.0):
         self.name = name
+        self.ityp = -1                    # atom type index for this atom
         if m == 0.0:
             self.m = atomic_weight(self.name)
         else:
             self.m = m
-        self.ityp = -1                    # atom type index for this atom
+        self.q = 0.0
+        self.pot = ''
+        self.par = []
         self.x = 0.0
         self.y = 0.0
         self.z = 0.0
 
     def __str__(self):
         if hasattr(self, 'type'):
-            return "atom {0:<5} {1:<2}  m = {2:7.3f}  q = {3:+7.4f}  "\
+            return "atom {0:5s} {1:3s}  m = {2:7.3f}  q = {3:+7.4f}  "\
                    "{4} {5}".format(self.name, self.type, self.m, self.q,
                                   self.pot, str(self.par))
         else:
-            return "atom {0:<5}  m = {1:7.3f}".format(self.name, self.m)
+            return "atom {0:5s}  m = {1:7.3f}".format(self.name, self.m)
 
     def setpar(self, attp, q, pot, par):
         self.type = attp
@@ -161,35 +164,67 @@ def dist2atoms(ati, atj, box = None):
     dy = atj.y - ati.y
     dz = atj.z - ati.z
     if isinstance(box, cell):
-        if 'x' in box.pbc:
-            dx -= round(dx / box.a) * box.a
-        if 'y' in box.pbc:
-            dy -= round(dy / box.b) * box.b
-        if 'z' in box.pbc:
-            dz -= round(dz / box.c) * box.c
-    return abs(vector(dx, dy, dz))
+        if box.triclinic:
+            ri = [ ati.x, ati.y, ati.z ]
+            rj = [ atj.x, atj.y, atj.z ]
+            fi = box.ctof(ri)
+            fj = box.ctof(rj)
+            fd = [ fj[0] - fi[0], fj[1] - fi[1], fj[2] - fi[2] ]
+            if 'x' in box.pbc:
+                fd[0] -= round(fd[0])
+            if 'y' in box.pbc:
+                fd[1] -= round(fd[1])
+            if 'z' in box.pbc:
+                fd[2] -= round(fd[2])
+            dx, dy, dz = box.ftoc(fd)
+        else:
+            if 'x' in box.pbc:
+                dx -= round(dx / box.lx) * box.lx
+            if 'y' in box.pbc:
+                dy -= round(dy / box.ly) * box.ly
+            if 'z' in box.pbc:
+                dz -= round(dz / box.lz) * box.lz
+    return math.sqrt(dx*dx + dy*dy + dz*dz)
 
 
 def angle3atoms(ati, atj, atk, box = None):
     djix = ati.x - atj.x
     djiy = ati.y - atj.y
-    djiz = ati.z - atj.z
-
+    djiz = ati.z - atj.z    
     djkx = atk.x - atj.x
     djky = atk.y - atj.y
     djkz = atk.z - atj.z
-
     if isinstance(box, cell):
-        if 'x' in box.pbc:
-            djix -= round(djix / box.a) * box.a
-            djkx -= round(djkx / box.a) * box.a
-        if 'y' in box.pbc:
-            djiy -= round(djiy / box.b) * box.b
-            djky -= round(djky / box.b) * box.b
-        if 'z' in box.pbc:
-            djiz -= round(djiz / box.c) * box.c
-            djkz -= round(djkz / box.c) * box.c
-
+        if box.triclinic:
+            ri = [ ati.x, ati.y, ati.z ]
+            rj = [ atj.x, atj.y, atj.z ]
+            rk = [ atk.x, atk.y, atk.z ]
+            fi = box.ctof(ri)
+            fj = box.ctof(rj)
+            fk = box.ctof(rk)
+            fdji = [ fi[0] - fj[0], fi[1] - fj[1], fi[2] - fj[2] ]
+            fdjk = [ fk[0] - fj[0], fk[1] - fj[1], fk[2] - fj[2] ]
+            if 'x' in box.pbc:
+                fdji[0] -= round(fdji[0])
+                fdjk[0] -= round(fdjk[0])
+            if 'y' in box.pbc:
+                fdji[1] -= round(fdji[1])
+                fdjk[1] -= round(fdjk[1])
+            if 'z' in box.pbc:
+                fdji[2] -= round(fdji[2])
+                fdjk[2] -= round(fdjk[2])
+            djix, djiy, djiz = box.ftoc(fdji)
+            djkx, djky, djkz = box.ftoc(fdjk)
+        else:
+            if 'x' in box.pbc:
+                djix -= round(djix / box.lx) * box.lx
+                djkx -= round(djkx / box.lx) * box.lx
+            if 'y' in box.pbc:
+                djiy -= round(djiy / box.ly) * box.ly
+                djky -= round(djky / box.ly) * box.ly
+            if 'z' in box.pbc:
+                djiz -= round(djiz / box.lz) * box.lz
+                djkz -= round(djkz / box.lz) * box.lz
     vji = vector(djix, djiy, djiz)
     vjk = vector(djkx, djky, djkz)
     return math.acos((vji * vjk) / (abs(vji) * abs(vjk))) * 180.0 / math.pi
@@ -1018,7 +1053,7 @@ class mol(object):
                     if self.dimpr[j] not in toremove:
                         toremove.append(self.dimpr[j])
         for di in toremove:
-            self.dimpr.remove(d)
+            self.dimpr.remove(di)
 
         if len(anmiss) or len(dhmiss) or len(dimiss): 
             print('  warning: missing force field parameters')
@@ -1062,7 +1097,7 @@ class mol(object):
                 atname = atomic_symbol(a.name)
             else:
                 atname = a.name
-            print("{0:<5s} {1:15.6f} {2:15.6f} {3:15.6f}".format(atname,
+            print("{0:5s} {1:15.6f} {2:15.6f} {3:15.6f}".format(atname,
                                                           a.x, a.y, a.z))
 
     def writexyz(self, symbol = True):
@@ -1078,7 +1113,7 @@ class mol(object):
                     atname = atomic_symbol(a.name)
                 else:
                     atname = a.name
-                f.write("{0:<5s} {1:15.6f} {2:15.6f} {3:15.6f}\n".format(\
+                f.write("{0:5s} {1:15.6f} {2:15.6f} {3:15.6f}\n".format(\
                         atname, a.x, a.y, a.z))
 
             
@@ -1234,33 +1269,75 @@ class vdw(object):
 
 
 class cell(object):
-    """Simulation cell/box"""
+    """Simulation cell/box, cubic, orthorhombic, monoclinic or triclinic"""
 
-    def __init__(self, a, b, c, pbc = '', tol = 0.0, center = False):
+    def __init__(self, a, b = 0.0, c = 0.0,
+                 alpha = 90.0, beta = 90.0, gamma = 90.0,
+                 pbc = '', center = False):
         self.a = a
-        self.b = b
-        self.c = c
-        self.pbc = pbc                    # 'x', 'xy', 'xyz', etc.
-        if self.pbc:
-            self.tol = 0.0
+        if b == 0.0:
+            self.b = a
         else:
-            self.tol = tol
-        self.center = center
+            self.b = b
+        if c == 0.0:
+            self.c = a
+        else:
+            self.c = c
+        self.alpha = alpha
+        self.beta = beta
+        self.gamma = gamma
+        if alpha != 90.0 or beta != 90.0 or gamma != 90.0:
+            self.triclinic = True
+        else:
+            self.triclinic = False
 
-    def volume(self):
-        return self.a * self.b * self.c
+        self.pbc = pbc                    # 'x', 'xy', 'xyz', etc.
+        self.center = center
+        
+        NDIG = 14
+        ca = round(math.cos(alpha * math.pi/180.0), NDIG);
+        cb = round(math.cos(beta  * math.pi/180.0), NDIG);
+        cg = round(math.cos(gamma * math.pi/180.0), NDIG);
+        sg = round(math.sin(gamma * math.pi/180.0), NDIG);
+
+        self.vol = v = a*b*c*math.sqrt(1 - ca*ca - cb*cb - cg*cg + 2*ca*cb*cg)
+
+        # to convert between cartesian and fractional coords
+        self.ftocmat = [[   a, b*cg, c*cb              ],
+                        [ 0.0, b*sg, c*(ca - cb*cg)/sg ],
+                        [ 0.0,  0.0, v/(a*b*sg)        ]]
+        self.ctofmat = [[ 1.0/a, -cg/(a*sg), b*c*(ca*cg - cb)/(v*sg) ],
+                        [   0.0, 1.0/(b*sg), a*c*(cb*cg - ca)/(v*sg) ],
+                        [   0.0,        0.0, a*b*sg/v                ]]
+
+        # box sizes and tilt factors
+        self.lx = a
+        self.xy = b*cg
+        self.xz = c*cb
+        # self.ly = math.sqrt(b*b - self.xy*self.xy)
+        # self.yz = (b*ca - self.xy*self.xz)/self.ly
+        # self.lz = math.sqrt(c*c - self.xz*self.xz - self.yz*self.yz)
+        self.ly = b*sg
+        self.yz = c*(ca - cb*cg)/sg
+        self.lz = v/(a*b*sg)
+
+    def ftoc(self, x):
+        return [ sum(a*b for a,b in zip(row, x)) for row in self.ftocmat ]
+
+    def ctof(self, x):
+        return [ sum(a*b for a,b in zip(row, x)) for row in self.ctofmat ]
 
 
 # --------------------------------------
 
-    
+
 class system(object):
     """Molecular system to be simulated"""
-                
+
     def __init__(self, spec, box, mix = 'g'):
         self.spec = spec                     # molecular species
         self.box = box
-        
+
         self.attype = []                     # atom types
         self.bdtype = []                     # bond types
         self.antype = []                     # angle types
@@ -1330,7 +1407,7 @@ class system(object):
         for nb in self.vdw:
             print(nb)
 
-    def writepackmol(self, packfile, outfile, tol = 2.5):
+    def writepackmol(self, packfile, outfile, tol = 2.5, boxtol = 0.0):
         with open(packfile, 'w') as f:
             f.write('# created by fftool\n')
             f.write('tolerance %3.1f\n' % tol)
@@ -1342,18 +1419,16 @@ class system(object):
                 f.write('  number %s\n' % sp.nmol)
                 if self.box.center:
                     f.write('  inside box %.4f %.4f %.4f %.4f %.4f %.4f\n' % \
-                            (-self.box.a/2.0 + self.box.tol,
-                             -self.box.b/2.0 + self.box.tol,
-                             -self.box.c/2.0 + self.box.tol,
-                             self.box.a/2.0 - self.box.tol,
-                             self.box.b/2.0 - self.box.tol,
-                             self.box.c/2.0 - self.box.tol))
+                            (-self.box.a/2.0 + boxtol,
+                             -self.box.b/2.0 + boxtol,
+                             -self.box.c/2.0 + boxtol,
+                             self.box.a/2.0 - boxtol,
+                             self.box.b/2.0 - boxtol,
+                             self.box.c/2.0 - boxtol))
                 else:
                     f.write('  inside box %.4f %.4f %.4f %.4f %.4f %.4f\n' % \
-                            (self.box.tol, self.box.tol, self.box.tol,
-                             self.box.a - self.box.tol,
-                             self.box.b - self.box.tol,
-                             self.box.c - self.box.tol))
+                            (boxtol, boxtol, boxtol, self.box.a - boxtol,
+                             self.box.b - boxtol, self.box.c - boxtol))
                 f.write('end structure\n')
 
     def readcoords(self, filename):
@@ -1468,12 +1543,12 @@ class system(object):
                     fi.write(' b')
                     for bdt in self.bdtype:
                         if bdt.pot == 'cons':
-                            fi.write(' %d' % (bdt.ityp + 1))
+                            fi.write(' {0:d}'.format(bdt.ityp + 1))
                 if shakean:
                     fi.write(' a')
                     for ant in self.antype:
                         if ant.pot == 'cons':
-                            fi.write(' %d' % (ant.ityp + 1))
+                            fi.write(' {0:d}'.format(ant.ityp + 1))
                 fi.write('\n\n')
 
             fi.write('fix TPSTAT all npt temp ${TK} ${TK} 100 '\
@@ -1528,45 +1603,49 @@ class system(object):
             # fd.write('\n')
 
             if self.box.center:
-                fd.write("{0:f} {1:f} xlo xhi\n".format(-self.box.a / 2.0,
-                                                         self.box.a / 2.0))
-                fd.write("{0:f} {1:f} ylo yhi\n".format(-self.box.b / 2.0,
-                                                         self.box.b / 2.0))
-                fd.write("{0:f} {1:f} zlo zhi\n".format(-self.box.c / 2.0,
-                                                         self.box.c / 2.0))
+                fd.write("{0:f} {1:f} xlo xhi\n".format(-self.box.lx / 2.0,
+                                                         self.box.lx / 2.0))
+                fd.write("{0:f} {1:f} ylo yhi\n".format(-self.box.ly / 2.0,
+                                                         self.box.ly / 2.0))
+                fd.write("{0:f} {1:f} zlo zhi\n".format(-self.box.lz / 2.0,
+                                                         self.box.lz / 2.0))
             else:
-                fd.write("{0:f} {1:f} xlo xhi\n".format(0.0, self.box.a))
-                fd.write("{0:f} {1:f} ylo yhi\n".format(0.0, self.box.b))
-                fd.write("{0:f} {1:f} zlo zhi\n".format(0.0, self.box.c))
-            
+                fd.write("{0:f} {1:f} xlo xhi\n".format(0.0, self.box.lx))
+                fd.write("{0:f} {1:f} ylo yhi\n".format(0.0, self.box.ly))
+                fd.write("{0:f} {1:f} zlo zhi\n".format(0.0, self.box.lz))
+            if self.box.triclinic:
+                fd.write("{0:f} {1:f} {2:f} xy xz yz\n".format(
+                    self.box.xy, self.box.xz, self.box.yz))
+
             fd.write('\nMasses\n\n')
             for att in self.attype:
-                fd.write('%4d %8.3f  # %s\n' % (att.ityp + 1, att.m, att.name))
+                fd.write("{0:4d} {1:8.3f}  # {2}\n".format(
+                    att.ityp + 1, att.m, att.name))
 
             if nbond:
                 fd.write('\nBond Coeffs\n\n')
                 for bdt in self.bdtype:
-                    fd.write('%4d %12.6f %12.6f  # %s\n' % \
-                             (bdt.ityp + 1, bdt.par[1] / (2.0 * ecnv),
-                              bdt.par[0], bdt.name))
+                    fd.write("{0:4d} {1:12.6f} {2:12.6f}  # {3}\n".format(
+                             bdt.ityp + 1, bdt.par[1] / (2.0 * ecnv),
+                             bdt.par[0], bdt.name))
 
             if nangle:
                 fd.write('\nAngle Coeffs\n\n')
                 for ant in self.antype:
-                    fd.write('%4d %12.6f %12.6f  # %s\n' % \
-                             (ant.ityp + 1, ant.par[1] / (2.0 * ecnv),
-                              ant.par[0], ant.name))
+                    fd.write("{0:4d} {1:12.6f} {2:12.6f}  # {3}\n".format(
+                             ant.ityp + 1, ant.par[1] / (2.0 * ecnv),
+                             ant.par[0], ant.name))
 
             if ndihed:
                 fd.write('\nDihedral Coeffs\n\n')
                 for dht in self.dhtype:
-                    fd.write('%4d %12.6f %12.6f %12.6f %12.6f  # %s\n' % \
-                             (dht.ityp + 1,
+                    fd.write("{0:4d} {1:12.6f} {2:12.6f} {3:12.6f} {4:12.6f}  "
+                             "# {5}\n".format(dht.ityp + 1,
                               dht.par[0] / ecnv, dht.par[1] / ecnv,
                               dht.par[2] / ecnv, dht.par[3] / ecnv, dht.name))
                 for dit in self.ditype:
-                    fd.write('%4d %12.6f %12.6f %12.6f %12.6f  # %s\n' % \
-                             (ndht + dit.ityp + 1,
+                    fd.write("{0:4d} {1:12.6f} {2:12.6f} {3:12.6f} {4:12.6f}  "
+                             "# {5}\n".format(ndht + dit.ityp + 1,
                               dit.par[0] / ecnv, dit.par[1] / ecnv,
                               dit.par[2] / ecnv, dit.par[3] / ecnv, dit.name))
 
@@ -1575,11 +1654,12 @@ class system(object):
             for sp in self.spec:
                 for im in range(sp.nmol):
                     for at in sp.atom:
-                        fd.write('%7d %7d %4d %8.4f %13.6e %13.6e %13.6e  '\
-                                 '# %s %s\n' % \
-                                 (i + 1, nmol + 1, at.ityp + 1, at.q, 
-                                  self.x[i], self.y[i], self.z[i],
-                                  at.name, sp.name))
+                        fd.write("{0:7d} {1:7d} {2:4d} {3:8.4f} "
+                                 "{4:13.6e} {5:13.6e} {6:13.6e}  "
+                                 "# {7} {8}\n".format(
+                                 i + 1, nmol + 1, at.ityp + 1, at.q, 
+                                 self.x[i], self.y[i], self.z[i],
+                                 at.name, sp.name))
                         i += 1
                     nmol += 1
 
@@ -1590,9 +1670,9 @@ class system(object):
                     natom = len(sp.atom)
                     for im in range(sp.nmol):
                         for bd in sp.bond:
-                            fd.write('%7d %4d %7d %7d  # %s\n' % \
-                                     (i, bd.ityp + 1, bd.i + shift,
-                                      bd.j + shift, bd.name))
+                            fd.write("{0:7d} {1:4d} {2:7d} {3:7d}  "
+                                     "# {4}\n".format(i, bd.ityp + 1,
+                                     bd.i + shift, bd.j + shift, bd.name))
                             i += 1
                         shift += natom
 
@@ -1603,9 +1683,10 @@ class system(object):
                     natom = len(sp.atom)
                     for im in range(sp.nmol):
                         for an in sp.angle:
-                            fd.write('%7d %4d %7d %7d %7d  # %s\n' % \
-                                     (i, an.ityp + 1, an.i + shift,
-                                      an.j + shift, an.k + shift, an.name))
+                            fd.write("{0:7d} {1:4d} {2:7d} {3:7d} {4:7d}  "
+                                     "# {5}\n".format(i, an.ityp + 1,
+                                     an.i + shift, an.j + shift, an.k + shift,
+                                     an.name))
                             i += 1
                         shift += natom
 
@@ -1616,15 +1697,15 @@ class system(object):
                     natom = len(sp.atom)
                     for im in range(sp.nmol):
                         for dh in sp.dihed:
-                            fd.write('%7d %4d %7d %7d %7d %7d  # %s\n' % \
-                                     (i, dh.ityp + 1, dh.i + shift,
-                                      dh.j + shift, dh.k + shift,
+                            fd.write("{0:7d} {1:4d} {2:7d} {3:7d} {4:7d} {5:7d}"
+                                     "  # {6}\n".format(i, dh.ityp + 1,
+                                     dh.i + shift, dh.j + shift, dh.k + shift,
                                      dh.l + shift, dh.name))
                             i += 1
                         for di in sp.dimpr:
-                            fd.write('%7d %4d %7d %7d %7d %7d  # %s\n' % \
-                                     (i, ndht + di.ityp + 1, di.i + shift,
-                                      di.j + shift, di.k + shift,
+                            fd.write("{0:7d} {1:4d} {2:7d} {3:7d} {4:7d} {5:7d}"
+                                     "  # {6}\n".format(i, ndht + di.ityp + 1,
+                                     di.i + shift, di.j + shift, di.k + shift,
                                      di.l + shift, di.name))
                             i += 1
                         shift += natom
@@ -1636,97 +1717,108 @@ class system(object):
             f.write('created by fftool\n')
             f.write('units kJ\n\n')
             
-            f.write('molecular types %d\n' % (len(self.spec)))
+            f.write("molecular types {0:d}\n".format(len(self.spec)))
             for sp in self.spec:
-                f.write('%s\n' % sp.name)
-                f.write('nummols %d\n' % sp.nmol)
+                f.write("{0}\n".format(sp.name))
+                f.write("nummols {0:d}\n".format(sp.nmol))
 
-                f.write('atoms %d\n' % len(sp.atom))
+                f.write("atoms {0:d}\n".format(len(sp.atom)))
                 for at in sp.atom:
-                    f.write('%-5s %8.4f %6.3f 1  # %s\n' % \
-                            (at.name, at.m, at.q, at.type))
+                    f.write("{0:5s} {1:8.4f} {2:6.3f} 1  # {3}\n".format(
+                            at.name, at.m, at.q, at.type))
 
                 ncons = 0
                 for bd in sp.bond: 
                     if bd.pot == 'cons':
                         ncons += 1
-                f.write('constraints %d\n' % ncons)
+                f.write("constraints {0:d}\n".format(ncons))
                 for bd in sp.bond:
                     if bd.pot == 'cons':
-                        f.write('%4d %4d %6.3f  # %s\n' % \
-                                (bd.i + 1, bd.j + 1, bd.par[0], bd.name))
-                f.write('bonds %d\n' % (len(sp.bond) - ncons))
+                        f.write("{0:4d} {1:4d} {2:6.3f}  # {3}\n".format(
+                                bd.i + 1, bd.j + 1, bd.par[0], bd.name))
+                f.write("bonds {0:d}\n".format(len(sp.bond) - ncons))
                 for bd in sp.bond:
                     if bd.pot != 'cons':
-                        f.write('%4s %4d %4d %7.1f %6.3f  # %s\n' % \
-                                (bd.pot, bd.i + 1, bd.j + 1,
+                        f.write("{0:4s} {1:4d} {2:4d} {3:7.1f} {4:6.3f}  "
+                                "# {5}\n".format(bd.pot, bd.i + 1, bd.j + 1,
                                  bd.par[1], bd.par[0], bd.name))
-                                                                  
-                f.write('angles %d\n' % len(sp.angle))
+
+                f.write("angles {0:d}\n".format(len(sp.angle)))
                 for an in sp.angle:
-                    f.write('%4s %4d %4d %4d %7.2f %7.2f  # %s\n' % \
-                            (an.pot, an.i + 1, an.j + 1, an.k + 1,
-                             an.par[1], an.par[0], an.name))
-                             
-                f.write('dihedrals %d\n' % (len(sp.dihed) + len(sp.dimpr)))
+                    f.write("{0:4s} {1:4d} {2:4d} {3:4d} {4:7.2f} {5:7.2f}  "
+                            "# {6}\n".format(an.pot, an.i + 1, an.j + 1,
+                            an.k + 1, an.par[1], an.par[0], an.name))
+
+                f.write("dihedrals {0:d}\n".format(len(sp.dihed) +
+                                                   len(sp.dimpr)))
                 for dh in sp.dihed:
                     if cos4:
                         pot = 'cos4'
-                        f.write('%4s %4d %4d %4d %4d %9.4f %9.4f %9.4f %9.4f'\
-                                ' %6.3f %6.3f  # %s\n' % \
-                                (pot, dh.i + 1, dh.j + 1, dh.k + 1, dh.l + 1,
+                        f.write("{0:4s} {1:4d} {2:4d} {3:4d} {4:4d} "
+                                "{5:9.4f} {6:9.4f} {7:9.4f} {8:9.4f} "
+                                "{9:6.3f} {10:6.3f}  # {11}\n".format(pot,
+                                 dh.i + 1, dh.j + 1, dh.k + 1, dh.l + 1,
                                  dh.par[0], dh.par[1], dh.par[2], dh.par[3],
                                  0.5, 0.5, dh.name))
                     else:
                         pot = 'cos3'
-                        f.write('%4s %4d %4d %4d %4d %9.4f %9.4f %9.4f'\
-                                ' %6.3f %6.3f  # %s\n' % \
-                                (pot, dh.i + 1, dh.j + 1, dh.k + 1, dh.l + 1,
-                                 dh.par[0], dh.par[1], dh.par[2],
-                                 0.5, 0.5, dh.name))
+                        f.write("{0:4s} {1:4d} {2:4d} {3:4d} {4:4d} "
+                                "{5:9.4f} {6:9.4f} {7:9.4f} "
+                                "{8:6.3f} {9:6.3f}  # {10}\n".format(pot,
+                                dh.i + 1, dh.j + 1, dh.k + 1, dh.l + 1,
+                                dh.par[0], dh.par[1], dh.par[2],
+                                0.5, 0.5, dh.name))
                 for di in sp.dimpr:
                     if cos4:
                         pot = 'cos4'
-                        f.write('%4s %4d %4d %4d %4d %9.4f %9.4f %9.4f %9.4f'\
-                                ' %6.3f %6.3f  # %s\n' % \
-                                (pot, di.i + 1, di.j + 1, di.k + 1, di.l + 1,
-                                 di.par[0], di.par[1], di.par[2], di.par[3],
-                                 0.5, 0.5, di.name))
+                        f.write("{0:4s} {1:4d} {2:4d} {3:4d} {4:4d} "
+                                "{5:9.4f} {6:9.4f} {7:9.4f} {8:9.4f} "
+                                "{9:6.3f} {10:6.3f}  # {11}\n".format(pot,
+                                di.i + 1, di.j + 1, di.k + 1, di.l + 1,
+                                di.par[0], di.par[1], di.par[2], di.par[3],
+                                0.5, 0.5, di.name))
                     else:
                         pot = 'cos3'
-                        f.write('%4s %4d %4d %4d %4d %9.4f %9.4f %9.4f'\
-                                ' %6.3f %6.3f  # %s\n' % \
-                                (pot, di.i + 1, di.j + 1, di.k + 1, di.l + 1,
-                                 di.par[0], di.par[1], di.par[2],
+                        f.write("{0:4s} {1:4d} {2:4d} {3:4d} {4:4d} "
+                                "{5:9.4f} {6:9.4f} {7:9.4f} "
+                                "{8:6.3f} {9:6.3f}  # {10}\n".format(pot,
+                                di.i + 1, di.j + 1, di.k + 1, di.l + 1,
+                                di.par[0], di.par[1], di.par[2],
                                 0.5, 0.5, di.name))
-                f.write('finish\n')
+                f.write("finish\n")
 
-            f.write('vdw %d\n' % len(self.vdw))
+            f.write("vdw {0:d}\n".format(len(self.vdw)))
             for nb in self.vdw:
                 if nb.pot == 'lj':
-                    f.write('%-5s %-5s %4s %10.6f %8.4f\n' % \
-                            (nb.i, nb.j, nb.pot, nb.par[1], nb.par[0]))
+                    f.write("{0:5s} {1:5s} {2:>4s} {3:10.6f} "
+                            "{4:8.4f}\n".format(nb.i, nb.j, nb.pot,
+                            nb.par[1], nb.par[0]))
                 
-            f.write('close\n')
+            f.write("close\n")
 
             with open('CONFIG', 'w') as fc:
-                fc.write('created by fftool\n')
-                if self.box.a == self.box.b and self.box.b == self.box.c:
+                fc.write("created by fftool\n")
+                if self.box.triclinic:
+                    imcon = 3
+                elif self.box.a == self.box.b and self.box.b == self.box.c:
                     imcon = 1
                 else:
                     imcon = 2
-                fc.write(' %9d %9d %9d\n' % (0, imcon, self.natom))
-                fc.write(' %19.9f %19.9f %19.9f\n' % (self.box.a, 0.0, 0.0))
-                fc.write(' %19.9f %19.9f %19.9f\n' % (0.0, self.box.b, 0.0))
-                fc.write(' %19.9f %19.9f %19.9f\n' % (0.0, 0.0, self.box.c))
+                fc.write(" {0:9d} {1:9d} {2:9d}\n".format(0, imcon, self.natom))
+                fc.write(" {0:19.9f} {1:19.9f} {2:19.9f}\n".format(
+                         self.box.lx, 0.0, 0.0))
+                fc.write(" {0:19.9f} {1:19.9f} {2:19.9f}\n".format(
+                         self.box.xy, self.box.ly, 0.0))
+                fc.write(" {0:19.9f} {1:19.9f} {2:19.9f}\n".format(
+                         self.box.xz, self.box.yz, self.box.lz))
 
                 i = 0
                 for sp in self.spec:
                     for im in range(sp.nmol):
                         for at in sp.atom:
-                            fc.write('%-8s %9d\n' % (at.name, i + 1))
-                            fc.write(' %19.9f %19.9f %19.9f\n' % \
-                                     (self.x[i], self.y[i], self.z[i]))
+                            fc.write("{0:8s} {1:9d}\n".format(at.name, i + 1))
+                            fc.write(" {0:19.9f} {1:19.9f} {2:19.9f}\n".format(
+                                     self.x[i], self.y[i], self.z[i]))
                             i += 1
 
 
@@ -1739,29 +1831,30 @@ class system(object):
             ndihed += sp.nmol * (len(sp.dihed) + len(sp.dimpr))
             
         with open('data.psf', 'w') as f:
-            f.write('PSF\n\n')
-            f.write('       1 !NTITLE\n')
-            f.write(' REMARKS Created by fftool\n\n')
+            f.write("PSF\n\n")
+            f.write("       1 !NTITLE\n")
+            f.write(" REMARKS Created by fftool\n\n")
             
-            f.write(' %7d !NATOM\n' % natom)
+            f.write(" {0:7d} !NATOM\n".format(natom))
             i = nmol = 0
             for sp in self.spec:
                 for im in range(sp.nmol):
                     for at in sp.atom:
-                        f.write(' %7d S    %-4d %4s %-4s %-4s %10.6f %13.4f'\
-                                ' %11d\n' % \
-                                (i + 1, nmol + 1, sp.name, at.name,
-                                 at.type, at.q, at.m, 0))
+                        f.write(" {0:7d} S    {1:<4d} {2:>4s} {3:4s} {4:4s} "
+                                "{5:10.6f} {6:13.4f} {7:11d}\n".format(
+                                i + 1, nmol + 1, sp.name, at.name, at.type,
+                                at.q, at.m, 0))
                         i += 1
                     nmol += 1
 
-            f.write('\n %7d !NBOND: bonds\n' % nbond)
+            f.write("\n {0:7d} !NBOND: bonds\n".format(nbond))
             i = shift = 1
             for sp in self.spec:
                 natom = len(sp.atom)
                 for im in range(sp.nmol):
                     for bd in sp.bond:
-                        f.write(' %7d %7d' % (bd.j + shift, bd.i + shift))
+                        f.write(" {0:7d} {1:7d}".format(bd.j + shift,
+                                                        bd.i + shift))
                         if (i % 4) == 0:
                             f.write('\n')
                         i += 1
@@ -1769,14 +1862,14 @@ class system(object):
             if ((i - 1) % 4) != 0:
                 f.write('\n')
 
-            f.write('\n %7d !NTHETA: angles\n' % nangle)
+            f.write("\n {0:7d} !NTHETA: angles\n".format(nangle))
             i = shift = 1
             for sp in self.spec:
                 natom = len(sp.atom)
                 for im in range(sp.nmol):
                     for an in sp.angle:
-                        f.write(' %7d %7d %7d' % \
-                                (an.i + shift, an.j + shift, an.k + shift))
+                        f.write(" {0:7d} {1:7d} {2:7d}".format(an.i + shift,
+                                an.j + shift, an.k + shift))
                         if (i % 3) == 0:
                             f.write('\n')
                         i += 1
@@ -1784,20 +1877,22 @@ class system(object):
             if ((i - 1) % 3) != 0:
                 f.write('\n')
 
-            f.write('\n %7d !NPHI: dihedrals\n' % ndihed)
+            f.write("\n {0:7d} !NPHI: dihedrals\n".format(ndihed))
             i = shift = 1
             for sp in self.spec:
                 natom = len(sp.atom)
                 for im in range(sp.nmol):
                     for dh in sp.dihed:
-                        f.write(' %7d %7d %7d %7d' % (dh.i + shift,
-                                dh.j + shift, dh.k + shift, dh.l + shift))
+                        f.write(" {0:7d} {1:7d} {2:7d} {3:7d}".format(
+                                dh.i + shift, dh.j + shift, dh.k + shift,
+                                dh.l + shift))
                         if (i % 2) == 0:
                             f.write('\n')
                         i += 1
                     for di in sp.dimpr:
-                        f.write(' %7d %7d %7d %7d' % (di.i + shift,
-                                di.j + shift, di.k + shift, di.l + shift))
+                        f.write(" {0:7d} {1:7d} {2:7d} {3:7d}".format(
+                                di.i + shift, di.j + shift, di.k + shift,
+                                di.l + shift))
                         if (i % 2) == 0:
                             f.write('\n')
                         i += 1
@@ -1821,11 +1916,13 @@ def main():
         'ii) in the 3rd line of the .mol file (or in the 1st after the '\
         'molecule name, '\
         'iii) in the 2nd line of the .xyz file after the molecule name.')
+    parser.add_argument('-b', '--box', default = '', help = 'box length in A '\
+                        '(cubic), for non-cubic boxes supply '
+                        'a,b,c[,alpha,beta,gamma] default box '\
+                        'is orthogonal (alpha = beta = gamma = 90.0)')
     parser.add_argument('-r', '--rho', type=float, default = 0.0,
                         help = 'density in mol/L')
-    parser.add_argument('-b', '--box', default = '',
-                        help = 'box length in A (cubic, or else specify a,b,c)')
-    parser.add_argument('-o', '--origin', action = 'store_true',
+    parser.add_argument('-c', '--center', action = 'store_true',
                         help = 'center box on origin')
     parser.add_argument('-t', '--tol', type=float, default = 2.5,
                         help = 'tolerance for Packmol (default: 2.5)')
@@ -1845,7 +1942,7 @@ def main():
     parser.add_argument('-d', '--dlpoly', action = 'store_true',
                         help = 'save in DLPOLY format '\
                         '(needs simbox.xyz built using Packmol)')
-    parser.add_argument('-c', '--cos4', action = 'store_true', 
+    parser.add_argument('--cos4', action = 'store_true', 
                         help = 'use cos4 dihedrals in DLPOLY FIELD')
     parser.add_argument('-f', '--psf', action = 'store_true',
                         help = 'save connectivity in psf format')
@@ -1864,28 +1961,35 @@ def main():
     nmol = sum(int(n) for n in nmols)
 
     if args.box and args.rho != 0.0:
-        print('supply density or box length, not both')
+        print('supply density or box dimensions, not both')
         sys.exit(1)
     
     if args.box:
         tok = args.box.split(',')
         if len(tok) == 1:
             a = b = c = float(tok[0])
-            boxtol = 1.0
+            alpha = beta = gamma = 90.0
         elif len(tok) == 3:
             a, b, c = [ float(t) for t in tok ]
-            boxtol = 0.0
+            alpha = beta = gamma = 90.0
+        elif len(tok) == 6:
+            a = float(tok[0])
+            b = float(tok[1])
+            c = float(tok[2])
+            alpha = float(tok[3])
+            beta = float(tok[4])
+            gamma = float(tok[5])
         else:
-            print('wrong box length')
+            print('wrong box dimensions and angles')
             sys.exit(1)
     elif args.rho != 0.0:
         a = b = c = math.pow(nmol / (args.rho * 6.022e+23 * 1.0e-27), 1./3.)
-        boxtol = 1.0
+        alpha = beta = gamma = 90.0
     else:
-        print('density or box length need to be supplied')
+        print('density or box dimensions need to be supplied')
         sys.exit(1)
 
-    box = cell(a, b, c, args.pbc, boxtol, args.origin)
+    box = cell(a, b, c, alpha, beta, gamma, args.pbc, args.center)
 
     if args.lammps or args.dlpoly or args.psf:
         connect = True
@@ -1904,7 +2008,7 @@ def main():
 
     print('species                 nmol  bonds   charge')
     for sp in spec:
-        print('  {0:<20s} {1:5d}  {2:<5s} {3:+8.4f}'.format(sp.name,
+        print('  {0:20s} {1:5d}  {2:5s} {3:+8.4f}'.format(sp.name,
               sp.nmol, sp.topol, sp.charge()))
         
     sim = system(spec, box, args.mix)
@@ -1929,7 +2033,11 @@ def main():
         sim.writepsf()
     if not (args.lammps or args.dlpoly or args.psf):
         print('packmol file\n  pack.inp')
-        sim.writepackmol('pack.inp', 'simbox.xyz', args.tol)
+        if args.pbc:
+            boxtol = 0.0
+        else:
+            boxtol = 1.0
+        sim.writepackmol('pack.inp', 'simbox.xyz', args.tol, boxtol)
 
 
 if __name__ == '__main__':
