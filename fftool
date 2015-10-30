@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/10/26
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/10/30
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio Padua
@@ -109,8 +109,9 @@ class vector(object):
         return vector(-self.x, -self.y, -self.z)
 
     def __str__(self):
-        return '( ' + ', '.join([str(val) for val in\
-                                  (self.x, self.y, self.z)]) + ' )'
+#        return '( ' + ', '.join([str(val) for val in\
+#                                  (self.x, self.y, self.z)]) + ' )'
+        return "( {0}, {1}, {2} )".format(self.x, self.y, self.z)
 
     def __repr__(self):
         return str(self) + ' instance at 0x' + str(hex(id(self))[2:].upper())
@@ -1328,6 +1329,23 @@ class cell(object):
         return [ sum(a*b for a,b in zip(row, x)) for row in self.ctofmat ]
 
 
+class plane():
+    """Plane passing through 3 points. p, q, r vector objects."""
+
+    def __init__(self, p, q, r):
+        u = q - p
+        v = r - p
+        w = u.cross(v)
+        self.a = w.x
+        self.b = w.y
+        self.c = w.z
+        self.d = w * p
+
+    def __str__(self):
+        return "{0:.4f} {1:.4f} {2:.4f} {3:.4f}".format(
+               self.a, self.b, self.c, self.d)
+
+
 # --------------------------------------
 
 
@@ -1407,28 +1425,51 @@ class system(object):
         for nb in self.vdw:
             print(nb)
 
-    def writepackmol(self, packfile, outfile, tol = 2.5, boxtol = 0.0):
+    def writepackmol(self, packfile, outfile, tol = 2.5, d = 0.0):
         with open(packfile, 'w') as f:
-            f.write('# created by fftool\n')
-            f.write('tolerance %3.1f\n' % tol)
-            f.write('filetype xyz\n')
-            f.write('output %s\n' % outfile)
+            f.write("# created by fftool\n")
+            f.write("tolerance {0:3.1f}\n".format(tol))
+            f.write("filetype xyz\n")
+            f.write("output {0}\n".format(outfile))
             for sp in self.spec:
                 xyzfile = (sp.filename).rsplit('.', 1)[0] + '_pack.xyz'
-                f.write('\nstructure %s\n' % xyzfile)
-                f.write('  number %s\n' % sp.nmol)
-                if self.box.center:
-                    f.write('  inside box %.4f %.4f %.4f %.4f %.4f %.4f\n' % \
-                            (-self.box.a/2.0 + boxtol,
-                             -self.box.b/2.0 + boxtol,
-                             -self.box.c/2.0 + boxtol,
-                             self.box.a/2.0 - boxtol,
-                             self.box.b/2.0 - boxtol,
-                             self.box.c/2.0 - boxtol))
+                f.write("\nstructure {0}\n".format(xyzfile))
+                f.write("  number {0}\n".format(sp.nmol))
+                if self.box.triclinic:
+                    o = vector(0.0, 0.0, 0.0)
+                    p = vector(self.box.lx, 0.0, 0.0)
+                    q = vector(self.box.xy, self.box.ly, 0.0)
+                    r = vector(self.box.xz, self.box.yz, self.box.lz)
+                    s = p + r
+                    t = q + r
+                    u = s + q
+                    v = p + q
+                    back = plane(o, p, q)
+                    front = plane(r, s, t)
+                    bottom = plane(o, r, p)
+                    top = plane(q, t, v)
+                    left = plane(o, q, r)
+                    right = plane(p, v, s)
+                    f.write("  over plane {0}\n".format(back))
+                    f.write("  below plane {0}\n".format(front))
+                    f.write("  over plane {0}\n".format(bottom))
+                    f.write("  below plane {0}\n".format(top))
+                    f.write("  over plane {0}\n".format(left))
+                    f.write("  below plane {0}\n".format(right))
                 else:
-                    f.write('  inside box %.4f %.4f %.4f %.4f %.4f %.4f\n' % \
-                            (boxtol, boxtol, boxtol, self.box.a - boxtol,
-                             self.box.b - boxtol, self.box.c - boxtol))
+                    if self.box.center:
+                        f.write("  inside box {0:.4f} {1:.4f} {2:.4f} {3:.4f}"
+                                " {4:.4f} {5:.4f}\n".format(
+                                -self.box.a / 2.0 + d,
+                                -self.box.b / 2.0 + d,
+                                -self.box.c / 2.0 + d,
+                                 self.box.a / 2.0 - d,
+                                 self.box.b / 2.0 - d,
+                                 self.box.c / 2.0 - d))
+                    else:
+                        f.write("  inside box {0:.4f} {1:.4f} {2:.4f} {3:.4f}"
+                                " {4:.4f} {5:.4f}\n".format(d, d, d,
+                            self.box.a - d, self.box.b - d, self.box.c - d))
                 f.write('end structure\n')
 
     def readcoords(self, filename):
@@ -1990,6 +2031,8 @@ def main():
         sys.exit(1)
 
     box = cell(a, b, c, alpha, beta, gamma, args.pbc, args.center)
+    rho = nmol / (box.vol * 1.0e-27 * 6.022e+23)
+    print('density {0:.3f} mol/L  volume {1:.1f} A^3'.format(rho, box.vol))
 
     if args.lammps or args.dlpoly or args.psf:
         connect = True
@@ -2036,7 +2079,7 @@ def main():
         if args.pbc:
             boxtol = 0.0
         else:
-            boxtol = 1.0
+            boxtol = 1.5
         sim.writepackmol('pack.inp', 'simbox.xyz', args.tol, boxtol)
 
 

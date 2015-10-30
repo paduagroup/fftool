@@ -193,35 +193,39 @@ files created.
 Periodic Boundary Conditions
 ----------------------------
 
-For molecular systems the initial configuration will generaly not
-contain molecules crossing the boundaries of the simulation box. If
-the size of the box is indicated by just one value, `-b L`, or by
-supplying the density, then the box will be cubic, centered on the
-origin, and an extra space of 1 A is reserved in each dimension to
-avoid overlaps in the initial configuration (as explained in the
-`packmol` documentation).
+In molecular systems the initial configuration will generaly not
+contain molecules crossing the boundaries of the simulation box. A
+buffer distance of 1.5 A is reserved at the boundaries of the box to
+avoid overlap of molecules from periodic images in the initial
+configuration, as explained in the `packmol` documentation (this empty
+space is added only for orthogonal boxes). So the user should allow
+for this empy volume when defining the size of the box.
 
 For simulations with extended materials it is possible to create
 chemical bonds across boundaries. The option `-p` allows specification
 of periodic conditions along x, y, z or combinations thereof. It is
-important in this case to supply precise dimensions for the simulation
-box using the option `-b Lx,Ly,Lz`. An energy minimization step prior
-to start of the MD simulation is highly recommended.
+important in this case to supply dimensions for the simulation box
+using the option `-b l` for a cubic box, or `-b lx,ly,lz` for a
+general orthogonal box, or `-b a,b,c,alpha,beta,gamma` for a general
+parallelepipedic (triclinic) box. An energy minimization step prior to
+start of the MD simulation is highly recommended because no extra
+space is left near the boundaries and certain molecules may overlap
+with those of neighboring images.
 
 The coordinates of the atoms of the material have to be supplied in
 `.xyz` format and prepared carefully so that distances across periodic
 boundaries are within the tolerance to identify bonds. The number of
-bonds in the files created should be verified.
+bonds in the output files created should be verified.
 
 It is important that only the material for which bonds are to be
 established across boudaries is supplied in `.xyz` format. The initial
 files for other molecules in the system should be in `.zmat` or `.mol`
-formats, which containing connectivity information. This is to avoid
-spurious bonds between atoms that happen to be positioned too close to
-boudaries.
+formats, which contain connectivity information. This is to avoid
+spurious bonds between atoms of the molecular species that happen to
+be positioned too close to boudaries.
 
-The `pack.inp` file will need manual editing in order to position the
-atoms of the material precisely.
+The `pack.inp` file will likely need manual editing in order to
+position the atoms of the material precisely.
 
 
 
