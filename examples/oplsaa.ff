@@ -207,10 +207,10 @@ IMPROPER
 CA  CA  CA  HA   opls    0.0000    9.2048    0.0000    0.0000
 CA  CA  CA  CT   opls    0.0000    9.2048    0.0000    0.0000
 # improper C carbonyl
-OS  OS  C_2 O_2  opls    0.0000   43.9320    0.0000    0.0000
-CT  N   C   O    opls    0.0000   43.9320    0.0000    0.0000
-HC  N   C   O    opls    0.0000   43.9320    0.0000    0.0000
-N   N   C   O    opls    0.0000   43.9320    0.0000    0.0000
+OS  OS  C_2 O_2  opls    0.0000   87.8640    0.0000    0.0000
+CT  N   C   O    opls    0.0000   87.8640    0.0000    0.0000
+HC  N   C   O    opls    0.0000   87.8640    0.0000    0.0000
+N   N   C   O    opls    0.0000   87.8640    0.0000    0.0000
 # improper N sp2
 CT  CT  N   C    opls    0.0000    8.3680    0.0000    0.0000
 H   H   N   C    opls    0.0000    8.3680    0.0000    0.0000
