@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2015/10/30
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2016/10/30
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio Padua
@@ -1519,6 +1519,11 @@ class system(object):
                 fi.write('angle_style harmonic\n')
             if ndihed:
                 fi.write('dihedral_style opls\n')
+            fi.write('\n')
+            
+            fi.write('read_data data.lmp\n')
+            fi.write('# read_restart restart.*.lmp\n\n')
+
             fi.write('special_bonds lj/coul 0.0 0.0 0.5\n\n')
 
             fi.write('pair_style hybrid lj/cut/coul/long 12.0 12.0\n')
@@ -1529,9 +1534,6 @@ class system(object):
                     fi.write('pair_modify mix arithmetic tail yes\n')
                 fi.write('kspace_style pppm 1.0e-4\n\n')
 
-                fi.write('read_data data.lmp\n')
-                fi.write('# read_restart restart.*.lmp\n\n')
-
                 for att in self.attype:
                     fi.write('pair_coeff %4d %4d %s %12.6f %12.6f  '\
                              '# %s %s\n' % \
@@ -1541,9 +1543,6 @@ class system(object):
                 fi.write('pair_modify tail yes\n')
                 fi.write('kspace_style pppm 1.0e-4\n\n')
 
-                fi.write('read_data data.lmp\n')
-                fi.write('# read_restart restart.*.lmp\n\n')
-                
                 for nb in self.vdw:
                     fi.write('pair_coeff %4d %4d %s %12.6f %12.6f  '\
                              '# %s %s\n' % \

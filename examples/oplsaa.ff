@@ -150,7 +150,7 @@ H   N   H    harm   120.0   292.9
 
 DIHEDRALS
 # i j   k   l    pot     v1        v2        v3        v4
-# alkanes JACS 118(1996)11225 ; JPC 100(1996)18010 
+# alkanes JACS 118(1996)11225, JPC 100(1996)18010 
 HC  CT  CT  HC   opls    0.0000    0.0000    1.2552    0.0000
 HC  CT  CT  CT   opls    0.0000    0.0000    1.2552    0.0000
 CT  CT  CT  CT   opls    5.4392   -0.2092    0.8368    0.0000
