@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2016/10/30
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2016/11/25
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio Padua
@@ -1543,33 +1543,26 @@ class system(object):
                 fi.write('pair_modify tail yes\n')
                 fi.write('kspace_style pppm 1.0e-4\n\n')
 
-                for nb in self.vdw:
-                    fi.write('pair_coeff %4d %4d %s %12.6f %12.6f  '\
-                             '# %s %s\n' % \
-                             (nb.ityp + 1, nb.jtyp + 1, 'lj/cut/coul/long',
-                              nb.par[1] / ecnv, nb.par[0], nb.i, nb.j))
+                if len(self.vdw) <= 12:
+                    for nb in self.vdw:
+                        fi.write('pair_coeff %4d %4d %s %12.6f %12.6f  '\
+                                '# %s %s\n' % \
+                                (nb.ityp + 1, nb.jtyp + 1, 'lj/cut/coul/long',
+                                nb.par[1] / ecnv, nb.par[0], nb.i, nb.j))
+                else:
+                    with open('pair.lmp', 'w') as fp:
+                        for nb in self.vdw:
+                            fp.write('pair_coeff %4d %4d %s %12.6f %12.6f  '\
+                                    '# %s %s\n' % \
+                                    (nb.ityp + 1, nb.jtyp + 1,
+                                         'lj/cut/coul/long',
+                                    nb.par[1] / ecnv, nb.par[0], nb.i, nb.j))
+                    fi.write('include pair.lmp\n')
             fi.write('\n')
 
             fi.write('minimize 1.0e-4 1.0e-6 100 1000\n')
             fi.write('reset_timestep 0\n\n')
             
-            fi.write('variable nsteps equal 10000\n')
-            fi.write('variable nprint equal ${nsteps}/100\n')
-            fi.write('variable ndump equal ${nsteps}/100\n')
-            fi.write('# variable nrestart equal ${nsteps}/10\n\n')
-
-            fi.write('variable TK equal 300.0\n')
-            fi.write('variable PBAR equal 1.0\n\n')
-
-            fi.write('neighbor 2.0 bin\n\n')
-
-            if units == 'r':
-                fi.write('timestep 1.0\n\n')
-            elif units == 'm':
-                fi.write('timestep 0.001\n\n')
-                
-            fi.write('velocity all create ${TK} 12345\n\n')            
-
             shakebd = shakean = False
             for bdt in self.bdtype:
                 if bdt.pot == 'cons':
@@ -1591,8 +1584,25 @@ class system(object):
                             fi.write(' {0:d}'.format(ant.ityp + 1))
                 fi.write('\n\n')
 
+            fi.write('neighbor 2.0 bin\n\n')
+
+            if units == 'r':
+                fi.write('timestep 1.0\n\n')
+            elif units == 'm':
+                fi.write('timestep 0.001\n\n')
+                
+            fi.write('variable TK equal 300.0\n')
+            fi.write('variable PBAR equal 1.0\n\n')
+
+            fi.write('velocity all create ${TK} 12345\n\n')            
+
             fi.write('fix TPSTAT all npt temp ${TK} ${TK} 100 '\
                      'iso ${PBAR} ${PBAR} 500\n\n')
+
+            fi.write('variable nsteps equal 10000\n')
+            fi.write('variable nprint equal ${nsteps}/100\n')
+            fi.write('variable ndump equal ${nsteps}/100\n')
+            fi.write('# variable nrestart equal ${nsteps}/10\n\n')
 
             fi.write('# compute RDF all rdf 100 1 1\n')
             fi.write('# fix RDF all ave/time 20 100 ${nsteps} '\
@@ -2065,6 +2075,8 @@ def main():
             print('invalid units: choose [r]eal or [m]etal')
             sys.exit(1)
         print('  in.lmp\n  data.lmp')
+        if (args.allpairs and len(sim.vdw) > 12):
+            print('  pair.lmp')
         sim.writelmp(args.mix, args.allpairs, args.units)
     if args.dlpoly:
         sim.readcoords('simbox.xyz')
