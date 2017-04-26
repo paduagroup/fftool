@@ -1,4 +1,4 @@
-# oplsaa.ff, version 2015/04/08
+# oplsaa.ff, version 2017/04/26
 # units: kJ/mol, A, deg
 # bond and angle force constants are in the form k/2 (x - x0)^2
 # use cons for constrained bonds and angles
@@ -28,6 +28,9 @@ C2O   CT  12.011   0.205  lj    3.50   0.27614
 H1O   HC   1.008   0.040  lj    2.50   0.12552
 OH    OH  15.999  -0.683  lj    3.12   0.71128
 HO    HO   1.008   0.418  lj    0.00   0.00000
+# diols
+OH2   OH  15.999  -0.700  lj    3.12   0.71128
+HO2   HO   1.008   0.435  lj    0.00   0.00000
 # aromatics JACS 118(1996)11225
 CA    CA  12.011  -0.115  lj    3.55   0.29288
 HA    HA   1.008   0.115  lj    2.42   0.12552
