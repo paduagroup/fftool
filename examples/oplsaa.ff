@@ -1,4 +1,4 @@
-# oplsaa.ff, version 2017/04/26
+# oplsaa.ff, version 2017/06/19
 # units: kJ/mol, A, deg
 # bond and angle force constants are in the form k/2 (x - x0)^2
 # use cons for constrained bonds and angles
@@ -189,11 +189,12 @@ HC  CM  CM  HC   opls    0.0000   58.5760    0.0000    0.0000
 CT  N   C   O    opls    0.0000   25.4764    0.0000    0.0000
 CT  N   C   HC   opls    9.6232   25.4764    0.0000    0.0000
 CT  N   C   CT   opls    9.6232   25.4764    0.0000    0.0000
+# from CT C N CT:
+N   C   N   CT   opls    9.6232   25.4764    0.0000    0.0000
 N   C   CT  CT   opls   13.5980   -1.6820   -0.5690    0.0000
 # N   C   CT  HC   opls    0.0000    0.0000    0.0000    0.0000
-# CT  N   CT  CT   opls   11.9620    8.6107  -47.1369    0.0000
-# CT  N   CT  CT   opls    0.0000    0.0000    0.0000    0.0000
-# CT  N   CT  HC   opls    0.0000    0.0000    0.0000    0.0000
+CT  N   CT  CT   opls   11.9620    8.6107  -47.1369    0.0000
+CT  N   CT  HC   opls    0.0000    0.0000    0.0000    0.0000
 CT  CT  N   C    opls   -5.8409   -1.7866    0.0000    0.0000
 HC  CT  N   C    opls    0.0000    0.0000   -0.5816    0.0000
 CT  CT  C   O    opls    0.0000    4.8786    0.0000    0.0000
