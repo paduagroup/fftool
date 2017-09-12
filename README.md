@@ -65,19 +65,19 @@ system composed of molecules, ions or materials.
     rings. Improper dihedrals can be indicated by `improper`
     records. If a `reconnect` record is present, then connectivity
     will be guessed based on bond distances from the force
-    field. After the z-matrix the informations above, the name of a
+    field. After the z-matrix and the informations above, the name of a
     file with force field parameters can be supplied.
 
-    MDL `.mol` format is widely used, containing a table with
+    The MDL `.mol` format is widely used, containing a table with
     coordinates and also bonds. The name of a file with force field
-    parameters can be given in the first line after the molecule name,
+    parameters can be given in the first line after the molecule name
     or in the third line. If the keyword `reconnect` is present after
     the force field filename, then connectivity will be deduced based
     on bond distances from the force field.
 
     The `.xyz` is also widely used, containing atomic coordinates
     only. The name of a file with force field parameters can be given
-    in the second line after the molecule name, and in this case
+    in the second line after the molecule name and in this case
     connectivity is deduced from the bond lengths in the force field.
 
     There are many free tools to create MDL mol files, xyz files or
@@ -132,22 +132,22 @@ Deducing Bonds and Angles
 
 When inferring connectivity from interatomic distances, a tolerance
 of 0.25 angstrom is used to compare distances in the coordinates file
-with equilibrium distances specified for bonds in the force field, and
+with equilibrium distances specified for bonds in the force field and
 decide if a bond should be present or not. So, the bond lengths in the
 conformation used as input must be sufficiently close to those in the
 force field specification for those bonds to be included in the
-potential energy fonction for the system.
+potential energy fonction of the system.
 
 Angles will be assigned to groups of three atoms i-j-k, with i-j and
 j-k bonded, if the value of the angle in the conformation used as
 input is within +/-15 degrees of the equilibrium angle in the force
 field specification. If not, even if the atoms i-j-k are bonded, their
-angle will not be present in the final potential energy function for
-the system, although topologically it is there. When running `fftool`
-to create a force field file (with `-l` or `-d` option) a warning
-message shows which such topological angles have been "removed"
-because they deviate too much from the equilibrium angles in the force
-field. This removal of angles avoids problems with atoms which have
+angle will not be present in the final potential energy function,
+although topologically the angle is there. When running `fftool` to
+create a force field file (with `-l` or `-d` option) a warning message
+will show which such topological angles have been "removed" because
+they deviate too much from the equilibrium angles in the force
+field. This removal of angles avoids problems with atoms that have
 more than four ligands, such as S or P atoms with five or six
 ligands. Around these centers there are topological angles of 180
 degrees to which no potential energy of bending is attributed in force
@@ -169,10 +169,10 @@ Improper Dihedrals
 ------------------
 
 Improper dihedrals are often used to increase the rigidity of planar
-atoms (sp2), and differ from proper dihedrals in how they are
+atoms (sp2) and differ from proper dihedrals in how they are
 defined. A proper dihedral i-j-k-l is defined between bonded atoms
 i-j, j-k, and k-l and corresponds to torsion around bond j-k, the
-dihedral being the angle between planes ijk and jkl. An improper
+dihedral being the angle between planes i-j-k and j-k-l. An improper
 dihedral i-j-k-l is defined between bonded atoms i-k, j-k and k-l,
 therefore k is a central atom bonded to the three others. This central
 atom of the improper dihedral is assumed to be the third in the
@@ -183,7 +183,7 @@ If `improper` records are supplied in a molecule file (in `.zmat`
 format) then those improper dihedrals are assumed by
 `fftool`. Otherwise, the script will search for candidate improper
 dihedrals on all atoms with three bonds, with any of `.zmat`, `.mol`
-or `.xyz` input formats. A number of warning messages may be printed
+or `.xyz` input formats. A number of warning messages will be printed
 if there are atoms with three bonds, which can be ignored if the atoms
 in question are not centers of improper torsions. The number and order
 of the atoms in the true improper dihedrals should be verified in the
@@ -194,12 +194,12 @@ Periodic Boundary Conditions
 ----------------------------
 
 In molecular systems the initial configuration will generaly not
-contain molecules crossing the boundaries of the simulation box. A
-buffer distance of 1.5 A is reserved at the boundaries of the box to
+contain molecules crossing boundaries of the simulation box. A
+buffer distance of 1.5 A is reserved at the box boundaries to
 avoid overlap of molecules from periodic images in the initial
 configuration, as explained in the `packmol` documentation (this empty
 space is added only for orthogonal boxes). So the user should allow
-for this empy volume when defining the size of the box.
+for this empy volume when supplying the size of the box.
 
 For simulations with extended materials it is possible to create
 chemical bonds across boundaries. The option `-p` allows specification
@@ -208,7 +208,7 @@ important in this case to supply dimensions for the simulation box
 using the option `-b l` for a cubic box, or `-b lx,ly,lz` for a
 general orthogonal box, or `-b a,b,c,alpha,beta,gamma` for a general
 parallelepipedic (triclinic) box. An energy minimization step prior to
-start of the MD simulation is highly recommended because no extra
+the start of the MD simulation is highly recommended because no extra
 space is left near the boundaries and certain molecules may overlap
 with those of neighboring images.
 
