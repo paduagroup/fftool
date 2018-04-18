@@ -310,6 +310,6 @@ References
 * [DL_POLY](http://www.stfc.ac.uk/CSE/randd/ccg/software/DL_POLY/25526.aspx):
   I.T. Todorov and W. Smith, Daresbury Lab. 
 
-* [Gromacs](http://www.gromacs.org/) H.J.C. Berendsen, D. van der
+* [Gromacs](http://www.gromacs.org/): H.J.C. Berendsen, D. van der
   Spoel, R. van Drunen, Comp Phys Commun, 91 (1995) 43, DOI:
   [10.1016/0010-4655(95)00042-E](https://doi.org/10.1016/0010-4655(95)00042-E)
