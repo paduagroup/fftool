@@ -17,8 +17,9 @@ Contents
     materials. It requires the
     [Packmol](http://www.ime.unicamp.br/~martinez/packmol/) software
     to create coordinates. The output are files in formats suitable
-    for the [LAMMPS](http://lammps.sandia.gov/) or
+    for the [LAMMPS](http://lammps.sandia.gov/),
     [DL_POLY](http://www.stfc.ac.uk/CSE/randd/ccg/software/DL_POLY/25526.aspx)
+    or [Gromacs](http://www.gromacs.org) (beta)
     molecular dynamics packages.
 
 * `tools/`: several utility scripts.
@@ -112,9 +113,9 @@ system composed of molecules, ions or materials.
     documentation).  Atomic coordinates for the full system will be
     written to `simbox.xyz`.
 
-4. Use `fftool` to build the input files for LAMMPS or DL_POLY
-   containing the force field parameters and the coordinates of all
-   the atoms (from `simbox.xyz`):
+4. Use `fftool` to build the input files for LAMMPS (-l), DL_POLY (-d)
+   or Gromacs (-g) (still beta) containing the force field parameters
+   and the coordinates of all the atoms (from `simbox.xyz`):
 
         fftool 40 ethanol.zmat 300 spce.zmat -r 38.0 -l
 
@@ -309,3 +310,6 @@ References
 * [DL_POLY](http://www.stfc.ac.uk/CSE/randd/ccg/software/DL_POLY/25526.aspx):
   I.T. Todorov and W. Smith, Daresbury Lab. 
 
+* [Gromacs](http://www.gromacs.org/) H.J.C. Berendsen, D. van der
+  Spoel, R. van Drunen, Comp Phys Commun, 91 (1995) 43, DOI:
+  [10.1016/0010-4655(95)00042-E](https://doi.org/10.1016/0010-4655(95)00042-E)
