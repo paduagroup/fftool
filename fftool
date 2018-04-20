@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2018/04/18
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2018/04/20
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio Padua
@@ -1188,7 +1188,7 @@ class mol(object):
                 f.write('ATOM  {0:5d} {1:4s} {2:3s}  {3:4d}    '\
                         '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00'\
                         '          {7:2s}\n'.format(i, at.name,
-                        self.name[0:3], 1, at.x, at.y, at.z,
+                        self.name[:3], 1, at.x, at.y, at.z,
                         atomic_symbol(at.name)))
                 i += 1
             f.write("END\n")              # TODO write conect
@@ -1923,12 +1923,12 @@ class system(object):
                              .format(dh.i + 1, dh.l + 1, 1))
                 f.write('\n')
 
-                f.write('[ system ]\n')
-                f.write('simbox\n\n')
+            f.write('[ system ]\n')
+            f.write('simbox\n\n')
 
-                f.write('[ molecules ]\n')
-                for sp in self.spec:
-                    f.write('{0:16s} {1:5d}\n'.format(sp.name, sp.nmol))
+            f.write('[ molecules ]\n')
+            for sp in self.spec:
+                f.write('{0:16s} {1:5d}\n'.format(sp.name, sp.nmol))
                 
         with open('config.pdb', 'w') as f:
             f.write('TITLE     created by fftool\n')
@@ -1944,7 +1944,7 @@ class system(object):
                         f.write('ATOM  {0:5d} {1:4s} {2:3s}  {3:4d}    '\
                                 '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00'\
                                 '          {7:2s}\n'.format(i + 1, at.name,
-                                'MOL', nmol + 1,
+                                sp.name[:3], nmol + 1,
                                 self.x[i], self.y[i], self.z[i],
                                 atomic_symbol(at.name)))
                         i += 1
@@ -1966,18 +1966,24 @@ class system(object):
             f.write('coulombtype           = PME\n')
             f.write('rcoulomb              = 1.2\n')
             f.write('ewald-rtol            = 1.0e-5\n')
+            f.write('fourierspacing        = 0.06\n')
+            f.write('pme-order             = 8\n')
             f.write('vdwtype               = Cut-off\n')
             f.write('rvdw                  = 1.2\n')
             f.write('DispCorr              = EnerPres\n\n')
 
             f.write('tcoupl                = V-rescale\n')
-            f.write('tc-grps               = MOL\n')
+            f.write('tc-grps               = System\n')
             f.write('tau-t                 = 0.1\n')
-            f.write('ref-t                 = 300.0\n')
+            f.write('ref-t                 = 300.0\n\n')
+
             f.write('pcoupl                = Berendsen\n')
+            f.write('; pcoupl                = Parrinello-Rahman\n')
+            f.write('pcoupltype            = isotropic\n')
             f.write('tau-p                 = 1.0\n')
-            f.write('compressibility       = 4.5e-5\n')
             f.write('ref-p                 = 1.0\n\n')
+            f.write('compressibility       = 4.5e-5\n')
+            f.write('; refcoord_scaling      = com\n\n')
             
             f.write('gen-vel               = yes\n')
             f.write('gen-temp              = 300\n')
