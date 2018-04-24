@@ -1920,19 +1920,25 @@ class system(object):
                 f.write(';   ai   aj   func\n')
                 pairs = []
                 for dh in sp.dihed:
-                    onethree = False
+                    inbond = False
+                    inangle = False
                     dupl = False
+                    for bd in sp.bond: # exclude 1-2 (4-membered rings)
+                        if dh.i == bd.i and dh.l == bd.j or \
+                           dh.i == bd.j and dh.l == bd.i:
+                            inbond = True
+                            break
                     for an in sp.angle: # exclude 1-3 (5-membered rings)
                         if dh.i == an.i and dh.l == an.k or \
                            dh.i == an.k and dh.l == an.i:
-                            onethree = True
+                            inangle = True
                             break
-                    for p in pairs:     # remove duplicate paths (rings)
-                        if p[0] == dh.i and p[1] == dh.l or \
-                           p[0] == dh.l and p[1] == dh.i:
+                    for p in pairs:     # remove duplicate (6-membered rings)
+                        if dh.i == p[0] and dh.l == p[1] or \
+                           dh.i == p[1] and dh.l == p[0]:
                             dupl = True
                             break
-                    if onethree or dupl:
+                    if inbond or inangle or dupl:
                         continue
                     pairs.append([dh.i, dh.l])
                     f.write('{0:5d} {1:5d}     {2:2d}\n'\
