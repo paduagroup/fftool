@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2018/04/20
+# Agilio Padua <agilio.padua@univ-bpclermont.fr>, version 2018/04/24
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio Padua
@@ -1918,7 +1918,23 @@ class system(object):
 
                 f.write('[ pairs ]\n')
                 f.write(';   ai   aj   func\n')
+                pairs = []
                 for dh in sp.dihed:
+                    onethree = False
+                    dupl = False
+                    for an in sp.angle: # exclude 1-3 (5-membered rings)
+                        if dh.i == an.i and dh.l == an.k or \
+                           dh.i == an.k and dh.l == an.i:
+                            onethree = True
+                            break
+                    for p in pairs:     # remove duplicate paths (rings)
+                        if p[0] == dh.i and p[1] == dh.l or \
+                           p[0] == dh.l and p[1] == dh.i:
+                            dupl = True
+                            break
+                    if onethree or dupl:
+                        continue
+                    pairs.append([dh.i, dh.l])
                     f.write('{0:5d} {1:5d}     {2:2d}\n'\
                              .format(dh.i + 1, dh.l + 1, 1))
                 f.write('\n')
