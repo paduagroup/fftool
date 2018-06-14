@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@uca.fr>, version 2018/04/24
+# Agilio Padua <agilio.padua@uca.fr>, version 2018/06/14
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio Padua
@@ -1688,6 +1688,7 @@ class system(object):
                 f.write(' ' + atomic_symbol(att.name))
             f.write('\n\n')
 
+            f.write('variable t equal time\n')
             f.write('compute MSD all msd com yes\n')
             f.write('variable msd equal c_MSD[4]\n')
             f.write('fix PRMSD all print 2000 "${t} ${msd}" file msd.lammps '\
