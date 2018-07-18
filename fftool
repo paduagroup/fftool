@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool.py - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@uca.fr>, version 2018/06/14
+# Agilio Padua <agilio.padua@uca.fr>, version 2018/07/17
 # http://tim.univ-bpclermont.fr/apadua
 
 # Copyright (C) 2013 Agilio Padua
@@ -1606,9 +1606,10 @@ class system(object):
                     f.write('pair_modify mix geometric tail yes\n')
                 else:
                     f.write('pair_modify mix arithmetic tail yes\n')
-                f.write('kspace_style pppm 1.0e-4\n\n')
+                f.write('kspace_style pppm 1.0e-5\n\n')
 
-                f.write('read_data data.lmp\n\n')
+                f.write('read_data data.lmp\n')
+                f.write('# read_restart restart1.lmp\n\n')
 
                 for att in self.attype:
                     f.write('pair_coeff %4d %4d %s %12.6f %12.6f  '\
@@ -1662,7 +1663,8 @@ class system(object):
                             f.write(' {0:d}'.format(ant.ityp + 1))
                 f.write('\n\n')
 
-            f.write('neighbor 2.0 bin\n\n')
+            f.write('neighbor 2.0 bin\n')
+            f.write('# neigh_modify delay 0 every 1 check yes\n\n')
 
             if units == 'r':
                 f.write('timestep 1.0\n\n')
@@ -1678,7 +1680,7 @@ class system(object):
                     'iso ${PBAR} ${PBAR} 1000\n\n')
 
             f.write('thermo_style custom step cpu etotal ke pe '\
-                    'evdwl ecoul elong temp press vol\n')
+                    'evdwl ecoul elong temp press vol density\n')
             f.write('thermo 1000\n\n')
             
             f.write('dump TRAJ all custom 1000 dump.lammpstrj '\
@@ -1697,6 +1699,8 @@ class system(object):
             f.write('variable vinst equal vol\n')
             f.write('fix VAVG all ave/time 10 1000 50000 v_vinst\n\n')
 
+            f.write('# restart 10000 restart1.lmp restart2.lmp\n\n')
+            
             f.write('run 50000\n\n')
 
             f.write('variable lscale equal (f_VAVG/v_vinst)^(1.0/3.0)\n')
