@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2018/07/17
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2019/02/22
 # http://perso.ens-lyon.fr/agilio.padua
 
 # Copyright (C) 2013 Agilio Padua
@@ -795,17 +795,19 @@ class mol(object):
 
     def frompdb(self, filename, connect = False, box = None):
         with open(filename, 'r') as f:
-            line = f.readline()
-            while not line[0:6] == 'COMPND':
-                line = f.readline()
-            self.name = line[13:16]
+            self.name = ''
             self.ff = ''
             line = f.readline()
-            while not (line.startswith('ATOM') or line.startswith('HETATM')):
+            while not (line.startswith('HETATM') or line.startswith('ATOM  ')):
+                if line.startswith('COMPND'):
+                    tok = line.strip().split()
+                    self.name = tok[1]
+                    if len(tok) >= 3: 
+                        self.ff = tok[2]
                 line = f.readline()
-            self.atom = [None]
+            self.atom = []
             i = 0
-            while line[0:6] == 'ATOM  ' or line[0:6] == 'HETATM':
+            while line[0:6] == 'HETATM' or line[0:6] == 'ATOM  ':
                 atname = line[12:16].strip()
                 self.atom.append(atom(atname))
                 self.atom[i].x = float(line[30:38])
@@ -1169,7 +1171,7 @@ class mol(object):
             print('REMARK    ' + self.ff)
         i = 1
         for at in self.atom:
-            print('ATOM  {0:5d} {1:4s} {2:3s}  {3:4d}    '\
+            print('HETATM{0:5d} {1:4s} {2:3s}  {3:4d}    '\
                   '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00'\
                   '          {7:2s}'.format(i, at.name,
                   self.name[0:3], 1, at.x, at.y, at.z,
@@ -1185,7 +1187,7 @@ class mol(object):
                 f.write('REMARK    ' + self.ff + '\n')
             i = 1
             for at in self.atom:
-                f.write('ATOM  {0:5d} {1:4s} {2:3s}  {3:4d}    '\
+                f.write('HETATM{0:5d} {1:4s} {2:3s}  {3:4d}    '\
                         '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00'\
                         '          {7:2s}\n'.format(i, at.name,
                         self.name[:3], 1, at.x, at.y, at.z,
@@ -1973,7 +1975,7 @@ class system(object):
             for sp in self.spec:
                 for im in range(sp.nmol):
                     for at in sp.atom:
-                        f.write('ATOM  {0:5d} {1:4s} {2:3s}  {3:4d}    '\
+                        f.write('HETATM{0:5d} {1:4s} {2:3s}  {3:4d}    '\
                                 '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00'\
                                 '          {7:2s}\n'.format(i + 1, at.name,
                                 sp.name[:3], nmol + 1,
@@ -2215,14 +2217,15 @@ class system(object):
 def main():
     parser = argparse.ArgumentParser(
         description = 'Force-field parameters and atomic coordinates for '\
-        'molecules described in z-matrix, MDL mol or xyz formats. '\
+        'molecules described in z-matrix, MDL mol, PDB or xyz formats. '\
         'Produces pack.inp file for use with Packmol to build simulation box. '\
         'Then rerun with option to create input files for MD simulation. '\
         'The name of a file with force field parameters can be supplied: '\
-        'i) at the end of the .zmat file, '\
-        'ii) in the 3rd line of the .mol file (or in the 1st after the '\
+        'i) on a line at the end of the .zmat file, '\
+        'ii) on the 3rd line of the .mol file, or on the 1st after the '\
         'molecule name, '\
-        'iii) in the 2nd line of the .xyz file after the molecule name.')
+        'iii) after the molecule name in a COMPND record in the .pdb file, '\
+        'iv) on the 2nd line of the .xyz file after the molecule name.')
     parser.add_argument('-b', '--box', default = '', help = 'box length in A '\
                         '(cubic), for non-cubic boxes supply '
                         'a,b,c[,alpha,beta,gamma] default box '\
@@ -2259,7 +2262,7 @@ def main():
     parser.add_argument('infiles', nargs='+',
                         help = 'n1 infile1 [n2 infile2 ...], '\
                         'where n_i are the numbers of molecules defined in '\
-                        'infile_i. Use extension .zmat, .mol or .xyz')
+                        'infile_i. Use extension .zmat, .mol, .pdb or .xyz')
     args = parser.parse_args()
 
     if len(args.infiles) == 1:

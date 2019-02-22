@@ -5,8 +5,7 @@ fftool
 
 _[Agilio Padua](http://tim.univ-bpclermont.fr/apadua)_
 
-This is a tool to build force field input files for molecular
-dynamics.
+This is a Python tool to build force field input files for molecular dynamics.
 
 
 Contents
@@ -55,7 +54,7 @@ system composed of molecules, ions or materials.
 
 1. For each molecule, ion or fragment of a material prepare a file
    with atomic coordinates and/or connectivity (covalent bonds). The
-   formats accepted by this tool are `.zmat`, `.mol` or `.xyz`.
+   formats accepted by this tool are `.zmat`, `.mol`, `.pdb` or `.xyz`.
 
     A `.zmat` file has the molecule name in the first line, followed
     by one empy line, then the z-matrix. See the `examples` directory
@@ -69,17 +68,22 @@ system composed of molecules, ions or materials.
     field. After the z-matrix and the informations above, the name of a
     file with force field parameters can be supplied.
 
-    The MDL `.mol` format is widely used, containing a table with
-    coordinates and also bonds. The name of a file with force field
-    parameters can be given in the first line after the molecule name
-    or in the third line. If the keyword `reconnect` is present after
-    the force field filename, then connectivity will be deduced based
-    on bond distances from the force field.
+    The MDL Molfile `.mol` file format contains a table with coordinates and
+    also bonds. The name of a file with force field parameters can be given in
+    the first line after the molecule name or in the third line. If the keyword
+    `reconnect` is present after the force field filename, then connectivity
+    will be deduced based on bond distances from the force field.
 
-    The `.xyz` is also widely used, containing atomic coordinates
-    only. The name of a file with force field parameters can be given
-    in the second line after the molecule name and in this case
-    connectivity is deduced from the bond lengths in the force field.
+    The PDB file format `.pdb` is a standard for atomic coordinates of
+    molecules, widely used for proteins. The name of a file with force field
+    parameters can be given on a `COMPND` record after the molecule name.
+    Connectivity is deduced from the bond lengths in the force field (`CONNECT`
+    records are not read).
+
+    The XYZ file format `.xyz` contains atomic coordinates only. The name of a
+    file with force field parameters can be given in the second line after the
+    molecule name and in this case connectivity is deduced from the bond lengths
+    in the force field.
 
     There are many free tools to create MDL mol files, xyz files or
     z-matrices, which are common formats in computational chemistry
@@ -180,15 +184,14 @@ atom of the improper dihedral is assumed to be the third in the
 list. Often in the force field the same functional form is used both
 for proper and improper torsions.
 
-If `improper` records are supplied in a molecule file (in `.zmat`
-format) then those improper dihedrals are assumed by
-`fftool`. Otherwise, the script will search for candidate improper
-dihedrals on all atoms with three bonds, with any of `.zmat`, `.mol`
-or `.xyz` input formats. A number of warning messages will be printed
-if there are atoms with three bonds, which can be ignored if the atoms
-in question are not centers of improper torsions. The number and order
-of the atoms in the true improper dihedrals should be verified in the
-files created.
+If `improper` records are supplied in a molecule file (in `.zmat` format) then
+those improper dihedrals are assumed by `fftool`. Otherwise, the script will
+search for candidate improper dihedrals on all atoms with three bonds, with any
+of `.zmat`, `.mol`, `.pdb` or `.xyz` input formats. A number of warning messages
+will be printed if there are atoms with three bonds, which can be ignored if the
+atoms in question are not centers of improper torsions. The number and order of
+the atoms in the true improper dihedrals should be verified in the files
+created.
 
 
 Periodic Boundary Conditions
