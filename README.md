@@ -12,13 +12,13 @@ Contents
 --------
 
 * `fftool`: builds a simulation box and the corresponding force
-    field for systems containing molecules, ions or extended
+    field (non-polarizable or drude based polarizable) for systems containing molecules, ions or extended
     materials. It requires the
     [Packmol](http://www.ime.unicamp.br/~martinez/packmol/) software
     to generate coordinates in the box. The output are files in formats
     suitable for the [LAMMPS](http://lammps.sandia.gov/),
-    [DL_POLY](http://www.stfc.ac.uk/CSE/randd/ccg/software/DL_POLY/25526.aspx)
-    or [GROMACS](http://www.gromacs.org)
+    [DL_POLY](http://www.stfc.ac.uk/CSE/randd/ccg/software/DL_POLY/25526.aspx), 
+    [GROMACS](http://www.gromacs.org) and [NAMD](https://www.ks.uiuc.edu/Research/namd/)
     molecular dynamics packages.
 
 * `tools/`: utility scripts.
@@ -287,6 +287,70 @@ intramolecular atom types:
         CA  CA  CA  HA   opls    0.0000    9.2048    0.0000    0.0000
 
 
+Drude Polarizable Force Field
+----------------------------
+The `fftool` script can read a database of drude polarizable terms.
+`examples/drude.inp` gives an example of the drude database.
+The polarizable force field and input files can be exported for
+LAMMPS, GROMACS and NAMD by `--drude` argument
+
+        fftool 100 co2.zmat -b 30.0 --drude drude.inp -l
+        fftool 100 co2.zmat -b 30.0 --drude drude.inp -n
+        fftool 100 co2.zmat -b 30.0 --drude drude.inp -g
+        
+One should be careful that the implementation
+of drude model are more or less different in these three software.
+- GROMACS use SCF approach to solve the positions of drude particles
+at each simulation step, whereas NAMD and LAMMPS use dual thermostats
+(a hot one for normal atoms and a code one for drude particles)
+to approximate the SCF results.
+- Another difference is the handling of thole screening between
+drude dipoles. LAMMPS applies thole screening to **EVERY** pairs of
+drude dipoles, no matter intra- or inter-molecular, regardless of their
+exclusion state defined by *special_bonds*.
+NAMD by default only applies thole screening to 1-2 and 1-3 excluded
+drude dipole pairs. But there's option to apply thole screening
+to all pairs. GROMACS **CAN ONLY** apply thole screening to excluded
+intra-molecular drude dipole pairs. Intermolecular thole screening is
+not supported for GROMACS.
+- The third difference is the handing of polarization catastrophe.
+NAMD supports hardwall restraints and quadratic restraints.
+GROMACS only supports quadratic restraints.
+In LAMMPS, drude-core bonds are just normal bonds, so one
+can apply any restraints supported by bond_style.
+
+Although these differences, for a **REASONABLE** set of force field
+parameters, all these three software should give *identical* results,
+of course when applied with the same thermostat et. al.
+
+
+Empirical Lennard-Jones parameters scaling
+------------------------------
+LJ parameters for non-polarizable force field implicitly include
+mean contributions from polarizations. Introducing polarizability
+directly into a well-developed non-polarizable force field will
+cause the LJ interactions being overestimated. A method is proposed
+to empirically scale down the LJ strength based on the charge,
+dipole and polarizability of molecular fragments.
+Read [the article](https://pubs.acs.org/doi/10.1021/acs.jctc.9b00689) for details.
+
+The `fftool` script can read a database of properties of  monomers and dimers,
+and calculate the scaling factor for LJ epsilon parameters between atom pairs.
+`examples/ljscale.inp` gives an example of the LJ scaling database.
+
+To apply the LJ scaling, use `--scaleeps` argument.
+
+        fftool 100 DMSO.zmat -b 30.0 --drude drude.inp --scaleeps ljscale.inp -l
+        fftool 100 DMSO.zmat -b 30.0 --drude drude.inp --scaleeps ljscale.inp -g
+        fftool 100 DMSO.zmat -b 30.0 --drude drude.inp --scaleeps ljscale.inp -n
+
+LJ sigma parameters can also be scaled by using `--scalesig` argument.
+It can be used with or without `--scaleeps` argument.
+
+        fftool 100 DMSO.zmat -b 30.0 --drude drude.inp --scaleeps ljscale.inp --scalesig 0.985 -l
+        fftool 100 DMSO.zmat -b 30.0 --drude drude.inp --scalesig 1.1 -g
+        fftool 100 DMSO.zmat -b 30.0 --scalesig 1.1 -n
+
 References
 ----------
 
@@ -301,6 +365,14 @@ References
 * [DL_POLY](http://www.stfc.ac.uk/CSE/randd/ccg/software/DL_POLY/25526.aspx):
   I.T. Todorov and W. Smith, Daresbury Lab. 
 
-* [GROMACS](http://www.gromacs.org/): H.J.C. Berendsen, D. van der
-  Spoel, R. van Drunen, Comp Phys Commun, 91 (1995) 43, DOI:
-  [10.1016/0010-4655(95)00042-E](https://doi.org/10.1016/0010-4655(95)00042-E)
+* [GROMACS](http://www.gromacs.org/): H.J.C. Berendsen et. al.
+  Comp Phys Commun, 91 (1995) 43,
+  DOI: [10.1016/0010-4655(95)00042-E](https://doi.org/10.1016/0010-4655(95)00042-E)
+
+* [NAMD](https://doi.org/10.1002/jcc.20289) James C Phillips et. al.
+  J Comp Chem, 26 (2005) 1781–1802,
+  DOI: [10.1002/jcc.20289](https://doi.org/10.1002/jcc.20289)
+
+* [Empirical LJ scaling](https://pubs.acs.org/doi/10.1021/acs.jctc.9b00689)
+  Kateryna Goloviznina et. al. J Chem Theory and Comput (2019),
+  DOI: [10.1021/acs.jctc.9b00689](https://doi.org/10.1021/acs.jctc.9b00689)
