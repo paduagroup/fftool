@@ -728,7 +728,7 @@ def main():
     if args.qcalc:
         polar = 'q'
     elif args.kcalc:
-        polar = 'p'
+        polar = 'k'
     else:
         polar = ''
 
