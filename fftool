@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2019/02/22
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2019/07/11
 # http://perso.ens-lyon.fr/agilio.padua
 
 # Copyright (C) 2013 Agilio Padua
@@ -1402,9 +1402,11 @@ class cell(object):
         self.lz = v/(a*b*sg)
 
     def ftoc(self, x):
+        """fractional to cartesian coordinates"""
         return [ sum(a*b for a,b in zip(row, x)) for row in self.ftocmat ]
 
     def ctof(self, x):
+        """cartesian to fractional coordinates"""
         return [ sum(a*b for a,b in zip(row, x)) for row in self.ctofmat ]
 
 
@@ -1881,9 +1883,9 @@ class system(object):
                 f.write(';  nr   type  resnr  residu   atom   cgnr    charge\n')
                 i = 1
                 for at in sp.atom:
-                    f.write('{0:5d}   {1:4s}  {2:5d}  {3:5s}    {4:5s}  {5:4d}'\
+                    f.write('{0:5d}   {1:4s}  {2:5d}  {3:6s}   {4:5s}  {5:4d}'\
                             '  {6:8.4f}\n'.format(i, at.name, 1,
-                            sp.name[0:3], at.name, 1, at.q))
+                            sp.name[0:5], at.name, 1, at.q))
                     i += 1
                 f.write('\n')
 
