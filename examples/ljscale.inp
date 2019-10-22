@@ -1,0 +1,27 @@
+MONOMERS
+# name   charge   dipole_moment   polarizability
+# +/- in name will be striped
+# For monomers without charge and dipole, polarizability is optional, which will not be used
+# These values are just examples, for real application, one could calculate dipole and polarizability using QM methods
+DMSO         0       3.8514       7.9
+C4H10        0       0.0000
+c2c1im+      1       1.1558      12.38
+dca-        -1       0.8874       8.268
+
+DIMERS
+# monomer1 monomer2 COM_distance/Å
+DMSO        DMSO        3.5
+C4H10       C4H10       4.170
+C4H10       DMSO        3.8
+c2c1im      dca         2.935
+c2c1im      C4H10       3.613
+
+ATOMS
+# monomer atoms_belong_to_this_monomer
+# The scaling factor between atoms will be set to the scaling factor between monomers which atoms belong to
+# For example, the scaling factor between CT-CT is set to  the scaling factor of C4H10-C4H10 dimer,
+# the scaling factor between HC-N3A is set to the scaling factor of C4H10-dca dimer.
+DMSO     OY SZ CZY H
+C4H10    CT CS HC
+c2c1im   NA CR CW C1 HCR HCW CE C2 H1
+dca      N3A CZA NZA

@@ -2829,7 +2829,7 @@ class system(object):
                     'langevin on\n'
                     'langevinHydrogen no\n'
                     'langevinTemp $T\n'
-                    'langevinDamping 1.0  # /ps  # set to 10.0 for drude model\n'
+                    'langevinDamping %.1f  # /ps  # set to 1.0 for normal simulation, 10.0 for drude model\n'
                     '#stochRescale on\n'
                     '#stochRescaleTemp $T\n'
                     '#stochRescalePeriod 0.1 # ps\n'
@@ -2844,11 +2844,7 @@ class system(object):
                     '#berendsenPressureTarget $P\n'
                     '#berendsenPressureCompressibility 4.5E-5\n'
                     '#berendsenPressureRelaxationTime 500  # fs\n'
-                    '# run\n'
-                    '#minimization on\n'
-                    '#minimize 1000\n'
-                    'run 10000\n'
-                    % (self.box.a, self.box.b, self.box.c, 'yes' if self.mix == 'g' else 'no'))
+                    % (self.box.a, self.box.b, self.box.c, 'yes' if self.mix == 'g' else 'no', 10.0 if self.is_drude else 0.1))
             if self.is_drude:
                 f.write('# drude\n'
                         'drude on\n'
@@ -2856,6 +2852,10 @@ class system(object):
                         'drudeDamping 50.0  # /ps\n'
                         'drudeHardWall on\n'
                         'drudeBondLen 0.25  # A\n')
+            f.write('# run\n'
+                    '#minimization on\n'
+                    '#minimize 1000\n'
+                    'run 10000\n')
 
     def writepdb(self):
         with open('config.pdb', 'w') as f:

@@ -1,0 +1,29 @@
+# drude.inp
+# units: kJ/mol
+# kforce is in the form k/2 r_D^2
+
+# ! The line for H is necessary. DO NOT DELETE IT.
+# The polarizability (alpha) of Hydrogen atoms will always be merged into connected heavy atoms.
+# All H atoms share same polarizability, so the name of different H types are not distinguished here.
+# Other lines staring with H (like HC, H1 or whatever) will be ignored.
+# If you don't want polarizability of H be merged into heavy atoms, set alpha of H to zero.
+# type  m_D/u   q_D/e    k_D   alpha/A3  a_thole
+# PCCP 20(2018)10992
+H       0.0     0.0        0.0   0.323   0.0
+# an example for CO2
+C       0.4    -1.0     4184.0   1.587   2.6
+O       0.4    -1.0     4184.0   1.144   2.6
+# an example for DMSO
+OY      0.4    -1.0     4184.0   1.144   2.6
+SZ      0.4    -1.0     4184.0   3.0     2.6
+CZ      0.4    -1.0     4184.0   1.587   2.6
+# imidazolium PCCP 20(2018)10992
+CR      0.4    -1.0     4184.0   1.122   2.6
+CW      0.4    -1.0     4184.0   1.122   2.6
+NA      0.4    -1.0     4184.0   1.208   2.6
+C1      0.4    -1.0     4184.0   1.016   2.6
+C1A     0.4    -1.0     4184.0   1.016   2.6
+C2      0.4    -1.0     4184.0   1.016   2.6
+CS      0.4    -1.0     4184.0   1.016   2.6
+CT      0.4    -1.0     4184.0   1.016   2.6
+CE      0.4    -1.0     4184.0   1.016   2.6
