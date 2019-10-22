@@ -168,7 +168,7 @@ class atom(object):
         self.qd_base = 0
         self.kd = 0
         self.alpha = 0   # /A^3
-        self.thole = 2.6
+        self.thole = 0
         self.ityp_drude = -1              # atom type index for drude particle starts from 0
         self.ibtyp_drude = -1             # bond type index for drude bond starts from 0
     
