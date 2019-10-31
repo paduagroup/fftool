@@ -2269,78 +2269,46 @@ class system(object):
 
                 f.write('[ atoms ]\n')
                 f.write(';  nr   type  resnr  residu   atom   cgnr    charge\n')
-                aid_drudes = {}
+                gmx_aid_drude = {}
                 i = 1
                 for at in sp.atom:
                     f.write('{0:5d}  {1:5s}  {2:5d}  {3:5s}    {4:5s}  {5:4d}  {6:10.6f}\n' \
                             .format(i, at.name, 1, sp.name[0:3], at.symbol, i, at.q-at.qd))
                     i += 1
                     if at.drude:
-                        aid_drudes[i-1] = at
+                        gmx_aid_drude[i-1] = at
                         f.write('{0:5d}  {1:5s}  {2:5d}  {3:5s}    {4:5s}  {5:4d}  {6:10.6f}\n' \
                                 .format(i, 'D', 1, sp.name[0:3], 'D', i, at.qd))
                         i += 1
+                gmx_ids_drude = list(gmx_aid_drude.keys())
 
                 f.write('\n')
 
+                ### build 1-2, 1-3 and 1-4 pair list from topology
                 pairs12 = []
                 pairs13 = []
                 pairs14 = []
-                drude_pairs12 = []
-                drude_pairs13 = []
-                drude_pairs14 = []
-                ids_drude = list(aid_drudes.keys())
                 for bd in sp.bond_topol:
-                    i, j =  sp.get_aid_w_drude(bd.i) + 1, sp.get_aid_w_drude(bd.j) + 1
-                    pair = list(sorted([i, j]))
-                    pairs12.append(pair)
-
-                    if not (i in ids_drude and j in ids_drude):
-                        continue
-                    drude_pairs12.append(pair)
+                    i, j = sp.get_aid_w_drude(bd.i) + 1, sp.get_aid_w_drude(bd.j) + 1
+                    pairs12.append(list(sorted([i, j])))
                 for an in sp.angle_topol:
-                    i_gmx, j_gmx, k_gmx = sp.get_aid_w_drude(an.i) + 1,\
-                                          sp.get_aid_w_drude(an.j) + 1,\
-                                          sp.get_aid_w_drude(an.k) + 1
-                    for i, j in [[i_gmx, j_gmx], [i_gmx, k_gmx], [j_gmx, k_gmx]]:
-                        pair = list(sorted([i, j]))
-                        for p in pairs12:  # remove duplicates
-                            if (i == p[0] and j == p[1]) or (i == p[1] and j == p[0]):
-                                break
-                        else:
-                            pairs13.append(pair)
-
-                        if not (i in ids_drude and j in ids_drude):
-                            continue
-                        for p in drude_pairs12:     # remove duplicates
-                            if (i == p[0] and j == p[1]) or (i == p[1] and j == p[0]):
-                                break
-                        else:
-                            drude_pairs13.append(pair)
+                    i, j = sp.get_aid_w_drude(an.i) + 1, sp.get_aid_w_drude(an.k) + 1
+                    for p in pairs12 + pairs13:  # remove duplicates if there are 3- or 4-member rings
+                        if (i == p[0] and j == p[1]) or (i == p[1] and j == p[0]):
+                            break
+                    else:
+                        pairs13.append(list(sorted([i, j])))
                 for di in sp.dihed_topol:
-                    i_gmx, j_gmx, k_gmx, l_gmx = sp.get_aid_w_drude(di.i) + 1,\
-                                                 sp.get_aid_w_drude(di.j) + 1,\
-                                                 sp.get_aid_w_drude(di.k)+1,\
-                                                 sp.get_aid_w_drude(di.l)+1
-                    for i, j in [[i_gmx, j_gmx], [i_gmx, k_gmx], [i_gmx, l_gmx],
-                                 [j_gmx, k_gmx], [j_gmx, l_gmx], [k_gmx, l_gmx]]:
-                        pair = list(sorted([i, j]))
-                        for p in pairs12 + pairs13:     # remove duplicates
-                            if (i == p[0] and j == p[1]) or (i == p[1] and j == p[0]):
-                                break
-                        else:
-                            pairs14.append(pair)
-
-                        if not (i in ids_drude and j in ids_drude):
-                            continue
-                        for p in drude_pairs12 + drude_pairs13:     # remove duplicates
-                            if (i == p[0] and j == p[1]) or (i == p[1] and j == p[0]):
-                                break
-                        else:
-                            drude_pairs14.append(pair)
-                drude_pairs12.sort(key=lambda x: [x[0], x[1]])
-                drude_pairs13.sort(key=lambda x: [x[0], x[1]])
-                drude_pairs14.sort(key=lambda x: [x[0], x[1]])
+                    i, j = sp.get_aid_w_drude(di.i) + 1, sp.get_aid_w_drude(di.l) + 1
+                    for p in pairs12 + pairs13 + pairs14:  # remove duplicates if there are 4- or 5- or 6-member rings
+                        if (i == p[0] and j == p[1]) or (i == p[1] and j == p[0]):
+                            break
+                    else:
+                        pairs14.append(list(sorted([i, j])))
+                pairs12.sort(key=lambda x: [x[0], x[1]])
+                pairs13.sort(key=lambda x: [x[0], x[1]])
+                pairs14.sort(key=lambda x: [x[0], x[1]])
+                ####################################################
 
                 if self.is_drude:
                     f.write('[ polarization ]\n')
@@ -2354,11 +2322,13 @@ class system(object):
 
                     f.write('[ thole_polarization ]\n')
                     f.write(';  ai    aj    ak    al   func   thole   alpha1   alpha2\n')
-                    for i, j in drude_pairs12 + drude_pairs13:
-                        at1 = aid_drudes[i]
-                        at2 = aid_drudes[j]
+                    for i, j in pairs12 + pairs13:
+                        if not (i in gmx_ids_drude and j in gmx_ids_drude):
+                            continue
+                        at1 = gmx_aid_drude[i]
+                        at2 = gmx_aid_drude[j]
                         f.write('{0:5d} {1:5d} {2:5d}  {3:5d}   {4:5d}   {5:9.5f}  {6:9.6f} {7:9.6f}\n'\
-                                .format(i, i+1, j, j+1, 1, (at1.thole + at2.thole)/2,
+                                .format(i, i + 1, j, j + 1, 1, (at1.thole + at2.thole) / 2,
                                  at1.alpha / 1000, at2.alpha / 1000))
                     f.write('\n')
 
@@ -2385,17 +2355,17 @@ class system(object):
                     f.write(';  ai    aj    ...\n')
                     exclusions = {} # {idrude: [j, jdrude, k, kdrude, ...]}
                     for i, j in pairs12 + pairs13  + pairs14:
-                        if i in ids_drude:
+                        if i in gmx_ids_drude:
                             idrude = i + 1
                             if idrude not in exclusions:
                                 exclusions[idrude] = []
                             exclusions[idrude].append(j)
-                        if j in ids_drude:
+                        if j in gmx_ids_drude:
                             jdrude = j+ 1
                             if jdrude not in exclusions:
                                 exclusions[jdrude] = []
                             exclusions[jdrude].append(i)
-                        if i in ids_drude and j in ids_drude:
+                        if i in gmx_ids_drude and j in gmx_ids_drude:
                             exclusions[idrude].append(jdrude)
                     for i in sorted(exclusions.keys()):
                         f.write('%5d' % i)
@@ -2410,13 +2380,13 @@ class system(object):
                 for i, j in pairs14:
                     pairs.append([i, j])
                     if self.is_drude:
-                        if i in ids_drude:
+                        if i in gmx_ids_drude:
                             idrude = i + 1
                             pairs.append([idrude, j])
-                        if j in ids_drude:
+                        if j in gmx_ids_drude:
                             jdrude = j + 1
                             pairs.append([i, jdrude])
-                        if i in ids_drude and j in ids_drude:
+                        if i in gmx_ids_drude and j in gmx_ids_drude:
                             pairs.append([idrude, jdrude])
 
                 for i, j in pairs:
