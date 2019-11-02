@@ -31,6 +31,8 @@ kCal = 4.184                            # kJ
 eV = 96.485                             # kJ/mol
 fpe0 = 0.000719756                      # (4 Pi eps0) in e^2/(kJ/mol A)
 
+random.seed(1)
+
 # --------------------------------------
 
 atomic_wt = {'H': 1.008, 'Li': 6.941, 'B': 10.811, 'C': 12.011,
@@ -1692,6 +1694,18 @@ class system(object):
             for sp in self.spec:
                 sp.update_drudes(drude_terms)
 
+        ############# Stats
+        self.natom = self.ndrude = self.nbond = self.nangle = self.ndihed = 0
+        for sp in self.spec:
+            self.natom += sp.nmol * sp.n_atom
+            self.nbond += sp.nmol * len(sp.bond)
+            self.nangle += sp.nmol * len(sp.angle)
+            self.ndihed += sp.nmol * (len(sp.dihed) + len(sp.dimpr))
+
+            if self.is_drude:
+                self.ndrude += sp.nmol * sp.n_drude
+        ###################
+
         # build lists of different atom and bonded term types in the system
         for sp in self.spec:
             self.build_type_list(sp.atom, self.attype)
@@ -1834,7 +1848,7 @@ class system(object):
     def readcoords(self, filename):
         try:
             with open(filename, 'r') as f:
-                self.natom = int(f.readline().strip())
+                tok = f.readline().strip()
                 self.x = [0.0] * self.natom
                 self.y = [0.0] * self.natom
                 self.z = [0.0] * self.natom
@@ -1850,16 +1864,6 @@ class system(object):
             sys.exit(1)
 
     def writelmp(self, units = 'r'):
-        natom = ndrude = nbond = nangle = ndihed = 0
-        for sp in self.spec:
-            natom += sp.nmol * len(sp.atom)
-            nbond += sp.nmol * len(sp.bond)
-            nangle += sp.nmol * len(sp.angle)
-            ndihed += sp.nmol * (len(sp.dihed) + len(sp.dimpr))
-            
-            if self.is_drude:
-                ndrude += sp.nmol * sp.n_drude
-        
         with open('in.lmp', 'w') as f:
             f.write('# created by fftool\n\n')
             if units == 'r':
@@ -1875,11 +1879,11 @@ class system(object):
             f.write('boundary p p p\n\n')
 
             f.write('atom_style full\n')
-            if nbond:
+            if self.nbond:
                 f.write('bond_style harmonic\n')
-            if nangle:
+            if self.nangle:
                 f.write('angle_style harmonic\n')
-            if ndihed:
+            if self.ndihed:
                 f.write('dihedral_style opls\n')
             f.write('\n')
             
@@ -2059,21 +2063,21 @@ class system(object):
 
         with open('data.lmp', 'w') as f:
             f.write("created by fftool\n\n")
-            f.write("{0:d} atoms\n".format(natom + ndrude))
-            if nbond:
-                f.write("{0:d} bonds\n".format(nbond + ndrude))
-            if nangle:
-                f.write("{0:d} angles\n".format(nangle))
-            if ndihed:
-                f.write("{0:d} dihedrals\n".format(ndihed))
+            f.write("{0:d} atoms\n".format(self.natom + self.ndrude))
+            if self.nbond:
+                f.write("{0:d} bonds\n".format(self.nbond + self.ndrude))
+            if self.nangle:
+                f.write("{0:d} angles\n".format(self.nangle))
+            if self.ndihed:
+                f.write("{0:d} dihedrals\n".format(self.ndihed))
             # f.write('\n')
 
             f.write("{0:d} atom types\n".format(len(self.attype)+len(self.attype_drude)))
-            if nbond:
+            if self.nbond:
                 f.write("{0:d} bond types\n".format(len(self.bdtype)+len(self.attype_drude)))
-            if nangle:
+            if self.nangle:
                 f.write("{0:d} angle types\n".format(len(self.antype)))
-            if ndihed:
+            if self.ndihed:
                 ndht = len(self.dhtype)     # needed later
                 f.write("{0:d} dihedral types\n".format(ndht +
                                                          len(self.ditype)))
@@ -2108,7 +2112,7 @@ class system(object):
                     f.write("{0:4d} {1:8.3f}  # {2}\n".format(
                         att.ityp_drude + 1, att.md, att.name + ' DP'))
 
-            if nbond or self.is_drude:
+            if self.nbond or self.is_drude:
                 f.write('\nBond Coeffs\n\n')
                 for bdt in self.bdtype:
                     f.write("{0:4d} {1:12.6f} {2:12.6f}  # {3}\n".format(
@@ -2119,14 +2123,14 @@ class system(object):
                     f.write("{0:4d} {1:12.6f} {2:12.6f}  # {3}\n".format(
                             att.ibtyp_drude + 1, 500.0, 0.0, att.name + ' DC-DP'))
 
-            if nangle:
+            if self.nangle:
                 f.write('\nAngle Coeffs\n\n')
                 for ant in self.antype:
                     f.write("{0:4d} {1:12.6f} {2:12.6f}  # {3}\n".format(
                              ant.ityp + 1, ant.par[1] / (2.0 * ecnv),
                              ant.par[0], ant.name))
 
-            if ndihed:
+            if self.ndihed:
                 f.write('\nDihedral Coeffs\n\n')
                 for dht in self.dhtype:
                     f.write("{0:4d} {1:12.6f} {2:12.6f} {3:12.6f} {4:12.6f}  "\
@@ -2163,7 +2167,7 @@ class system(object):
                             shift += 1
                     nmol += 1
 
-            if nbond:
+            if self.nbond:
                 f.write('\nBonds\n\n')
                 i = shift = 1
                 for sp in self.spec:
@@ -2187,7 +2191,7 @@ class system(object):
 
                         shift += sp.n_atom + sp.n_drude
 
-            if nangle:
+            if self.nangle:
                 f.write('\nAngles\n\n')
                 i = shift = 1
                 for sp in self.spec:
@@ -2201,7 +2205,7 @@ class system(object):
                             i += 1
                         shift += sp.n_atom + sp.n_drude
 
-            if ndihed:
+            if self.ndihed:
                 f.write('\nDihedrals\n\n')
                 i = shift = 1
                 for sp in self.spec:
@@ -2227,7 +2231,7 @@ class system(object):
             # f.write('\n')
 
     def writegmx(self):
-        self.writepdb()
+        self.write_gro()
 
         with open('field.top', 'w') as f:
             f.write('; created by fftool\n\n')
@@ -2273,12 +2277,12 @@ class system(object):
                 i = 1
                 for at in sp.atom:
                     f.write('{0:5d}  {1:5s}  {2:5d}  {3:5s}    {4:5s}  {5:4d}  {6:10.6f}\n' \
-                            .format(i, at.name, 1, sp.name[0:3], at.symbol, i, at.q-at.qd))
+                            .format(i, at.name, 1, sp.name[0:4], at.symbol, i, at.q-at.qd))
                     i += 1
                     if at.drude:
                         gmx_aid_drude[i-1] = at
                         f.write('{0:5d}  {1:5s}  {2:5d}  {3:5s}    {4:5s}  {5:4d}  {6:10.6f}\n' \
-                                .format(i, 'D', 1, sp.name[0:3], 'D', i, at.qd))
+                                .format(i, 'D', 1, sp.name[0:4], 'D', i, at.qd))
                         i += 1
                 gmx_ids_drude = list(gmx_aid_drude.keys())
 
@@ -2567,42 +2571,102 @@ class system(object):
                         i += 1
 
     def writenamd(self):
-        self.writepdb()
+        self.write_pdb()
+        self.write_psf_prm()
 
-        natom = ndrude = nbond = nangle = ndihed = 0
-        for sp in self.spec:
-            natom += sp.nmol * len(sp.atom)
-            nbond += sp.nmol * len(sp.bond)
-            nangle += sp.nmol * len(sp.angle)
-            ndihed += sp.nmol * (len(sp.dihed) + len(sp.dimpr))
-            
+        with open('run.inp', 'w') as f:
+            f.write('set T 300\n'
+                    'set P 1.0\n'
+                    'timestep 1.0  # fs\n'
+                    '# initial config\n'
+                    'coordinates config.pdb\n'
+                    'temperature $T\n'
+                    'seed 12345\n'
+                    'cellBasisVector1 %.2f 0 0\n'
+                    'cellBasisVector2 0 %.2f 0\n'
+                    'cellBasisVector3 0 0 %.2f\n'
+                    '# output params\n'
+                    'outputname out\n'
+                    'binaryoutput no\n'
+                    'outputEnergies 100\n'
+                    'DCDfreq 1000\n'
+                    'restartfreq 10000\n'
+                    '# force field params\n'
+                    'structure topol.psf\n'
+                    'parameters ff.prm\n'
+                    'paraTypeCharmm on\n'
+                    'vdwGeometricSigma %s\n'
+                    'LJcorrection yes\n'
+                    'exclude scaled1-4\n'
+                    '1-4scaling 0.5\n'
+                    'switching off\n'
+                    'cutoff 12.0\n'
+                    'pairlistdist 14.0\n'
+                    '# electrostatics\n'
+                    'PME on\n'
+                    'PMEGridSpacing 1\n'
+                    'dielectric 1\n'
+                    '# constraints\n'
+                    'rigidBonds all\n'
+                    'useSettle yes\n'
+                    '# thermostat\n'
+                    'COMmotion no\n'
+                    'langevin on\n'
+                    'langevinHydrogen no\n'
+                    'langevinTemp $T\n'
+                    'langevinDamping %.1f  # /ps  # set to 1.0 for normal simulation, 10.0 for drude model\n'
+                    '#stochRescale on\n'
+                    '#stochRescaleTemp $T\n'
+                    '#stochRescalePeriod 0.1 # ps\n'
+                    '# barostat\n'
+                    'useGroupPressure yes\n'
+                    'langevinPiston on\n'
+                    'langevinPistonTarget $P\n'
+                    'langevinPistonPeriod 1000  # fs\n'
+                    'langevinPistonDecay 500  # fs\n'
+                    'langevinPistonTemp $T\n'
+                    '#berendsenPressure yes\n'
+                    '#berendsenPressureTarget $P\n'
+                    '#berendsenPressureCompressibility 4.5E-5\n'
+                    '#berendsenPressureRelaxationTime 500  # fs\n'
+                    % (self.box.a, self.box.b, self.box.c, 'yes' if self.mix == 'g' else 'no', 10.0 if self.is_drude else 0.1))
             if self.is_drude:
-                ndrude += sp.nmol * sp.n_drude
+                f.write('# drude\n'
+                        'drude on\n'
+                        'drudeTemp 1\n'
+                        'drudeDamping 50.0  # /ps\n'
+                        'drudeHardWall on\n'
+                        'drudeBondLen 0.25  # A\n')
+            f.write('# run\n'
+                    '#minimization on\n'
+                    '#minimize 1000\n'
+                    'run 10000\n')
 
+    def write_psf_prm(self):
         with open('topol.psf', 'w') as f:
             f.write("PSF%s\n\n" %(' DRUDE' if self.is_drude else ''))
             f.write("       1 !NTITLE\n")
             f.write(" REMARKS Created by fftool\n\n")
             
-            f.write(" {0:7d} !NATOM\n".format(natom + ndrude))
+            f.write(" {0:7d} !NATOM\n".format(self.natom + self.ndrude))
             i = nmol = 0
             for sp in self.spec:
                 for im in range(sp.nmol):
                     for ii, at in enumerate(sp.atom):
                         f.write(" {0:7d} S    {1:<4d} {2:>4s} {3:4s} {4:4s} "
                                 "{5:10.6f} {6:13.4f} {7:11d} {8:13.4f} {9:13.4f}\n".format(
-                                i + 1, nmol + 1, sp.name[:3], at.symbol, at.name,
+                                i + 1, nmol + 1, sp.name[:4], at.symbol, at.name,
                                 at.q - at.qd, at.m - at.md, 0, -at.alpha, at.thole / 2))
                         i += 1
                         if at.drude:
                             f.write(" {0:7d} S    {1:<4d} {2:>4s} {3:4s} {4:4s} "
                                     "{5:10.6f} {6:13.4f} {7:11d} {8:13.4f} {9:13.4f}\n".format(
-                                    i + 1, nmol + 1, sp.name[:3], 'D', 'D',
+                                    i + 1, nmol + 1, sp.name[:4], 'D', 'D',
                                     at.qd, at.md, 0, 0, 0))
                             i += 1
                     nmol += 1
 
-            f.write("\n {0:7d} !NBOND: bonds\n".format(nbond + ndrude))
+            f.write("\n {0:7d} !NBOND: bonds\n".format(self.nbond + self.ndrude))
             i = shift = 1
             for sp in self.spec:
                 for im in range(sp.nmol):
@@ -2625,7 +2689,7 @@ class system(object):
             if ((i - 1) % 4) != 0:
                 f.write('\n')
 
-            f.write("\n {0:7d} !NTHETA: angles\n".format(nangle))
+            f.write("\n {0:7d} !NTHETA: angles\n".format(self.nangle))
             i = shift = 1
             for sp in self.spec:
                 for im in range(sp.nmol):
@@ -2642,7 +2706,7 @@ class system(object):
             if ((i - 1) % 3) != 0:
                 f.write('\n')
 
-            f.write("\n {0:7d} !NPHI: dihedrals\n".format(ndihed))
+            f.write("\n {0:7d} !NPHI: dihedrals\n".format(self.ndihed))
             i = shift = 1
             for sp in self.spec:
                 for im in range(sp.nmol):
@@ -2684,10 +2748,10 @@ class system(object):
             ecnv = kCal
 
             f.write('\nATOMS\n')
-            for att in self.attype:
-                f.write("  MASS %5i %5s %12.6f\n" %(-1, att.name, att.m))
+            for i, att in enumerate(self.attype):
+                f.write("  MASS %5i %5s %8.4f\n" % (i + 1, att.name, att.m))
             if self.is_drude:
-                f.write("  MASS %5i %5s %12.6f\n" %(-1, 'D', 0.4))
+                f.write("  MASS %5i %5s %8.4f\n" % (len(self.attype) + 1, 'D', 0.4))
 
 
             f.write('\nBONDS\n')
@@ -2759,75 +2823,50 @@ class system(object):
 
             f.write('\nEND\n')
 
-        with open('run.inp', 'w') as f:
-            f.write('set T 300\n'
-                    'set P 1.0\n'
-                    'timestep 1.0  # fs\n'
-                    '# initial config\n'
-                    'coordinates config.pdb\n'
-                    'temperature $T\n'
-                    'seed 12345\n'
-                    'cellBasisVector1 %.2f 0 0\n'
-                    'cellBasisVector2 0 %.2f 0\n'
-                    'cellBasisVector3 0 0 %.2f\n'
-                    '# output params\n'
-                    'outputname out\n'
-                    'binaryoutput no\n'
-                    'outputEnergies 100\n'
-                    'DCDfreq 1000\n'
-                    'restartfreq 10000\n'
-                    '# force field params\n'
-                    'structure topol.psf\n'
-                    'parameters ff.prm\n'
-                    'paraTypeCharmm on\n'
-                    'vdwGeometricSigma %s\n'
-                    'LJcorrection yes\n'
-                    'exclude scaled1-4\n'
-                    '1-4scaling 0.5\n'
-                    'switching off\n'
-                    'cutoff 12.0\n'
-                    'pairlistdist 14.0\n'
-                    '# electrostatics\n'
-                    'PME on\n'
-                    'PMEGridSpacing 1\n'
-                    'dielectric 1\n'
-                    '# constraints\n'
-                    'rigidBonds all\n'
-                    'useSettle yes\n'
-                    '# thermostat\n'
-                    'COMmotion no\n'
-                    'langevin on\n'
-                    'langevinHydrogen no\n'
-                    'langevinTemp $T\n'
-                    'langevinDamping %.1f  # /ps  # set to 1.0 for normal simulation, 10.0 for drude model\n'
-                    '#stochRescale on\n'
-                    '#stochRescaleTemp $T\n'
-                    '#stochRescalePeriod 0.1 # ps\n'
-                    '# barostat\n'
-                    'useGroupPressure yes\n'
-                    'langevinPiston on\n'
-                    'langevinPistonTarget $P\n'
-                    'langevinPistonPeriod 1000  # fs\n'
-                    'langevinPistonDecay 500  # fs\n'
-                    'langevinPistonTemp $T\n'
-                    '#berendsenPressure yes\n'
-                    '#berendsenPressureTarget $P\n'
-                    '#berendsenPressureCompressibility 4.5E-5\n'
-                    '#berendsenPressureRelaxationTime 500  # fs\n'
-                    % (self.box.a, self.box.b, self.box.c, 'yes' if self.mix == 'g' else 'no', 10.0 if self.is_drude else 0.1))
-            if self.is_drude:
-                f.write('# drude\n'
-                        'drude on\n'
-                        'drudeTemp 1\n'
-                        'drudeDamping 50.0  # /ps\n'
-                        'drudeHardWall on\n'
-                        'drudeBondLen 0.25  # A\n')
-            f.write('# run\n'
-                    '#minimization on\n'
-                    '#minimize 1000\n'
-                    'run 10000\n')
+    def write_gro(self):
+        with open('conf.gro', 'w') as f:
+            f.write('created by fftool\n')
+            f.write('%d\n' % (self.natom + self.ndrude))
+            i = nmol = 0
+            shift = 0
+            for sp in self.spec:
+                for im in range(sp.nmol):
+                    for ii, at in enumerate(sp.atom):
+                        line = '%5i%5s%5s%5i%8.3f%8.3f%8.3f\n' %(
+                            nmol + 1, sp.name[:4], at.symbol, i + 1,
+                            self.x[i-shift] / 10, self.y[i-shift] / 10, self.z[i-shift] / 10)
+                        f.write(line)
+                        i += 1
+                        if at.drude:
+                            line = '%5i%5s%5s%5i%8.3f%8.3f%8.3f\n' %(
+                                nmol + 1, sp.name[:4], 'D', i + 1,
+                                (self.x[i-1-shift] + 0.1 * (random.random() - 0.5))/10,
+                                (self.y[i-1-shift] + 0.1 * (random.random() - 0.5))/10,
+                                (self.z[i-1-shift] + 0.1 * (random.random() - 0.5))/10)
+                            f.write(line)
+                            i += 1
+                            shift += 1
+                    nmol += 1
 
-    def writepdb(self):
+            a, b, c = self.box.a, self.box.b, self.box.c
+            cosalp = math.cos(self.box.alpha * math.pi / 180)
+            cosbet = math.cos(self.box.beta * math.pi / 180)
+            cosgag = math.cos(self.box.gamma * math.pi / 180)
+            singag = math.sin(self.box.gamma * math.pi / 180)
+            xx = a
+            xy = xz = yz = 0
+            yx = b * cosgag
+            yy = b * singag
+            zx = c * cosbet
+            zy = (c / singag) * (cosalp - cosbet * cosgag)
+            zz = math.sqrt(1.0 - cosalp ** 2 - cosbet ** 2 - cosgag ** 2
+                           + 2.0 * cosalp * cosbet * cosgag) * c / singag
+            f.write(' %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f\n'
+                    % (xx / 10, yy / 10, zz / 10,
+                       xy / 10, xz / 10, yx / 10,
+                       yz / 10, zx / 10, zy / 10))
+
+    def write_pdb(self):
         with open('config.pdb', 'w') as f:
             f.write('TITLE     created by fftool\n')
             f.write('REMARK    SIMBOX\n')
@@ -2843,7 +2882,7 @@ class system(object):
                         line = 'ATOM  {0:5d} {1:4s} {2:3s}  {3:4d}    ' \
                                '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00' \
                                '          {7:2s}\n'.format(
-                            i + 1, at.symbol, sp.name[:3], nmol + 1,
+                            i + 1, at.symbol, sp.name[:4], nmol + 1,
                             self.x[i-shift], self.y[i-shift], self.z[i-shift], at.symbol)
                         f.write(line)
                         i += 1
@@ -2851,8 +2890,7 @@ class system(object):
                             line = 'ATOM  {0:5d} {1:4s} {2:3s}  {3:4d}    ' \
                                    '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00' \
                                    '          {7:2s}\n'.format(
-                                i + 1, 'D',
-                                sp.name[:3], nmol + 1,
+                                i + 1, 'D', sp.name[:4], nmol + 1,
                                 self.x[i-1-shift] + 0.1 * (random.random() - 0.5),
                                 self.y[i-1-shift] + 0.1 * (random.random() - 0.5),
                                 self.z[i-1-shift] + 0.1 * (random.random() - 0.5),
@@ -2886,8 +2924,8 @@ def main():
                         help = 'density in mol/L')
     parser.add_argument('-c', '--center', action = 'store_true',
                         help = 'center box on origin')
-    parser.add_argument('-t', '--tol', type=float, default = 2.5,
-                        help = 'tolerance for Packmol (default: 2.5)')
+    parser.add_argument('-t', '--tol', type=float, default = 2.0,
+                        help = 'tolerance for Packmol (default: 2.0)')
     parser.add_argument('-x', '--mix', default = 'g',
                         help = '[a]rithmetic or [g]eometric sigma_ij '\
                         '(default: g)')
@@ -3011,7 +3049,7 @@ def main():
             print('  pair.lmp')
         sim.writelmp(args.units)
     if args.gmx:
-        print('gromacs files\n  run.mdp\n  field.top\n  config.pdb')
+        print('gromacs files\n  run.mdp\n  field.top\n  conf.gro')
         sim.writegmx()
     if args.dlpoly:
         print('dlpoly files\n  FIELD\n  CONFIG')
