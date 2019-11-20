@@ -1413,7 +1413,7 @@ class vdw(object):
                 self.par[0] = (iat.par[0] + jat.par[0]) / 2.
             self.par[1] = math.sqrt(iat.par[1] * jat.par[1])
             self.par[2] = math.sqrt(iat.alpha * jat.alpha)
-            self.par[3] = (iat.thole + jat.thole) / 2.
+            self.par[3] = (iat.thole + jat.thole) / 2. if self.par[2] != 0. else 0.
 
     def __str__(self):
         return 'vdw %2s %2s  %s %s' % (self.i, self.j, self.pot, str(self.par))
@@ -1619,10 +1619,10 @@ class cell(object):
         self.center = center
         
         NDIG = 14
-        ca = round(math.cos(alpha * math.pi/180.0), NDIG);
-        cb = round(math.cos(beta  * math.pi/180.0), NDIG);
-        cg = round(math.cos(gamma * math.pi/180.0), NDIG);
-        sg = round(math.sin(gamma * math.pi/180.0), NDIG);
+        ca = round(math.cos(alpha * math.pi/180.0), NDIG)
+        cb = round(math.cos(beta  * math.pi/180.0), NDIG)
+        cg = round(math.cos(gamma * math.pi/180.0), NDIG)
+        sg = round(math.sin(gamma * math.pi/180.0), NDIG)
 
         self.vol = v = a*b*c*math.sqrt(1 - ca*ca - cb*cb - cg*cg + 2*ca*cb*cg)
 
@@ -2004,14 +2004,14 @@ class system(object):
                 f.write('comm_modify vel yes\n')
                 f.write('compute TDRUDE all temp/drude\n\n')
                 
-                f.write('fix TSTAT all langevin/drude ${TK} 100 12345 1 20 23456\n')
+                f.write('fix TSTAT all langevin/drude ${TK} 200 12345 1 50 23456\n')
                 f.write('fix NPH all nph iso ${PBAR} ${PBAR} 1000\n\n')
                 
                 f.write('# compute TATOM ATOMS temp\n')
                 f.write('# fix DTDIR all drude/transform/direct\n')
                 f.write('# fix TSTAT ATOMS npt temp ${TK} ${TK} 100 iso ${PBAR} ${PBAR} 1000\n')
                 f.write('# fix_modify TSTAT temp TATOM press thermo_press\n')
-                f.write('# fix TSTDR DRUDES nvt temp 1 1 20\n')
+                f.write('# fix TSTDR DRUDES nvt temp 1 1 25\n')
                 f.write('# fix DTINV all drude/transform/inverse\n\n')
 
                 f.write('thermo_style custom step cpu etotal ke pe '
@@ -2061,6 +2061,7 @@ class system(object):
 
             f.write('write_data data.eq.lmp\n')
 
+        random.seed(1)
         with open('data.lmp', 'w') as f:
             f.write("created by fftool\n\n")
             f.write("{0:d} atoms\n".format(self.natom + self.ndrude))
@@ -2150,14 +2151,14 @@ class system(object):
                     for at in sp.atom:
                         x, y, z = self.x[i - shift], self.y[i - shift], self.z[i - shift]
                         f.write("{0:7d} {1:7d} {2:4d} {3:10.6f} "
-                                "{4:13.6e} {5:13.6e} {6:13.6e}  # {7} {8}{9}\n".format(
+                                "{4:8.3f} {5:8.3f} {6:8.3f}  # {7} {8}{9}\n".format(
                                 i + 1, nmol + 1, at.ityp + 1, at.q - at.qd,
                                 x, y, z, at.name, sp.name, ' DC' if at.drude else ''))
                         i += 1
                         if at.drude:
                             att = next(filter(lambda x: x.name == at.name, self.attype))
                             f.write("{0:7d} {1:7d} {2:4d} {3:10.6f} "
-                                    "{4:13.6e} {5:13.6e} {6:13.6e}  # {7} {8}{9}\n".format(
+                                    "{4:8.3f} {5:8.3f} {6:8.3f}  # {7} {8}{9}\n".format(
                                     i + 1, nmol + 1, att.ityp_drude + 1, at.qd,
                                     x + 0.1 * (random.random() - 0.5),
                                     y + 0.1 * (random.random() - 0.5),
@@ -2450,12 +2451,12 @@ class system(object):
 
             f.write('tcoupl                = no; V-rescale\n')
             f.write('tc-grps               = System\n')
-            f.write('tau-t                 = 1.0; 0.1; ps\n')
+            f.write('tau-t                 = %.1f; 0.1; ps\n' %(0.2 if self.is_drude else 1.0))
             f.write('ref-t                 = 300.0\n\n')
 
             f.write('pcoupl                = Berendsen; Parrinello-Rahman\n')
             f.write('pcoupltype            = isotropic\n')
-            f.write('tau-p                 = 0.5; 1.0; ps\n')
+            f.write('tau-p                 = 0.5; 2.0; ps\n')
             f.write('ref-p                 = 1.0\n')
             f.write('compressibility       = 4.5e-5\n\n')
 
@@ -2465,7 +2466,7 @@ class system(object):
             f.write('constraints           = h-bonds\n')
             f.write('constraint-algorithm  = LINCS\n')
             f.write('continuation          = no\n\n')
-            
+
     def writedlp(self, cos4 = False):
         with open('FIELD', 'w') as f:
             f.write('created by fftool\n')
@@ -2614,7 +2615,7 @@ class system(object):
                     'langevin on\n'
                     'langevinHydrogen no\n'
                     'langevinTemp $T\n'
-                    'langevinDamping %.1f  # /ps  # set to 1.0 for normal simulation, 10.0 for drude model\n'
+                    'langevinDamping %.1f  # /ps  # set to 1.0 for normal simulation, 5.0 for drude model\n'
                     '#stochRescale on\n'
                     '#stochRescaleTemp $T\n'
                     '#stochRescalePeriod 0.1 # ps\n'
@@ -2629,12 +2630,12 @@ class system(object):
                     '#berendsenPressureTarget $P\n'
                     '#berendsenPressureCompressibility 4.5E-5\n'
                     '#berendsenPressureRelaxationTime 500  # fs\n'
-                    % (self.box.a, self.box.b, self.box.c, 'yes' if self.mix == 'g' else 'no', 10.0 if self.is_drude else 0.1))
+                    % (self.box.a, self.box.b, self.box.c, 'yes' if self.mix == 'g' else 'no', 5.0 if self.is_drude else 1.0))
             if self.is_drude:
                 f.write('# drude\n'
                         'drude on\n'
                         'drudeTemp 1\n'
-                        'drudeDamping 50.0  # /ps\n'
+                        'drudeDamping 20.0  # /ps\n'
                         'drudeHardWall on\n'
                         'drudeBondLen 0.25  # A\n')
             f.write('# run\n'
@@ -2824,6 +2825,7 @@ class system(object):
             f.write('\nEND\n')
 
     def write_gro(self):
+        random.seed(1)
         with open('conf.gro', 'w') as f:
             f.write('created by fftool\n')
             f.write('%d\n' % (self.natom + self.ndrude))
@@ -2867,6 +2869,7 @@ class system(object):
                        yz / 10, zx / 10, zy / 10))
 
     def write_pdb(self):
+        random.seed(1)
         with open('config.pdb', 'w') as f:
             f.write('TITLE     created by fftool\n')
             f.write('REMARK    SIMBOX\n')
@@ -2879,7 +2882,7 @@ class system(object):
             for sp in self.spec:
                 for im in range(sp.nmol):
                     for ii, at in enumerate(sp.atom):
-                        line = 'ATOM  {0:5d} {1:4s} {2:3s}  {3:4d}    ' \
+                        line = 'ATOM  {0:5d} {1:4s} {2:4s} {3:4d}    ' \
                                '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00' \
                                '          {7:2s}\n'.format(
                             i + 1, at.symbol, sp.name[:4], nmol + 1,
@@ -2887,7 +2890,7 @@ class system(object):
                         f.write(line)
                         i += 1
                         if at.drude:
-                            line = 'ATOM  {0:5d} {1:4s} {2:3s}  {3:4d}    ' \
+                            line = 'ATOM  {0:5d} {1:4s} {2:4s} {3:4d}    ' \
                                    '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00' \
                                    '          {7:2s}\n'.format(
                                 i + 1, 'D', sp.name[:4], nmol + 1,
