@@ -2231,7 +2231,7 @@ class system(object):
 
             # f.write('\n')
 
-    def writegmx(self, rb=False):
+    def writegmx(self):
         self.write_gro()
 
         with open('field.top', 'w') as f:
@@ -2409,22 +2409,20 @@ class system(object):
                 f.write('[ dihedrals ]\n')
                 f.write(';  ai    aj    ak    al   func    coefficients\n')
                 for dh in sp.dihed + sp.dimpr:
-                    f1, f2, f3, f4 = dh.par
-                    if rb:
-                        c0 = f2 + 0.5 * (f1 + f3)
-                        c1 = 0.5 * (-f1 + 3 * f3)
-                        c2 = -f2 + 4 * f4
-                        c3 = -2 * f3
-                        c4 = -4 * f4
-                        f.write('{0:5d} {1:5d} {2:5d} {3:5d}     {4:2d}  {5:9.5f} {6:9.5f} {7:9.5f} {8:9.5f} {9:9.5f} 0\n' \
-                                .format(sp.get_aid_w_drude(dh.i) + 1, sp.get_aid_w_drude(dh.j) + 1,
-                                        sp.get_aid_w_drude(dh.k) + 1, sp.get_aid_w_drude(dh.l) + 1,
-                                        3, c0, c1, c2, c3, c4))
-                    else:
-                        f.write('{0:5d} {1:5d} {2:5d} {3:5d}     {4:2d}  {5:9.5f} {6:9.5f} {7:9.5f} {8:9.5f}\n' \
-                                .format(sp.get_aid_w_drude(dh.i) + 1, sp.get_aid_w_drude(dh.j) + 1,
-                                        sp.get_aid_w_drude(dh.k) + 1, sp.get_aid_w_drude(dh.l) + 1,
-                                        5, f1, f2, f3, f4))
+                    i, j, k, l = sp.get_aid_w_drude(dh.i) + 1, sp.get_aid_w_drude(dh.j) + 1, \
+                                 sp.get_aid_w_drude(dh.k) + 1, sp.get_aid_w_drude(dh.l) + 1
+                    if dh.par[0] != 0:
+                        f.write('{0:5d} {1:5d} {2:5d} {3:5d}     {4:2d}  {5:7.3f} {6:9.5f} {7:5d}\n' \
+                                .format(i, j, k, l, 9, 0, dh.par[0] / 2., 1))
+                    if dh.par[1] != 0:
+                        f.write('{0:5d} {1:5d} {2:5d} {3:5d}     {4:2d}  {5:7.3f} {6:9.5f} {7:5d}\n' \
+                                .format(i, j, k, l, 9, 180, dh.par[1] / 2., 2))
+                    if dh.par[2] != 0:
+                        f.write('{0:5d} {1:5d} {2:5d} {3:5d}     {4:2d}  {5:7.3f} {6:9.5f} {7:5d}\n' \
+                                .format(i, j, k, l, 9, 0, dh.par[2] / 2., 3))
+                    if dh.par[3] != 0:
+                        f.write('{0:5d} {1:5d} {2:5d} {3:5d}     {4:2d}  {5:7.3f} {6:9.5f} {7:5d}\n' \
+                                .format(i, j, k, l, 9, 180, dh.par[3] / 2., 4))
                 f.write('\n')
 
             f.write('[ system ]\n')
@@ -2718,16 +2716,7 @@ class system(object):
             i = shift = 1
             for sp in self.spec:
                 for im in range(sp.nmol):
-                    for dh in sp.dihed:
-                        f.write(" {0:7d} {1:7d} {2:7d} {3:7d}".format(
-                                sp.get_aid_w_drude(dh.i) + shift,
-                                sp.get_aid_w_drude(dh.j) + shift,
-                                sp.get_aid_w_drude(dh.k) + shift,
-                                sp.get_aid_w_drude(dh.l) + shift))
-                        if (i % 2) == 0:
-                            f.write('\n')
-                        i += 1
-                    for di in sp.dimpr:
+                    for dh in sp.dihed + sp.dimpr:
                         f.write(" {0:7d} {1:7d} {2:7d} {3:7d}".format(
                                 sp.get_aid_w_drude(dh.i) + shift,
                                 sp.get_aid_w_drude(dh.j) + shift,
@@ -2803,7 +2792,10 @@ class system(object):
                     if dh.par[2] != 0:
                         f.write(" %5s %5s %5s %5s %12.6f %8i %8i\n" %(
                                 *name, dh.par[2] / (2.0 * ecnv), 3, 0))
-                    if dh.par[0] == 0 and dh.par[1] == 0 and dh.par[2] == 0:
+                    if dh.par[3] != 0:
+                        f.write(" %5s %5s %5s %5s %12.6f %8i %8i\n" %(
+                                *name, dh.par[3] / (2.0 * ecnv), 4, 180))
+                    if dh.par[0] == 0 and dh.par[1] == 0 and dh.par[2] == 0 and dh.par[3] == 0:
                         f.write(" %5s %5s %5s %5s %12.6f %8i %8i  ! %s\n" %(
                                 *name, 0, 1, 0, 'no dihedral parameters'))
 
@@ -2969,9 +2961,6 @@ def main():
     parser.add_argument('--scalesig', type=float, default=1,
                         help = 'sigma will be scaled ' \
                         'Does not work for dlpoly')
-    parser.add_argument('--rb', action = 'store_true',
-                        help = 'use Ryckaert-Bellemans dihedrals in GROMACS,'
-                               'which is required for free energy calculation')
     parser.add_argument('--cos4', action = 'store_true',
                         help = 'use cos4 dihedrals in DLPOLY FIELD')
     parser.add_argument('infiles', nargs='+',
@@ -3063,7 +3052,7 @@ def main():
         sim.writelmp(args.units)
     if args.gmx:
         print('gromacs files\n  run.mdp\n  field.top\n  conf.gro')
-        sim.writegmx(rb = args.rb)
+        sim.writegmx()
     if args.dlpoly:
         print('dlpoly files\n  FIELD\n  CONFIG')
         sim.writedlp(args.cos4)
