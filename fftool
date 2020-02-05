@@ -1222,7 +1222,7 @@ class mol(object):
             print("{0:5s} {1:15.6f} {2:15.6f} {3:15.6f}".format(atname,
                                                          at.x, at.y, at.z))
 
-    def writexyz(self, symbol = True):
+    def writexyz(self, symbol = False):
         outfile = (self.filename).rsplit('.', 1)[0] + '_pack.xyz'
         with open(outfile, 'w') as f:
             f.write(str(len(self.atom)) + '\n')
