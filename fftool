@@ -1878,7 +1878,7 @@ class system(object):
                 for at in sp.atom:
                     f.write('{0:5d}   {1:4s}  {2:5d}  {3:6s}   {4:5s}  {5:4d}'\
                             '  {6:10.6f}\n'.format(i, at.name, 1,
-                            sp.name[0:5], atomic_symbol(at.name), i, at.q))
+                            sp.name[:4], atomic_symbol(at.name)[:4], i, at.q))
                     i += 1
                 f.write('\n')
 
@@ -1968,10 +1968,10 @@ class system(object):
             for sp in self.spec:
                 for im in range(sp.nmol):
                     for at in sp.atom:
-                        f.write('HETATM{0:5d} {1:4s} {2:3s}  {3:4d}    '\
+                        f.write('HETATM{0:5d} {1:4s} {2:4s}  {3:4d}    '\
                                 '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00'\
-                                '          {7:2s}\n'.format(i + 1, atomic_symbol(at.name),
-                                sp.name[:3], nmol + 1,
+                                '          {7:2s}\n'.format(i + 1, atomic_symbol(at.name)[:4],
+                                sp.name[:4], nmol + 1,
                                 self.x[i], self.y[i], self.z[i],
                                 atomic_symbol(at.name)))
                         i += 1
