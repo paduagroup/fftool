@@ -159,6 +159,7 @@ class atom(object):
         self.x = 0.0
         self.y = 0.0
         self.z = 0.0
+        self.bond_partners = []
 
     def __str__(self):
         if hasattr(self, 'type'):
@@ -862,6 +863,11 @@ class mol(object):
         natom = len(self.atom)
         nbond = len(self.bond)
 
+        # set up bond partners so that we can build 1-4 exclusion list easily
+        for bd in self.bond:
+            self.atom[bd.i].bond_partners.append(bd.j)
+            self.atom[bd.j].bond_partners.append(bd.i)
+
         # identify valence angles
         for i in range(natom):  # find neighbour atoms to each atom i
             nb = 0
@@ -1088,19 +1094,6 @@ class mol(object):
                 toremove.append(di)
                 if names[0] not in dimiss:
                     dimiss.append(names[0])
-        for di in toremove:
-            self.dimpr.remove(di)
-
-        # remove dupplicate impropers differing by i-j or j-i
-        toremove = []
-        for i in range(len(self.dimpr) - 1):
-            for j in range(i + 1, len(self.dimpr)):
-                if self.dimpr[i].i == self.dimpr[j].j and \
-                    self.dimpr[i].j == self.dimpr[j].i or \
-                    self.dimpr[i].i == self.dimpr[j].i and \
-                    self.dimpr[i].j == self.dimpr[j].j:
-                    if self.dimpr[j] not in toremove:
-                        toremove.append(self.dimpr[j])
         for di in toremove:
             self.dimpr.remove(di)
 
@@ -1930,33 +1923,31 @@ class system(object):
                              di.par[0], di.par[1], di.par[2], di.par[3]))
                 f.write('\n')
 
+                # 1-4 exclusion list should be built from bond instead of dihedral
+                pairs12_set = set()
+                pairs13_set = set()
+                pairs14_set = set()
+                for bd in sp.bond:
+                    a2, a3 = bd.i, bd.j
+                    pairs12_set.add(list(sorted([a2, a3])))
+                    for a1 in sp.atom[a2].bond_partners:
+                        if a1 != a3:
+                            pairs13_set.add(list(sorted([a1, a3])))
+                    for a4 in sp.atom[a3].bond_partners:
+                        if a2 != a4:
+                            pairs13_set.add(list(sorted([a2, a4])))
+                    for a1 in sp.atom[a2].bond_partners:
+                        for a4 in sp.atom[a3].bond_partners:
+                            if a1 != a3 and a2 != a4 and a1 != a4:
+                                pairs14_set.add(list(sorted([a1, a4])))
+                # kick out the 1-2 and 1-3 pairs if there are 4- or 5-member rings
+                pairs14 = list(sorted(pairs14_set - pairs12_set.union(pairs13_set)))
+
                 f.write('[ pairs ]\n')
                 f.write(';   ai   aj   func\n')
-                pairs = []
-                for dh in sp.dihed:
-                    inbond = False
-                    inangle = False
-                    dupl = False
-                    for bd in sp.bond: # exclude 1-2 (4-membered rings)
-                        if dh.i == bd.i and dh.l == bd.j or \
-                           dh.i == bd.j and dh.l == bd.i:
-                            inbond = True
-                            break
-                    for an in sp.angle: # exclude 1-3 (5-membered rings)
-                        if dh.i == an.i and dh.l == an.k or \
-                           dh.i == an.k and dh.l == an.i:
-                            inangle = True
-                            break
-                    for p in pairs:     # remove duplicate (6-membered rings)
-                        if dh.i == p[0] and dh.l == p[1] or \
-                           dh.i == p[1] and dh.l == p[0]:
-                            dupl = True
-                            break
-                    if inbond or inangle or dupl:
-                        continue
-                    pairs.append([dh.i, dh.l])
+                for i, j in pairs14:
                     f.write('{0:5d} {1:5d}     {2:2d}\n'\
-                             .format(dh.i + 1, dh.l + 1, 1))
+                             .format(i + 1, j + 1, 1))
                 f.write('\n')
 
             f.write('[ system ]\n')
