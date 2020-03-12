@@ -1787,7 +1787,7 @@ class system(object):
                 for im in range(sp.nmol):
                     for at in sp.atom:
                         f.write("{0:7d} {1:7d} {2:4d} {3:10.6f} "\
-                                 "{4:8.3f} {5:8.3f} {6:8.3f}  "\
+                                 "{4:13.6e} {5:13.6e} {6:13.6e}  "\
                                  "# {7} {8}\n".format(
                                  i + 1, nmol + 1, at.ityp + 1, at.q, 
                                  self.x[i], self.y[i], self.z[i],
