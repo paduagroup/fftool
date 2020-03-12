@@ -1786,8 +1786,8 @@ class system(object):
             for sp in self.spec:
                 for im in range(sp.nmol):
                     for at in sp.atom:
-                        f.write("{0:7d} {1:7d} {2:4d} {3:8.4f} "\
-                                 "{4:13.6e} {5:13.6e} {6:13.6e}  "\
+                        f.write("{0:7d} {1:7d} {2:4d} {3:10.6f} "\
+                                 "{4:8.3f} {5:8.3f} {6:8.3f}  "\
                                  "# {7} {8}\n".format(
                                  i + 1, nmol + 1, at.ityp + 1, at.q, 
                                  self.x[i], self.y[i], self.z[i],
@@ -1877,7 +1877,7 @@ class system(object):
                 i = 1
                 for at in sp.atom:
                     f.write('{0:5d}   {1:4s}  {2:5d}  {3:6s}   {4:5s}  {5:4d}'\
-                            '  {6:8.4f}\n'.format(i, at.name, 1,
+                            '  {6:10.6f}\n'.format(i, at.name, 1,
                             sp.name[0:5], at.name, 1, at.q))
                     i += 1
                 f.write('\n')
@@ -1929,19 +1929,19 @@ class system(object):
                 pairs14_set = set()
                 for bd in sp.bond:
                     a2, a3 = bd.i, bd.j
-                    pairs12_set.add(list(sorted([a2, a3])))
+                    pairs12_set.add(tuple(sorted([a2, a3])))
                     for a1 in sp.atom[a2].bond_partners:
                         if a1 != a3:
-                            pairs13_set.add(list(sorted([a1, a3])))
+                            pairs13_set.add(tuple(sorted([a1, a3])))
                     for a4 in sp.atom[a3].bond_partners:
                         if a2 != a4:
-                            pairs13_set.add(list(sorted([a2, a4])))
+                            pairs13_set.add(tuple(sorted([a2, a4])))
                     for a1 in sp.atom[a2].bond_partners:
                         for a4 in sp.atom[a3].bond_partners:
                             if a1 != a3 and a2 != a4 and a1 != a4:
-                                pairs14_set.add(list(sorted([a1, a4])))
+                                pairs14_set.add(tuple(sorted([a1, a4])))
                 # kick out the 1-2 and 1-3 pairs if there are 4- or 5-member rings
-                pairs14 = list(sorted(pairs14_set - pairs12_set.union(pairs13_set)))
+                pairs14 = tuple(sorted(pairs14_set - pairs12_set.union(pairs13_set)))
 
                 f.write('[ pairs ]\n')
                 f.write(';   ai   aj   func\n')
