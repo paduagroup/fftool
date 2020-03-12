@@ -1878,7 +1878,7 @@ class system(object):
                 for at in sp.atom:
                     f.write('{0:5d}   {1:4s}  {2:5d}  {3:6s}   {4:5s}  {5:4d}'\
                             '  {6:10.6f}\n'.format(i, at.name, 1,
-                            sp.name[0:5], at.name, 1, at.q))
+                            sp.name[0:5], at.name, i, at.q))
                     i += 1
                 f.write('\n')
 
@@ -1898,29 +1898,6 @@ class system(object):
                     if bd.pot == 'cons':
                         f.write('{0:5d} {1:5d}     {2:2d}  {3:9.5f}\n'\
                                 .format(bd.i + 1, bd.j + 1, 1, bd.par[0]/10.0))
-                f.write('\n')
-
-                f.write('[ angles ]\n')
-                f.write(';  ai    aj    ak   func    th0        cth\n')
-                for an in sp.angle:
-                    f.write('{0:5d} {1:5d} {2:5d}     {3:2d}  '
-                            '{4:9.3f}  {5:9.3f}\n'\
-                             .format(an.i + 1, an.j + 1, an.k + 1, 1,
-                             an.par[0], an.par[1]))
-                f.write('\n')
-
-                f.write('[ dihedrals ]\n')
-                f.write(';  ai    aj    ak    al   func    coefficients\n')
-                for dh in sp.dihed:
-                    f.write('{0:5d} {1:5d} {2:5d} {3:5d}     {4:2d}  '
-                            '{5:9.5f} {6:9.5f} {7:9.5f} {8:9.5f}\n'\
-                             .format(dh.i + 1, dh.j + 1, dh.k + 1, dh.l + 1, 5,
-                             dh.par[0], dh.par[1], dh.par[2], dh.par[3]))
-                for di in sp.dimpr:
-                    f.write('{0:5d} {1:5d} {2:5d} {3:5d}     {4:2d}  '
-                            '{5:9.5f} {6:9.5f} {7:9.5f} {8:9.5f}\n'\
-                             .format(di.i + 1, di.j + 1, di.k + 1, di.l + 1, 5,
-                             di.par[0], di.par[1], di.par[2], di.par[3]))
                 f.write('\n')
 
                 # 1-4 exclusion list should be built from bond instead of dihedral
@@ -1946,8 +1923,31 @@ class system(object):
                 f.write('[ pairs ]\n')
                 f.write(';   ai   aj   func\n')
                 for i, j in pairs14:
-                    f.write('{0:5d} {1:5d}     {2:2d}\n'\
-                             .format(i + 1, j + 1, 1))
+                    f.write('{0:5d} {1:5d}     {2:2d}\n' \
+                            .format(i + 1, j + 1, 1))
+                f.write('\n')
+
+                f.write('[ angles ]\n')
+                f.write(';  ai    aj    ak   func    th0        cth\n')
+                for an in sp.angle:
+                    f.write('{0:5d} {1:5d} {2:5d}     {3:2d}  '
+                            '{4:9.3f}  {5:9.3f}\n'\
+                             .format(an.i + 1, an.j + 1, an.k + 1, 1,
+                             an.par[0], an.par[1]))
+                f.write('\n')
+
+                f.write('[ dihedrals ]\n')
+                f.write(';  ai    aj    ak    al   func    coefficients\n')
+                for dh in sp.dihed:
+                    f.write('{0:5d} {1:5d} {2:5d} {3:5d}     {4:2d}  '
+                            '{5:9.5f} {6:9.5f} {7:9.5f} {8:9.5f}\n'\
+                             .format(dh.i + 1, dh.j + 1, dh.k + 1, dh.l + 1, 5,
+                             dh.par[0], dh.par[1], dh.par[2], dh.par[3]))
+                for di in sp.dimpr:
+                    f.write('{0:5d} {1:5d} {2:5d} {3:5d}     {4:2d}  '
+                            '{5:9.5f} {6:9.5f} {7:9.5f} {8:9.5f}\n'\
+                             .format(di.i + 1, di.j + 1, di.k + 1, di.l + 1, 5,
+                             di.par[0], di.par[1], di.par[2], di.par[3]))
                 f.write('\n')
 
             f.write('[ system ]\n')
@@ -1979,13 +1979,12 @@ class system(object):
             f.write("END\n")
 
         with open('run.mdp', 'w') as f:
-            f.write('integrator            = md\n')
+            f.write('integrator            = sd; md\n')
             f.write('dt                    = 0.001\n')
             f.write('nsteps                = 10000\n\n')
             
             f.write('nstlog                = 1000\n')
-            f.write('nstenergy             = 1000\n')
-            f.write('nstxout-compressed    = 100\n\n')
+            f.write('nstxout-compressed    = 1000\n\n')
 
             f.write('cutoff-scheme         = Verlet\n')
             f.write('pbc                   = xyz\n\n')
@@ -1993,25 +1992,21 @@ class system(object):
             f.write('coulombtype           = PME\n')
             f.write('rcoulomb              = 1.2\n')
             f.write('ewald-rtol            = 1.0e-5\n')
-            f.write('fourierspacing        = 0.06\n')
-            f.write('pme-order             = 8\n')
             f.write('vdwtype               = Cut-off\n')
             f.write('rvdw                  = 1.2\n')
             f.write('DispCorr              = EnerPres\n\n')
 
-            f.write('tcoupl                = V-rescale\n')
+            f.write('tcoupl                = no; V-rescale\n')
             f.write('tc-grps               = System\n')
             f.write('tau-t                 = 0.1\n')
             f.write('ref-t                 = 300.0\n\n')
 
-            f.write('pcoupl                = Berendsen\n')
-            f.write('; pcoupl                = Parrinello-Rahman\n')
+            f.write('pcoupl                = Berendsen; Parrinello-Rahman\n')
             f.write('pcoupltype            = isotropic\n')
-            f.write('tau-p                 = 1.0\n')
+            f.write('tau-p                 = 1.0; 5.0\n')
             f.write('ref-p                 = 1.0\n\n')
             f.write('compressibility       = 4.5e-5\n')
-            f.write('; refcoord_scaling      = com\n\n')
-            
+
             f.write('gen-vel               = yes\n')
             f.write('gen-temp              = 300\n')
             f.write('gen-seed              = -1\n\n')
