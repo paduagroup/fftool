@@ -1878,7 +1878,7 @@ class system(object):
                 for at in sp.atom:
                     f.write('{0:5d}   {1:4s}  {2:5d}  {3:6s}   {4:5s}  {5:4d}'\
                             '  {6:10.6f}\n'.format(i, at.name, 1,
-                            sp.name[0:5], at.name, i, at.q))
+                            sp.name[0:5], atomic_symbol(at.name), i, at.q))
                     i += 1
                 f.write('\n')
 
@@ -1970,7 +1970,7 @@ class system(object):
                     for at in sp.atom:
                         f.write('HETATM{0:5d} {1:4s} {2:3s}  {3:4d}    '\
                                 '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00'\
-                                '          {7:2s}\n'.format(i + 1, at.name,
+                                '          {7:2s}\n'.format(i + 1, atomic_symbol(at.name),
                                 sp.name[:3], nmol + 1,
                                 self.x[i], self.y[i], self.z[i],
                                 atomic_symbol(at.name)))
@@ -1987,8 +1987,9 @@ class system(object):
             f.write('nstxout-compressed    = 1000\n\n')
 
             f.write('cutoff-scheme         = Verlet\n')
+            f.write('rlist                 = 1.2\n')
             f.write('pbc                   = xyz\n\n')
-            
+
             f.write('coulombtype           = PME\n')
             f.write('rcoulomb              = 1.2\n')
             f.write('ewald-rtol            = 1.0e-5\n')
@@ -1998,13 +1999,13 @@ class system(object):
 
             f.write('tcoupl                = no; V-rescale\n')
             f.write('tc-grps               = System\n')
-            f.write('tau-t                 = 0.1\n')
+            f.write('tau-t                 = 1.0; 0.1\n')
             f.write('ref-t                 = 300.0\n\n')
 
             f.write('pcoupl                = Berendsen; Parrinello-Rahman\n')
             f.write('pcoupltype            = isotropic\n')
-            f.write('tau-p                 = 1.0; 5.0\n')
-            f.write('ref-p                 = 1.0\n\n')
+            f.write('tau-p                 = 0.5; 5.0\n')
+            f.write('ref-p                 = 1.0\n')
             f.write('compressibility       = 4.5e-5\n')
 
             f.write('gen-vel               = yes\n')
