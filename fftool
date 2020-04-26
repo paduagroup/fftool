@@ -395,8 +395,8 @@ class dimpr(dihed):
                   "{6}".format(self.i + 1, self.j + 1, self.k + 1, self.l + 1,
                                self.name, self.pot, str(self.par))
             else:
-                return "improper {0}  {1} {2}".form(self.name, self.pot,
-                                                    str(self.par))  
+                return "improper {0}  {1} {2}".format(self.name, self.pot,
+                                                      str(self.par))  
         else:
             return "improper {0:5d} {1:5d} {2:5d} {3:5d}".format(self.i + 1,
                    self.j + 1, self.k + 1, self.l + 1)
@@ -1368,10 +1368,10 @@ class cell(object):
         self.center = center
         
         NDIG = 14
-        ca = round(math.cos(alpha * math.pi/180.0), NDIG);
-        cb = round(math.cos(beta  * math.pi/180.0), NDIG);
-        cg = round(math.cos(gamma * math.pi/180.0), NDIG);
-        sg = round(math.sin(gamma * math.pi/180.0), NDIG);
+        ca = round(math.cos(alpha * math.pi/180.0), NDIG)
+        cb = round(math.cos(beta  * math.pi/180.0), NDIG)
+        cg = round(math.cos(gamma * math.pi/180.0), NDIG)
+        sg = round(math.sin(gamma * math.pi/180.0), NDIG)
 
         self.vol = v = a*b*c*math.sqrt(1 - ca*ca - cb*cb - cg*cg + 2*ca*cb*cg)
 
