@@ -1,4 +1,4 @@
-# oplsaa.ff, version 2017/06/19
+# oplsaa.ff, version 2020/05/29
 # units: kJ/mol, A, deg
 # bond and angle force constants are in the form k/2 (x - x0)^2
 # use cons for constrained bonds and angles
@@ -22,6 +22,7 @@ C3H   CT  12.011  -0.18   lj    3.50   0.27614
 C2H   CT  12.011  -0.12   lj    3.50   0.27614
 C1H   CT  12.011  -0.06   lj    3.50   0.27614
 H     HC   1.008   0.06   lj    2.50   0.12552
+HC    HC   1.008   0.06   lj    2.50   0.12552
 # alcohols JACS 118(1996)11225, JPC 100(1996)18010
 CTO   CT  12.011   0.145  lj    3.50   0.27614  
 C2O   CT  12.011   0.205  lj    3.50   0.27614  
@@ -42,6 +43,12 @@ CAT   CA  12.011  -0.081  lj    3.55   0.29288
 CTT   CT  12.011  -0.197  lj    3.50   0.27614
 HAT   HA   1.008   0.148  lj    2.42   0.12552
 HT    HC   1.008   0.092  lj    2.42   0.12552
+# phenol OPLS-AA
+OPH   OH  15.999  -0.585  lj    3.12   0.71128
+HPH   HO   1.008   0.435  lj    0.00   0.00000
+# cresol (us)
+CTR   CA  12.011   0.081  lj    3.55   0.29288
+COR   CA  12.011   0.210  lj    3.55   0.29288
 # perfluoroalkanes JPCA105:4118(2001) 
 C4F   CF  12.011   0.48   lj    3.50   0.27614
 C3F   CF  12.011   0.36   lj    3.50   0.27614
@@ -84,6 +91,8 @@ CA  CA   harm   1.400   3924.6
 CA  HA   cons   1.080   3071.1
 # toluene AMBER JACS 117(1995)5179
 CA  CT   harm   1.510   2652.7
+# phenol OPLS-AA
+CA  OH   harm   1.364   3765.6
 # perfluoroalkanes JPCA105(2001)4118
 F   CF   harm   1.332   3071.1
 CF  CF   harm   1.529   2242.6
@@ -120,6 +129,9 @@ CA  CA  CA   harm   120.0   527.2
 # toluene AMBER JACS 117(1995)5179
 CA  CA  CT   harm   120.0   585.8
 CA  CT  HC   harm   109.5   418.4
+# phenol OPLS-AA
+CA  OH  HO   harm   113.0   292.9
+CA  CA  OH   harm   120.0   585.8
 # perfluorocarbons JPCA105(2001)4118
 F   CF  F    harm   109.1   644.3
 F   CF  CF   harm   109.5   418.4
@@ -170,6 +182,10 @@ HA  CA  CA  HA   opls    0.0000   30.3340    0.0000    0.0000
 CT  CA  CA  CA   opls    0.0000   30.3340    0.0000    0.0000
 CT  CA  CA  HA   opls    0.0000   30.3340    0.0000    0.0000
 # CA  CA  CT  HC   opls    0.0000    0.0000    0.0000    0.0000
+# phenol OPLS-AA
+CA  CA  OH  HO   opls    0.0000    7.0375    0.0000    0.0000
+CA  CA  CA  OH   opls    0.0000   30.3340    0.0000    0.0000
+HA  CA  CA  OH   opls    0.0000   30.3340    0.0000    0.0000
 # perlfuoroalkanes JPCA105(2001)4118
 F   CF  CF  F    opls  -10.4600    0.0000    1.0460    0.0000
 F   CF  CF  CF   opls    1.2552    0.0000    1.6736    0.0000
@@ -210,6 +226,7 @@ IMPROPER
 # improper C aromatics AMBER JACS 117(1995)5179
 CA  CA  CA  HA   opls    0.0000    9.2048    0.0000    0.0000
 CA  CA  CA  CT   opls    0.0000    9.2048    0.0000    0.0000
+CA  CA  CA  OH   opls    0.0000    9.2048    0.0000    0.0000
 # improper C carbonyl
 OS  OS  C_2 O_2  opls    0.0000   87.8640    0.0000    0.0000
 CT  N   C   O    opls    0.0000   87.8640    0.0000    0.0000
