@@ -1968,7 +1968,7 @@ class system(object):
             for sp in self.spec:
                 for im in range(sp.nmol):
                     for at in sp.atom:
-                        f.write('HETATM{0:5d} {1:4s} {2:4s}  {3:4d}    '\
+                        f.write('HETATM{0:5d} {1:4s} {2:4s} {3:4d}    '\
                                 '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00'\
                                 '          {7:2s}\n'.format(i + 1, atomic_symbol(at.name)[:4],
                                 sp.name[:4], nmol + 1,
