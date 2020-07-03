@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2019/07/11
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2020/07/03
 # http://perso.ens-lyon.fr/agilio.padua
 
 # Copyright (C) 2013 Agilio Padua
@@ -1968,10 +1968,10 @@ class system(object):
             for sp in self.spec:
                 for im in range(sp.nmol):
                     for at in sp.atom:
-                        f.write('HETATM{0:5d} {1:4s} {2:4s} {3:4d}    '\
+                        f.write('HETATM{0:5d} {1:4s} {2:3s}  {3:4d}    '\
                                 '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00'\
-                                '          {7:2s}\n'.format(i + 1, atomic_symbol(at.name)[:4],
-                                sp.name[:4], nmol + 1,
+                                '          {7:2s}\n'.format(i + 1, at.name,
+                                sp.name[:3], nmol + 1,
                                 self.x[i], self.y[i], self.z[i],
                                 atomic_symbol(at.name)))
                         i += 1
