@@ -1840,6 +1840,137 @@ class system(object):
                     
             # f.write('\n')
 
+    def writepdb(self):
+        with open('config.pdb', 'w') as f:
+            f.write('TITLE     created by fftool\n')
+            f.write('REMARK    SIMBOX\n')
+            f.write('CRYST1{0:9.3f}{1:9.3f}{2:9.3f}{3:7.2f}{4:7.2f}{5:7.2f} '\
+                    '{6:11s}{7:4d}\n'.format(
+                    self.box.a, self.box.b, self.box.c,
+                    self.box.alpha, self.box.beta, self.box.gamma, 'P 1', 1))
+            i = nmol = 0
+            for sp in self.spec:
+                for im in range(sp.nmol):
+                    j = 1
+                    for at in sp.atom:
+                        f.write('HETATM{0:5d} {1:4s} {2:3s}  {3:4d}    '\
+                                '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00'\
+                                '          {7:2s}\n'.format(i + 1,
+                                at.name + str(j),
+                                sp.name[:3], nmol + 1,
+                                self.x[i], self.y[i], self.z[i],
+                                atomic_symbol(at.name)))
+                        j += 1
+                        i += 1
+                    nmol += 1
+
+            i = shift = 1
+            for sp in self.spec:
+                natom = len(sp.atom)
+                for im in range(sp.nmol):
+                    for bd in sp.bond:
+                        f.write('CONECT{0:5d}{1:5d}\n'.format(
+                            bd.i + shift, bd.j + shift))
+                        i += 1
+                    shift += natom
+
+            f.write('END\n')
+
+    def writexml(self, mix = 'g'):
+        natom = nbond = nangle = ndihed = 0
+        for sp in self.spec:
+            natom += sp.nmol * len(sp.atom)
+            nbond += sp.nmol * len(sp.bond)
+            nangle += sp.nmol * len(sp.angle)
+            ndihed += sp.nmol * (len(sp.dihed) + len(sp.dimpr))
+
+        with open('field.xml', 'w') as f:
+            f.write('<ForceField>\n')
+            
+            f.write(' <AtomTypes>\n')
+            for att in self.attype:
+                f.write('  <Type name="{0}" class="{1}" element="{2}" '\
+                        'mass="{3:.3f}" />\n'.format(att.name, att.type,
+                        atomic_symbol(att.name), att.m))
+            f.write(' </AtomTypes>\n')
+
+            f.write(' <Residues>\n')
+            for sp in self.spec:
+                f.write('  <Residue name="{0}">\n'.format(sp.name))
+                i = 1
+                for at in sp.atom:
+                    f.write('   <Atom name="{0}{1}" type="{2}" />\n'.format(
+                            at.name, i, at.name))
+                    i +=1
+                for bd in sp.bond:
+                    f.write('   <Bond atomName1="{0}{1}" atomName2="{2}{3}" '\
+                            '/>\n'.format(sp.atom[bd.i].name, bd.i + 1,
+                                sp.atom[bd.j].name, bd.j + 1))
+                f.write('  </Residue>\n')
+            f.write(' </Residues>\n')
+
+            if nbond:
+                f.write(' <HarmonicBondForce>\n')
+                for bdt in self.bdtype:
+                    f.write('  <Bond class1="{0}" class2="{1}" '\
+                            'length="{2:.4f}" k="{3:.1f}" />\n'.format(
+                            bdt.iatp, bdt.jatp,
+                            bdt.par[0]/10.0, bdt.par[1]*100.0))
+                f.write(' </HarmonicBondForce>\n')
+
+            if nangle:
+                f.write(' <HarmonicAngleForce>\n')
+                for ant in self.antype:
+                    f.write('  <Angle class1="{0}" class2="{1}" class3="{2}" '\
+                            'angle="{3:.4f}" k="{4:.2f}" />\n'.format(
+                            ant.iatp, ant.jatp, ant.katp,
+                            ant.par[0] * math.pi/180.0, ant.par[1]))
+                f.write(' </HarmonicAngleForce>\n')
+
+            if ndihed:
+                f.write(' <RBTorsionForce>\n')
+                for dht in self.dhtype:
+                    # convert OPLS to RB
+                    c0 = dht.par[1] + 0.5 * (dht.par[0] + dht.par[2])
+                    c1 = 0.5 * (-dht.par[0] + 3 * dht.par[2])
+                    c2 = -dht.par[1] + 4 * dht.par[3]
+                    c3 = -2 * dht.par[2]
+                    c4 = -4 * dht.par[3]
+                    c5 = 0.0
+                    f.write('  <Proper class1="{0}" class2="{1}" '\
+                            'class3="{2}" class4="{3}" c0="{4:f}" c1="{5:f}"\n'\
+                            '    c2="{6:f}" c3="{7:f}" c4="{8:f}" c5="{9:f}"'\
+                            ' />\n'.format(
+                            dht.iatp, dht.jatp, dht.katp, dht.latp,
+                            c0, c1, c2, c3, c4, c5))            
+                for dit in self.ditype:
+                    # convert OPLS to RB
+                    c0 = dit.par[1] + 0.5 * (dit.par[0] + dit.par[2])
+                    c1 = 0.5 * (-dit.par[0] + 3 * dit.par[2])
+                    c2 = -dit.par[1] + 4 * dit.par[3]
+                    c3 = -2 * dit.par[2]
+                    c4 = -4 * dit.par[3]
+                    c5 = 0.0
+                    f.write('  <Improper class1="{0}" class2="{1}" '\
+                            'class3="{2}" class4="{3}" c0="{4:f}" c1="{5:f}"\n'\
+                            '    c2="{6:f}" c3="{7:f}" c4="{8:f}" c5="{9:f}"'\
+                            ' />\n'.format(
+                            dit.iatp, dit.jatp, dit.katp, dit.latp,
+                            c0, c1, c2, c3, c4, c5))            
+                f.write(' </RBTorsionForce>\n')
+
+            f.write(' <NonbondedForce coulomb14scale="0.5" lj14scale="0.5" '\
+                    '>\n')
+            for att in self.attype:
+                f.write('  <Atom type="{0}" charge="{1}" sigma="{2:.5f}" '\
+                        'epsilon="{3:.5f}" />\n'.format(att.name, att.q,
+                        att.par[0]/10.0, att.par[1])) 
+            f.write(' </NonbondedForce>\n')
+
+            f.write('</ForceField>\n')
+
+        self.writepdb()
+            
     def writegmx(self, mix = 'g'):
         with open('field.top', 'w') as f:
             f.write('; created by fftool\n\n')
@@ -1952,27 +2083,8 @@ class system(object):
             f.write('[ molecules ]\n')
             for sp in self.spec:
                 f.write('{0:16s} {1:5d}\n'.format(sp.name, sp.nmol))
-                
-        with open('config.pdb', 'w') as f:
-            f.write('TITLE     created by fftool\n')
-            f.write('REMARK    SIMBOX\n')
-            f.write('CRYST1{0:9.3f}{1:9.3f}{2:9.3f}{3:7.2f}{4:7.2f}{5:7.2f} '\
-                    '{6:11s}{7:4d}\n'.format(
-                    self.box.a, self.box.b, self.box.c,
-                    self.box.alpha, self.box.beta, self.box.gamma, 'P 1', 1))
-            i = nmol = 0
-            for sp in self.spec:
-                for im in range(sp.nmol):
-                    for at in sp.atom:
-                        f.write('HETATM{0:5d} {1:4s} {2:3s}  {3:4d}    '\
-                                '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00'\
-                                '          {7:2s}\n'.format(i + 1, at.name,
-                                sp.name[:3], nmol + 1,
-                                self.x[i], self.y[i], self.z[i],
-                                atomic_symbol(at.name)))
-                        i += 1
-                    nmol += 1
-            f.write("END\n")
+
+        self.writepdb()
 
         with open('run.mdp', 'w') as f:
             f.write('integrator            = sd; md\n')
@@ -2221,26 +2333,29 @@ def main():
                         help = 'center box on origin')
     parser.add_argument('-t', '--tol', type=float, default = 2.5,
                         help = 'tolerance for Packmol (default: 2.5)')
-    parser.add_argument('-x', '--mix', default = 'g',
+    parser.add_argument('-m', '--mix', default = 'g',
                         help = '[a]rithmetic or [g]eometric sigma_ij '\
                         '(default: g)')
     parser.add_argument('--psf', action = 'store_true',
-                        help = 'save connectivity in PSF format')
+                        help = 'create PSF file with connectivity')
     parser.add_argument('-l', '--lammps', action = 'store_true', 
-                        help = 'save LAMMPS input files '\
+                        help = 'create LAMMPS input files '\
                         '(needs simbox.xyz built using Packmol)')
     parser.add_argument('-a', '--allpairs', action = 'store_true', 
-                        help = 'write all I J pairs to LAMMPS input files.')
+                        help = 'write all I-J pairs to LAMMPS input files.')
     parser.add_argument('-u', '--units', default = 'r',
                         help = 'LAMMPS units [r]eal or [m]etal (default: r)')
     parser.add_argument('-p', '--pbc', default = '',
                         help = 'connect bonds across periodic boundaries in '\
                         'x, xy, xyz, etc. (default: none)')
+    parser.add_argument('-x', '--xml', action = 'store_true',
+                        help = 'create OpenMM input files '\
+                        '(needs simbox.xyz built using Packmol)')
     parser.add_argument('-g', '--gmx', action = 'store_true',
-                        help = 'save GROMACS input files '\
+                        help = 'create GROMACS input files '\
                         '(needs simbox.xyz built using Packmol)')
     parser.add_argument('-d', '--dlpoly', action = 'store_true',
-                        help = 'save DLPOLY input files '\
+                        help = 'create DLPOLY input files '\
                         '(needs simbox.xyz built using Packmol)')
     parser.add_argument('--cos4', action = 'store_true', 
                         help = 'use cos4 dihedrals in DLPOLY FIELD')
@@ -2291,7 +2406,7 @@ def main():
     rho = nmol / (box.vol * 1.0e-27 * 6.022e+23)
     print('density {0:.3f} mol/L  volume {1:.1f} A^3'.format(rho, box.vol))
 
-    if args.lammps or args.gmx or args.dlpoly or args.psf:
+    if args.lammps or args.xml or args.gmx or args.dlpoly or args.psf:
         connect = True
     else:
         connect = False
@@ -2329,6 +2444,10 @@ def main():
         if (args.allpairs and len(sim.vdw) > 12):
             print('  pair.lmp')
         sim.writelmp(args.mix, args.allpairs, args.units)
+    if args.xml:
+        sim.readcoords('simbox.xyz')
+        print('xml files\n  field.xml\n  config.pdb')
+        sim.writexml(args.mix)
     if args.gmx:
         sim.readcoords('simbox.xyz')
         print('gromacs files\n  run.mdp\n  field.top\n  config.pdb')
@@ -2337,7 +2456,7 @@ def main():
         sim.readcoords('simbox.xyz')
         print('dlpoly files\n  FIELD\n  CONFIG')
         sim.writedlp(args.cos4)
-    if not (args.lammps or args.gmx or args.dlpoly or args.psf):
+    if not (args.lammps or args.xml or args.gmx or args.dlpoly or args.psf):
         print('packmol file\n  pack.inp')
         if args.pbc:
             boxtol = 0.0
