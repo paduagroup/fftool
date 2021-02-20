@@ -18,13 +18,12 @@ and database.
 Contents
 --------
 
-* `fftool`: builds a simulation box and the corresponding force
-    field for systems containing molecules, ions or extended
-    materials. It requires the
-    [Packmol](http://www.ime.unicamp.br/~martinez/packmol/) software
-    to generate coordinates in the box. The output are files in formats
-    suitable for the [LAMMPS](http://lammps.sandia.gov/),
-    [OpenMM](http://openmm.org), [GROMACS](http://www.gromacs.org) or 
+* `fftool`: builds a simulation box and the corresponding force field for
+    systems containing molecules, ions or extended materials. It requires the
+    [Packmol](http://www.ime.unicamp.br/~martinez/packmol/) software to generate
+    coordinates in the box. It outputs files in formats suitable for the
+    [LAMMPS](http://lammps.sandia.gov/), [OpenMM](http://openmm.org),
+    [GROMACS](http://www.gromacs.org) or
     [DL_POLY](http://www.stfc.ac.uk/CSE/randd/ccg/software/DL_POLY/25526.aspx)
     molecular dynamics packages.
 
