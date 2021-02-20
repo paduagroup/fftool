@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2021/02/19
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2021/02/20
 # http://perso.ens-lyon.fr/agilio.padua
 
 # Copyright (C) 2013 Agilio Padua
@@ -21,6 +21,7 @@
 import sys
 import argparse
 import math
+import collections
 
 # tolerances to deduce bonds and angles from input configuration
 BondTol = 0.25                          # Angstrom
@@ -148,6 +149,8 @@ class atom(object):
 
     def __init__(self, name, m = 0.0):
         self.name = name
+        self.iname = name                 # indexed name (unique)
+        self.type = ''                    # atom type for bonded terms
         self.ityp = -1                    # atom type index for this atom
         if m == 0.0:
             self.m = atomic_weight(self.name)
@@ -573,6 +576,7 @@ class mol(object):
             print('  error: molecule file not found')
             sys.exit(1)
 
+        self.indexnames()
         self.setff(box)
         
     def __str__(self):
@@ -585,6 +589,37 @@ class mol(object):
             q += at.q
         return q
 
+    def indexnames(self):
+        """set unique atom names, appending digits or letters if needed"""
+        names = []
+        for at in self.atom:
+            names.append(at.name)
+        cnt = collections.Counter(names)
+        n = dict.fromkeys(cnt, 0)
+        for at in self.atom:
+            for key in n:
+                if at.name == key:
+                    n[key] += 1
+                    if at.name[-1].isdigit():
+                        if n[key] <= 26:
+                            s = chr(ord('`') + n[key])   # lowercase
+                        elif n[key] <= 702:
+                            q, r = divmod(n[key] - 1, 26)
+                            s = chr(ord('`') + q) + chr(ord('a') + r )
+                        else:
+                            print('  error: unable to index too many atoms '
+                                + at.iname + ' in ' + self.name)
+                            sys.exit(1)
+                    elif cnt[key] > 1:
+                        s = str(n[key])
+                    else:
+                        s = ''
+                    at.iname = at.name + s
+                    if len(at.iname) > 4:
+                        print('  warning: atom name ' + at.iname +
+                              ' too long for pdb in ' + self.name)
+                    break
+    
     def fromzmat(self, filename, connect):
         z = zmat(filename)
         self.name = z.name
@@ -1563,7 +1598,7 @@ class system(object):
         except IOError:
             print('error: coordinates file ' + filename + ' not found')
             sys.exit(1)
-
+            
     def writelmp(self, mix = 'g', allpairs = False, units = 'r'):
         natom = nbond = nangle = ndihed = 0
         for sp in self.spec:
@@ -1856,8 +1891,7 @@ class system(object):
                         f.write('HETATM{0:5d} {1:4s} {2:3s}  {3:4d}    '\
                                 '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00'\
                                 '          {7:2s}\n'.format(i + 1,
-                                at.name + str(j),
-                                sp.name[:3], nmol + 1,
+                                at.iname[:4], sp.name[:3], nmol + 1,
                                 self.x[i], self.y[i], self.z[i],
                                 atomic_symbol(at.name)))
                         j += 1
@@ -1897,15 +1931,13 @@ class system(object):
             f.write(' <Residues>\n')
             for sp in self.spec:
                 f.write('  <Residue name="{0}">\n'.format(sp.name))
-                i = 1
                 for at in sp.atom:
-                    f.write('   <Atom name="{0}{1}" type="{2}" />\n'.format(
-                            at.name, i, at.name))
-                    i +=1
+                    f.write('   <Atom name="{0}" type="{1}" />\n'.format(
+                            at.iname, at.name))
                 for bd in sp.bond:
-                    f.write('   <Bond atomName1="{0}{1}" atomName2="{2}{3}" '\
-                            '/>\n'.format(sp.atom[bd.i].name, bd.i + 1,
-                                sp.atom[bd.j].name, bd.j + 1))
+                    f.write('   <Bond atomName1="{0}" atomName2="{1}" '\
+                            '/>\n'.format(sp.atom[bd.i].iname,
+                                sp.atom[bd.j].iname))
                 f.write('  </Residue>\n')
             f.write(' </Residues>\n')
 
@@ -2000,12 +2032,12 @@ class system(object):
                 f.write('{0:16s}  {1:1d}\n\n'.format(sp.name, 3))
 
                 f.write('[ atoms ]\n')
-                f.write(';  nr   type  resnr  residu   atom  cgnr    charge\n')
+                f.write(';  nr   type  resnr  residu  atom   cgnr    charge\n')
                 i = 1
                 for at in sp.atom:
                     f.write('{0:5d}   {1:4s}  {2:5d}  {3:5s}   {4:5s}  {5:4d}'\
                             '  {6:10.6f}\n'.format(i, at.name, 1,
-                            sp.name[:3], at.name, i, at.q))
+                            sp.name[:3], at.iname, i, at.q))
                     i += 1
                 f.write('\n')
 
