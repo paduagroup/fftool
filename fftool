@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2021/02/20
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2021/02/23
 # http://perso.ens-lyon.fr/agilio.padua
 
 # Copyright (C) 2013 Agilio Padua
@@ -1903,8 +1903,12 @@ class system(object):
                 natom = len(sp.atom)
                 for im in range(sp.nmol):
                     for bd in sp.bond:
-                        f.write('CONECT{0:5d}{1:5d}\n'.format(
-                            bd.i + shift, bd.j + shift))
+                        if bd.i < bd.j:
+                            f.write('CONECT{0:5d}{1:5d}\n'.format(
+                                bd.i + shift, bd.j + shift))
+                        else:
+                            f.write('CONECT{0:5d}{1:5d}\n'.format(
+                                bd.j + shift, bd.i + shift))
                         i += 1
                     shift += natom
 
@@ -2001,6 +2005,7 @@ class system(object):
 
             f.write('</ForceField>\n')
 
+        # self.writepsf()
         self.writepdb()
             
     def writegmx(self, mix = 'g'):
@@ -2261,31 +2266,32 @@ class system(object):
                         i += 1
 
     def writepsf(self):
-        natom = nbond = nangle = ndihed = 0
+        natom = nbond = nangle = ndihed = ndimpr = 0
         for sp in self.spec:
             natom += sp.nmol * len(sp.atom)
             nbond += sp.nmol * len(sp.bond)
             nangle += sp.nmol * len(sp.angle)
-            ndihed += sp.nmol * (len(sp.dihed) + len(sp.dimpr))
-            
+            ndihed += sp.nmol * len(sp.dihed)
+            ndimpr += sp.nmol * len(sp.dimpr)
+
         with open('data.psf', 'w') as f:
             f.write("PSF\n\n")
             f.write("       1 !NTITLE\n")
-            f.write(" REMARKS Created by fftool\n\n")
-            
-            f.write(" {0:7d} !NATOM\n".format(natom))
+            f.write(" REMARKS Created by fftool\n")
+
+            f.write("\n{0:8d} !NATOM\n".format(natom))
             i = nmol = 0
             for sp in self.spec:
                 for im in range(sp.nmol):
                     for at in sp.atom:
-                        f.write(" {0:7d} S    {1:<4d} {2:>4s} {3:4s} {4:4s} "
+                        f.write("{0:8d} S    {1:<4d} {2:>8s} {3:4s} {4:4s} "
                                 "{5:10.6f} {6:13.4f} {7:11d}\n".format(
-                                i + 1, nmol + 1, sp.name, at.name, at.type,
+                                i + 1, nmol + 1, sp.name[:8], at.iname, at.type,
                                 at.q, at.m, 0))
                         i += 1
                     nmol += 1
 
-            f.write("\n {0:7d} !NBOND: bonds\n".format(nbond))
+            f.write("\n{0:8d} !NBOND: bonds\n".format(nbond))
             i = shift = 1
             for sp in self.spec:
                 natom = len(sp.atom)
@@ -2300,7 +2306,7 @@ class system(object):
             if ((i - 1) % 4) != 0:
                 f.write('\n')
 
-            f.write("\n {0:7d} !NTHETA: angles\n".format(nangle))
+            f.write("\n{0:8d} !NTHETA: angles\n".format(nangle))
             i = shift = 1
             for sp in self.spec:
                 natom = len(sp.atom)
@@ -2315,7 +2321,7 @@ class system(object):
             if ((i - 1) % 3) != 0:
                 f.write('\n')
 
-            f.write("\n {0:7d} !NPHI: dihedrals\n".format(ndihed))
+            f.write("\n{0:8d} !NPHI: dihedrals\n".format(ndihed))
             i = shift = 1
             for sp in self.spec:
                 natom = len(sp.atom)
@@ -2327,6 +2333,15 @@ class system(object):
                         if (i % 2) == 0:
                             f.write('\n')
                         i += 1
+                    shift += natom
+            if ((i - 1) % 2) != 0:
+                f.write('\n')
+
+            f.write("\n{0:8d} !NIMPHI: impropers\n".format(ndimpr))
+            i = shift = 1
+            for sp in self.spec:                     
+                natom = len(sp.atom)
+                for im in range(sp.nmol):
                     for di in sp.dimpr:
                         f.write(" {0:7d} {1:7d} {2:7d} {3:7d}".format(
                                 di.i + shift, di.j + shift, di.k + shift,
