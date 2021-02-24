@@ -2005,12 +2005,95 @@ class system(object):
 
             f.write('</ForceField>\n')
 
-        # self.writepsf()
         self.writepdb()
+
+    def writecharmm(self):
+        with open('field.prm', 'w') as f:
+            f.write('* created by fftool\n\n')
+
+            f.write('ATOMS\n')
+            types = []
+            for att in self.attype:
+                if att.type not in types:
+                    types.append(att.type)
+                    f.write('MASS  -1  {0:5s} {1:9.5f}\n'.format(
+                        att.type, att.m))
+            f.write('\n')
+
+            for sp in self.spec:
+                f.write('RESI {0:s} {1:7.3f}\n'.format(sp.name, sp.charge()))
+                f.write('GROUP\n')
+                for at in sp.atom:
+                    f.write('ATOM {0:5s} {1:5s} {2:7.3f}\n'.format(
+                        at.iname, at.type, at.q))
+                for bd in sp.bond:
+                    f.write('BOND {0:5s} {1:5s}\n'.format(
+                        sp.atom[bd.i].iname, sp.atom[bd.j].iname))
+            f.write('\n')
             
+            f.write('NONBONDED e14fac 0.5\n')
+            f.write('!atom  ignored  epsilon   Rmin/2\n')
+            types = []
+            for att in self.attype:
+                if att.type not in types:
+                    types.append(att.type)
+                    rmin_2 = att.par[0] * 2.0**(1.0/6.0) / 2.0
+                    f.write('{0:5s}  0.0    {1:9.5f} {2:9.5f}\n'.format(
+                        att.type, -att.par[1] / kCal, rmin_2))
+            f.write('\n')
+            
+            f.write('BONDS\n')
+            f.write('!ai   aj      kb        b0\n')
+            for bdt in self.bdtype:
+                f.write('{0:5s} {1:5s} {2:8.2f} {3:8.3f}\n'.format(
+                    bdt.iatp, bdt.jatp, bdt.par[1] / (2 * kCal), bdt.par[0]))
+            f.write('\n')
+
+            f.write('ANGLES\n')
+            f.write('!ai   aj    ak      kth     th0\n')
+            for ant in self.antype:
+                f.write('{0:5s} {1:5s} {2:5s} {3:7.2f} {4:8.2f}\n'.format(
+                    ant.iatp, ant.jatp, ant.katp,
+                    ant.par[1] / (2 * kCal), ant.par[0]))
+            f.write('\n')
+
+            f.write('DIHEDRALS\n')
+            f.write('!ai   aj    ak    al      kchi   n   delta\n')
+            for dht in self.dhtype:
+                for i in range(4):
+                    if dht.par[i] != 0.0:
+                        #kchi = abs(dht.par[i]) / (2.0 * kCal)
+                        kchi = dht.par[i] / (2.0 * kCal)
+                        delta = (1 - (i + 1) % 2) * 180.0
+                        # if dht.par[i] < 0.0:
+                        #     delta += 180.0
+                        # if delta >= 360.0:
+                        #     delta -= 360.0
+                        f.write('{0:5s} {1:5s} {2:5s} {3:5s} {4:7.3f}  {5:1d}'\
+                            ' {6:8.2f}\n'.format(dht.iatp, dht.jatp, dht.katp,
+                            dht.latp, kchi, i + 1, delta))
+            for dit in self.ditype:
+                for i in range(4):
+                    if dit.par[i] != 0.0:
+                        kchi = abs(dit.par[i]) / (2.0 * kCal)
+                        delta = (1 - (i + 1) % 2) * 180.0
+                        if dit.par[i] < 0.0:
+                            delta += 180.0
+                        if delta >= 360.0:
+                            delta -= 360.0
+                        f.write('{0:5s} {1:5s} {2:5s} {3:5s} {4:7.3f}  {5:1d}'\
+                            ' {6:8.2f}\n'.format(dit.iatp, dit.jatp, dit.katp,
+                            dit.latp, kchi, i + 1, delta))
+            f.write('\n')
+            f.write('END\n')
+
+
+        self.writepsf()
+        self.writepdb()
+        
     def writegmx(self, mix = 'g'):
         with open('field.top', 'w') as f:
-            f.write('; created by fftool\n\n')
+            f.write('! created by fftool\n\n')
             
             f.write('[ defaults ]\n')
             if mix == 'g':
@@ -2064,7 +2147,7 @@ class system(object):
                                 .format(bd.i + 1, bd.j + 1, 1, bd.par[0]/10.0))
                 f.write('\n')
 
-                # 1-4 exclusion list should be built from bond instead of dihedral
+                # 1-4 exclusion list built from bonds instead of dihedrals
                 pairs12_set = set()
                 pairs13_set = set()
                 pairs14_set = set()
@@ -2081,8 +2164,9 @@ class system(object):
                         for a4 in sp.atom[a3].bond_partners:
                             if a1 != a3 and a2 != a4 and a1 != a4:
                                 pairs14_set.add(tuple(sorted([a1, a4])))
-                # kick out the 1-2 and 1-3 pairs if there are 4- or 5-member rings
-                pairs14 = tuple(sorted(pairs14_set - pairs12_set.union(pairs13_set)))
+                # remove 1-2 and 1-3 pairs if there are 4- or 5-member rings
+                pairs14 = tuple(sorted(pairs14_set -
+                                           pairs12_set.union(pairs13_set)))
 
                 f.write('[ pairs ]\n')
                 f.write(';   ai   aj   func\n')
@@ -2360,10 +2444,12 @@ class system(object):
 
 def main():
     parser = argparse.ArgumentParser(
-        description = 'Force-field parameters and atomic coordinates for '\
-        'molecules described in z-matrix, MDL mol, PDB or xyz formats. '\
-        'Produces pack.inp file for use with Packmol to build simulation box. '\
-        'Then rerun with option to create input files for MD simulation. '\
+        description = 'Generate files with force-field and atomic '\
+        'coordinates for molecular dynamics, from molecule description files '\
+        'in z-matrix, MDL mol, PDB or xyz formats, and a force field file. '\
+        'Creates a pack.inp file for Packmol to place molecules in the '\
+        'simulation box. Then rerun selecting an option to create input '\
+        'files for different MD codes. '\
         'The name of a file with force field parameters can be supplied: '\
         'i) on a line at the end of the .zmat file, '\
         'ii) on the 3rd line of the .mol file, or on the 1st after the '\
@@ -2383,27 +2469,28 @@ def main():
     parser.add_argument('-m', '--mix', default = 'g',
                         help = '[a]rithmetic or [g]eometric sigma_ij '\
                         '(default: g)')
-    parser.add_argument('--psf', action = 'store_true',
-                        help = 'create PSF file with connectivity')
     parser.add_argument('-l', '--lammps', action = 'store_true', 
-                        help = 'create LAMMPS input files '\
-                        '(needs simbox.xyz built using Packmol)')
+                        help = 'create LAMMPS files in.lmp data.lmp '\
+                        '(needs simbox.xyz created by Packmol)')
     parser.add_argument('-a', '--allpairs', action = 'store_true', 
-                        help = 'write all I-J pairs to LAMMPS input files.')
+                        help = 'write all I-J pairs to LAMMPS files')
     parser.add_argument('-u', '--units', default = 'r',
                         help = 'LAMMPS units [r]eal or [m]etal (default: r)')
     parser.add_argument('-p', '--pbc', default = '',
                         help = 'connect bonds across periodic boundaries in '\
                         'x, xy, xyz, etc. (default: none)')
     parser.add_argument('-x', '--xml', action = 'store_true',
-                        help = 'create OpenMM input files '\
-                        '(needs simbox.xyz built using Packmol)')
+                        help = 'create OpenMM files .xml .pdb '\
+                        '(needs simbox.xyz created by Packmol)')
+    parser.add_argument('--charmm', action = 'store_true',
+                        help = 'create CHARMM files .prm .psf .pdb '\
+                        '(needs simbox.xyz created by Packmol)')
     parser.add_argument('-g', '--gmx', action = 'store_true',
-                        help = 'create GROMACS input files '\
-                        '(needs simbox.xyz built using Packmol)')
+                        help = 'create GROMACS files .top .gro .pdb '\
+                        '(needs simbox.xyz created by Packmol)')
     parser.add_argument('-d', '--dlpoly', action = 'store_true',
-                        help = 'create DLPOLY input files '\
-                        '(needs simbox.xyz built using Packmol)')
+                        help = 'create DLPOLY files FIELD CONFIG '\
+                        '(needs simbox.xyz created by Packmol)')
     parser.add_argument('--cos4', action = 'store_true', 
                         help = 'use cos4 dihedrals in DLPOLY FIELD')
     parser.add_argument('infiles', nargs='+',
@@ -2453,7 +2540,7 @@ def main():
     rho = nmol / (box.vol * 1.0e-27 * 6.022e+23)
     print('density {0:.3f} mol/L  volume {1:.1f} A^3'.format(rho, box.vol))
 
-    if args.lammps or args.xml or args.gmx or args.dlpoly or args.psf:
+    if args.lammps or args.xml or args.charmm or args.gmx or args.dlpoly:
         connect = True
     else:
         connect = False
@@ -2475,9 +2562,6 @@ def main():
         
     sim = system(spec, box, args.mix)
 
-    if args.psf:
-        print('psf file\n  data.psf')
-        sim.writepsf()
     if args.lammps:
         sim.readcoords('simbox.xyz')
         if args.units == 'r':
@@ -2495,6 +2579,10 @@ def main():
         sim.readcoords('simbox.xyz')
         print('xml files\n  field.xml\n  config.pdb')
         sim.writexml(args.mix)
+    if args.charmm:
+        sim.readcoords('simbox.xyz')
+        print('charmm files\n  field.prm\n  data.psf\n  config.pdb')
+        sim.writecharmm()
     if args.gmx:
         sim.readcoords('simbox.xyz')
         print('gromacs files\n  run.mdp\n  field.top\n  config.pdb')
@@ -2503,7 +2591,7 @@ def main():
         sim.readcoords('simbox.xyz')
         print('dlpoly files\n  FIELD\n  CONFIG')
         sim.writedlp(args.cos4)
-    if not (args.lammps or args.xml or args.gmx or args.dlpoly or args.psf):
+    if not (args.lammps or args.xml or args.charmm or args.gmx or args.dlpoly):
         print('packmol file\n  pack.inp')
         if args.pbc:
             boxtol = 0.0
