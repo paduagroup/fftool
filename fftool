@@ -2031,15 +2031,18 @@ class system(object):
                         sp.atom[bd.i].iname, sp.atom[bd.j].iname))
             f.write('\n')
             
-            f.write('NONBONDED e14fac 0.5\n')
-            f.write('!atom  ignored  epsilon   Rmin/2\n')
+            f.write('NONBONDED e14fac 0.5 geom\n')
+            f.write('!atom  ignored  epsilon   Rmin/2   ignored  eps,1-4   '\
+                    'Rmin/2,1-4\n')
             types = []
             for att in self.attype:
                 if att.type not in types:
                     types.append(att.type)
                     rmin_2 = att.par[0] * 2.0**(1.0/6.0) / 2.0
-                    f.write('{0:5s}  0.0    {1:9.5f} {2:9.5f}\n'.format(
-                        att.type, -att.par[1] / kCal, rmin_2))
+                    f.write('{0:5s}  0.0    {1:9.5f} {2:9.5f}  0.0    '\
+                            '{3:9.5f} {4:9.5f}\n'.format( att.type,
+                            -att.par[1] / kCal, rmin_2,
+                            -att.par[1] / (2 * kCal), rmin_2))
             f.write('\n')
             
             f.write('BONDS\n')
