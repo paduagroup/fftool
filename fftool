@@ -587,7 +587,7 @@ class mol(object):
         q = 0.0
         for at in self.atom:
             q += at.q
-        return q
+        return q + 1.e-12
 
     def indexnames(self):
         """set unique atom names, appending digits or letters if needed"""
@@ -1958,39 +1958,40 @@ class system(object):
                 f.write(' <HarmonicAngleForce>\n')
                 for ant in self.antype:
                     f.write('  <Angle class1="{0}" class2="{1}" class3="{2}" '\
-                            'angle="{3:.4f}" k="{4:.2f}" />\n'.format(
+                            'angle="{3:.5f}" k="{4:.3f}" />\n'.format(
                             ant.iatp, ant.jatp, ant.katp,
                             ant.par[0] * math.pi/180.0, ant.par[1]))
                 f.write(' </HarmonicAngleForce>\n')
 
             if ndihed:
                 f.write(' <RBTorsionForce>\n')
+                eps = 1e-12
                 for dht in self.dhtype:
                     # convert OPLS to RB
-                    c0 = dht.par[1] + 0.5 * (dht.par[0] + dht.par[2])
-                    c1 = 0.5 * (-dht.par[0] + 3 * dht.par[2])
-                    c2 = -dht.par[1] + 4 * dht.par[3]
-                    c3 = -2 * dht.par[2]
-                    c4 = -4 * dht.par[3]
+                    c0 = dht.par[1] + 0.5 * (dht.par[0] + dht.par[2]) + eps
+                    c1 = 0.5 * (-dht.par[0] + 3 * dht.par[2]) + eps
+                    c2 = -dht.par[1] + 4 * dht.par[3] + eps
+                    c3 = -2 * dht.par[2] + eps
+                    c4 = -4 * dht.par[3] + eps
                     c5 = 0.0
                     f.write('  <Proper class1="{0}" class2="{1}" '\
-                            'class3="{2}" class4="{3}" c0="{4:f}" c1="{5:f}"\n'\
-                            '    c2="{6:f}" c3="{7:f}" c4="{8:f}" c5="{9:f}"'\
-                            ' />\n'.format(
+                            'class3="{2}" class4="{3}" c0="{4:.5f}" '\
+                            'c1="{5:.5f}"\n    c2="{6:.5f}" c3="{7:.5f}" '\
+                            'c4="{8:.5f}" c5="{9:.5f}" />\n'.format(
                             dht.iatp, dht.jatp, dht.katp, dht.latp,
                             c0, c1, c2, c3, c4, c5))            
                 for dit in self.ditype:
                     # convert OPLS to RB
-                    c0 = dit.par[1] + 0.5 * (dit.par[0] + dit.par[2])
-                    c1 = 0.5 * (-dit.par[0] + 3 * dit.par[2])
-                    c2 = -dit.par[1] + 4 * dit.par[3]
-                    c3 = -2 * dit.par[2]
-                    c4 = -4 * dit.par[3]
+                    c0 = dit.par[1] + 0.5 * (dit.par[0] + dit.par[2]) + eps
+                    c1 = 0.5 * (-dit.par[0] + 3 * dit.par[2]) + eps
+                    c2 = -dit.par[1] + 4 * dit.par[3] + eps
+                    c3 = -2 * dit.par[2] + eps
+                    c4 = -4 * dit.par[3] + eps
                     c5 = 0.0
                     f.write('  <Improper class1="{0}" class2="{1}" '\
-                            'class3="{2}" class4="{3}" c0="{4:f}" c1="{5:f}"\n'\
-                            '    c2="{6:f}" c3="{7:f}" c4="{8:f}" c5="{9:f}"'\
-                            ' />\n'.format(
+                            'class3="{2}" class4="{3}" c0="{4:.5f}" '\
+                            'c1="{5:.5f}"\n    c2="{6:.5f}" c3="{7:.5f}" '\
+                            'c4="{8:.5f}" c5="{9:.5f}" />\n'.format(
                             dit.iatp, dit.jatp, dit.katp, dit.latp,
                             c0, c1, c2, c3, c4, c5))            
                 f.write(' </RBTorsionForce>\n')
@@ -2008,17 +2009,10 @@ class system(object):
         self.writepdb()
 
     def writecharmm(self):
-        with open('field.prm', 'w') as f:
+        with open('field.str', 'w') as f:
             f.write('* created by fftool\n\n')
 
-            f.write('ATOMS\n')
-            types = []
-            for att in self.attype:
-                if att.type not in types:
-                    types.append(att.type)
-                    f.write('MASS  -1  {0:5s} {1:9.5f}\n'.format(
-                        att.type, att.m))
-            f.write('\n')
+            f.write('read rtf card append\n\n')
 
             for sp in self.spec:
                 f.write('RESI {0:s} {1:7.3f}\n'.format(sp.name, sp.charge()))
@@ -2029,16 +2023,28 @@ class system(object):
                 for bd in sp.bond:
                     f.write('BOND {0:5s} {1:5s}\n'.format(
                         sp.atom[bd.i].iname, sp.atom[bd.j].iname))
+                f.write('\n')
+            f.write('END\n\n')
+
+            f.write('read para card flex append\n\n')
+
+            f.write('ATOMS\n')
+            types = []
+            for att in self.attype:
+                if att.type not in types:
+                    types.append(att.type)
+                    f.write('MASS  -1  {0:5s} {1:9.5f}\n'.format(
+                        att.type, att.m))
             f.write('\n')
-            
-            f.write('NONBONDED e14fac 0.5 geom\n')
+
+            f.write('NONBONDED nbxmod 5 e14fac 0.5 geom\n')
             f.write('!atom  ignored  epsilon   Rmin/2   ignored  eps,1-4   '\
                     'Rmin/2,1-4\n')
             types = []
             for att in self.attype:
                 if att.type not in types:
                     types.append(att.type)
-                    rmin_2 = att.par[0] * 2.0**(1.0/6.0) / 2.0
+                    rmin_2 = (att.par[0] / 2.0) * 2.0**(1.0/6.0) 
                     f.write('{0:5s}  0.0    {1:9.5f} {2:9.5f}  0.0    '\
                             '{3:9.5f} {4:9.5f}\n'.format( att.type,
                             -att.par[1] / kCal, rmin_2,
@@ -2063,21 +2069,34 @@ class system(object):
             f.write('DIHEDRALS\n')
             f.write('!ai   aj    ak    al      kchi   n   delta\n')
             for dht in self.dhtype:
+                zero = True
                 for i in range(4):
                     if dht.par[i] != 0.0:
-                        #kchi = abs(dht.par[i]) / (2.0 * kCal)
+                        zero = False
+                        kchi = abs(dht.par[i]) / (2.0 * kCal)
                         kchi = dht.par[i] / (2.0 * kCal)
                         delta = (1 - (i + 1) % 2) * 180.0
-                        # if dht.par[i] < 0.0:
-                        #     delta += 180.0
-                        # if delta >= 360.0:
-                        #     delta -= 360.0
+                        if dht.par[i] < 0.0:
+                            delta += 180.0
+                        if delta >= 360.0:
+                            delta -= 360.0
                         f.write('{0:5s} {1:5s} {2:5s} {3:5s} {4:7.3f}  {5:1d}'\
                             ' {6:8.2f}\n'.format(dht.iatp, dht.jatp, dht.katp,
                             dht.latp, kchi, i + 1, delta))
+                if zero:
+                     f.write('{0:5s} {1:5s} {2:5s} {3:5s} {4:7.3f}  {5:1d}'\
+                        ' {6:8.2f}\n'.format(dht.iatp, dht.jatp, dht.katp,
+                        dht.latp, 0.0, 1, 0.0))
+
+            f.write('\n')
+
+            f.write('IMPROPER\n')
+            f.write('!ai   aj    ak    al      kchi   n   delta\n')
             for dit in self.ditype:
+                zero = True
                 for i in range(4):
                     if dit.par[i] != 0.0:
+                        zero = False
                         kchi = abs(dit.par[i]) / (2.0 * kCal)
                         delta = (1 - (i + 1) % 2) * 180.0
                         if dit.par[i] < 0.0:
@@ -2086,7 +2105,11 @@ class system(object):
                             delta -= 360.0
                         f.write('{0:5s} {1:5s} {2:5s} {3:5s} {4:7.3f}  {5:1d}'\
                             ' {6:8.2f}\n'.format(dit.iatp, dit.jatp, dit.katp,
-                            dit.latp, kchi, i + 1, delta))
+                            dit.latp, kchi, i + 1, delta))                    
+                if zero:
+                     f.write('{0:5s} {1:5s} {2:5s} {3:5s} {4:7.3f}  {5:1d}'\
+                        ' {6:8.2f}\n'.format(dht.iatp, dht.jatp, dht.katp,
+                        dht.latp, 0.0, 1, 0.0))
             f.write('\n')
             f.write('END\n')
 
@@ -2486,7 +2509,7 @@ def main():
                         help = 'create OpenMM files .xml .pdb '\
                         '(needs simbox.xyz created by Packmol)')
     parser.add_argument('--charmm', action = 'store_true',
-                        help = 'create CHARMM files .prm .psf .pdb '\
+                        help = 'create CHARMM files .str .psf .pdb '\
                         '(needs simbox.xyz created by Packmol)')
     parser.add_argument('-g', '--gmx', action = 'store_true',
                         help = 'create GROMACS files .top .gro .pdb '\
@@ -2584,7 +2607,7 @@ def main():
         sim.writexml(args.mix)
     if args.charmm:
         sim.readcoords('simbox.xyz')
-        print('charmm files\n  field.prm\n  data.psf\n  config.pdb')
+        print('charmm files\n  field.str\n  data.psf\n  config.pdb')
         sim.writecharmm()
     if args.gmx:
         sim.readcoords('simbox.xyz')
