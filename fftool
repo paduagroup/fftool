@@ -2073,13 +2073,8 @@ class system(object):
                 for i in range(4):
                     if dht.par[i] != 0.0:
                         zero = False
-                        kchi = abs(dht.par[i]) / (2.0 * kCal)
                         kchi = dht.par[i] / (2.0 * kCal)
-                        delta = (1 - (i + 1) % 2) * 180.0
-                        if dht.par[i] < 0.0:
-                            delta += 180.0
-                        if delta >= 360.0:
-                            delta -= 360.0
+                        delta = (i % 2) * 180.0        # 180 on V2 (i = 1) and V4 (i = 3)
                         f.write('{0:5s} {1:5s} {2:5s} {3:5s} {4:7.3f}  {5:1d}'\
                             ' {6:8.2f}\n'.format(dht.iatp, dht.jatp, dht.katp,
                             dht.latp, kchi, i + 1, delta))
@@ -2097,12 +2092,8 @@ class system(object):
                 for i in range(4):
                     if dit.par[i] != 0.0:
                         zero = False
-                        kchi = abs(dit.par[i]) / (2.0 * kCal)
-                        delta = (1 - (i + 1) % 2) * 180.0
-                        if dit.par[i] < 0.0:
-                            delta += 180.0
-                        if delta >= 360.0:
-                            delta -= 360.0
+                        kchi = dit.par[i] / (2.0 * kCal)
+                        delta = (i % 2) * 180.0
                         f.write('{0:5s} {1:5s} {2:5s} {3:5s} {4:7.3f}  {5:1d}'\
                             ' {6:8.2f}\n'.format(dit.iatp, dit.jatp, dit.katp,
                             dit.latp, kchi, i + 1, delta))                    
