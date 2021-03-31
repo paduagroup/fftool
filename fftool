@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2021/03/30
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2021/03/31
 # http://perso.ens-lyon.fr/agilio.padua
 
 # Copyright (C) 2013 Agilio Padua
@@ -79,7 +79,7 @@ def atomic_number(name):
 class vector(object):
     """minimal 3-vector"""
 
-    def __init__(self, x = 0.0, y = 0.0, z = 0.0):
+    def __init__(self, x=0.0, y=0.0, z=0.0):
         if isinstance(x, tuple) or isinstance(x, list):
             self.x, self.y, self.z = x
         else:
@@ -147,7 +147,7 @@ class vector(object):
 class atom(object):
     """atom in a molecule or in a force field"""
 
-    def __init__(self, name, m = 0.0):
+    def __init__(self, name, m=0.0):
         self.name = name
         self.iname = name                 # indexed name (unique)
         self.type = ''                    # atom type for bonded terms
@@ -179,7 +179,7 @@ class atom(object):
         self.par = par
 
 
-def dist2atoms(ati, atj, box = None):
+def dist2atoms(ati, atj, box=None):
     dx = atj.x - ati.x
     dy = atj.y - ati.y
     dz = atj.z - ati.z
@@ -207,7 +207,7 @@ def dist2atoms(ati, atj, box = None):
     return math.sqrt(dx*dx + dy*dy + dz*dz)
 
 
-def angle3atoms(ati, atj, atk, box = None):
+def angle3atoms(ati, atj, atk, box=None):
     djix = ati.x - atj.x
     djiy = ati.y - atj.y
     djiz = ati.z - atj.z    
@@ -253,7 +253,7 @@ def angle3atoms(ati, atj, atk, box = None):
 class bond(object):
     """covalent bond in a molecule or in a force field"""
 
-    def __init__(self, i = -1, j = -1, r = 0.0):
+    def __init__(self, i=-1, j=-1, r=0.0):
         self.i = i
         self.j = j
         self.r = r
@@ -303,7 +303,7 @@ class bond(object):
 class angle(object):
     """valence angle"""
 
-    def __init__(self, i = -1, j = -1, k = -1, theta = 0.0):
+    def __init__(self, i=-1, j=-1, k=-1, theta=0.0):
         self.i = i
         self.j = j
         self.k = k
@@ -357,7 +357,7 @@ class angle(object):
 class dihed(object):
     """dihedral angle (torsion)"""
 
-    def __init__(self, i = -1, j = -1, k = -1, l = -1, phi = 0.0):
+    def __init__(self, i=-1, j=-1, k=-1, l=-1, phi=0.0):
         self.i = i
         self.j = j
         self.k = k
@@ -547,7 +547,7 @@ class zmat(object):
 class mol(object):
     """molecule"""
 
-    def __init__(self, filename, connect = True, box = None):
+    def __init__(self, filename, connect=True, box=None):
         self.atom = []
         self.bond = []
         self.angle = []
@@ -804,7 +804,7 @@ class mol(object):
                 self.anglesdiheds()
         return self
                                 
-    def fromxyz(self, filename, connect = False, box = None):
+    def fromxyz(self, filename, connect=False, box=None):
         with open(filename, 'r') as f:
             natom = int(f.readline().strip())
             self.atom = [None] * natom
@@ -860,7 +860,7 @@ class mol(object):
                 self.topol = 'guess'
         return self
     
-    def connectivity(self, box = None):    
+    def connectivity(self, box=None):    
         """determine connectivity from bond distances in force field"""
 
         ff = forcefield(self.ff)
@@ -969,7 +969,7 @@ class mol(object):
         
         return self
     
-    def setff(self, box = None):
+    def setff(self, box=None):
         """set force field parameters"""
         
         if not self.ff:
@@ -1340,7 +1340,7 @@ class forcefield(object):
 class vdw(object):
     """van der Waals interaction"""        
     
-    def __init__(self, iat, jat, mix = 'g'):
+    def __init__(self, iat, jat, mix='g'):
         self.i = iat.name
         self.j = jat.name
         self.iatp = iat.type
@@ -1381,9 +1381,8 @@ class vdw(object):
 class cell(object):
     """Simulation cell/box, cubic, orthorhombic, monoclinic or triclinic"""
 
-    def __init__(self, a, b = 0.0, c = 0.0,
-                 alpha = 90.0, beta = 90.0, gamma = 90.0,
-                 pbc = '', center = False):
+    def __init__(self, a, b=0.0, c=0.0, alpha=90.0, beta=90.0, gamma=90.0,
+                 pbc='', center=False):
         self.a = a
         if b == 0.0:
             self.b = a
@@ -1463,7 +1462,7 @@ class plane():
 class system(object):
     """Molecular system to be simulated"""
 
-    def __init__(self, spec, box, mix = 'g'):
+    def __init__(self, spec, box, mix='g'):
         self.spec = spec                     # molecular species
         self.box = box
 
@@ -1531,7 +1530,7 @@ class system(object):
         for nb in self.vdw:
             print(nb)
 
-    def writepackmol(self, packfile, outfile, tol = 2.5, d = 0.0):
+    def writepackmol(self, packfile, outfile, tol=2.5, d=0.0):
         with open(packfile, 'w') as f:
             f.write("# created by fftool\n")
             f.write("tolerance {0:3.1f}\n".format(tol))
@@ -1596,7 +1595,7 @@ class system(object):
             print('error: coordinates file ' + filename + ' not found')
             sys.exit(1)
             
-    def writelmp(self, mix = 'g', allpairs = False, units = 'r'):
+    def writelmp(self, mix='g', allpairs=False, units='r'):
         natom = nbond = nangle = ndihed = 0
         for sp in self.spec:
             natom += sp.nmol * len(sp.atom)
@@ -1911,7 +1910,7 @@ class system(object):
 
             f.write('END\n')
 
-    def writexml(self):
+    def writexml(self, mix='g', allpairs='False'):
         natom = nbond = nangle = ndihed = 0
         for sp in self.spec:
             natom += sp.nmol * len(sp.atom)
@@ -1920,8 +1919,8 @@ class system(object):
             ndihed += sp.nmol * (len(sp.dihed) + len(sp.dimpr))
 
         with open('field.xml', 'w') as f:
+            f.write('<!-- created by fftool; mix = {0} -->\n'.format(mix))
             f.write('<ForceField>\n')
-            
             f.write(' <AtomTypes>\n')
             for att in self.attype:
                 f.write('  <Type name="{0}" class="{1}" element="{2}" '\
@@ -1993,38 +1992,46 @@ class system(object):
                             c0, c1, c2, c3, c4, c5))
                 f.write(' </RBTorsionForce>\n')
 
-            f.write(' <NonbondedForce coulomb14scale="0.5" lj14scale="0.5">\n')
-            for att in self.attype:
-                f.write('  <Atom type="{0}" charge="{1}" sigma="{2:.1f}" '\
-                        'epsilon="{3:.1f}"/>\n'.format(att.name, att.q,
-                        1.0, 0.0))
-            f.write(' </NonbondedForce>\n')
-            f.write(' <LennardJonesForce lj14scale="0.5">\n')
-            for att in self.attype:
-                f.write('  <Atom type="{0}" sigma="{1:.4f}" '\
+            if allpairs or mix == 'g':
+                f.write(' <NonbondedForce coulomb14scale="0.5" lj14scale="0.5">\n')
+                for att in self.attype:
+                    f.write('  <Atom type="{0}" charge="{1}" sigma="{2:.1f}" '\
+                            'epsilon="{3:.1f}"/>\n'.format(att.name, att.q,
+                            1.0, 0.0))
+                f.write(' </NonbondedForce>\n')
+                f.write(' <LennardJonesForce lj14scale="0.5">\n')
+                for att in self.attype:
+                    f.write('  <Atom type="{0}" sigma="{1:.4f}" '\
                         'epsilon="{2:.5f}"/>\n'.format(att.name,
                         att.par[0]/10.0, att.par[1]))
-            pairs = []
-            for nb in self.vdw:
-                if nb.i == nb.j:
-                    continue
-                ij = nb.i + '-' + nb.j
-                ji = nb.j + '-' + nb.i
-                if ij not in pairs and ji not in pairs:
-                    pairs.append(ij)
-                    rmin = nb.par[0] * 2.0**(1.0/6.0)
-                    f.write('  <NBFixPair type1="{0}" type2="{1}" '\
+                pairs = []
+                for nb in self.vdw:
+                    if nb.i == nb.j:
+                        continue
+                    ij = nb.i + '-' + nb.j
+                    ji = nb.j + '-' + nb.i
+                    if ij not in pairs and ji not in pairs:
+                        pairs.append(ij)
+                        rmin = nb.par[0] * 2.0**(1.0/6.0)
+                        f.write('  <NBFixPair type1="{0}" type2="{1}" '\
                             'sigma="{2:.8f}" epsilon="{3:.8f}"/>\n'.format(
                             nb.i, nb.j, nb.par[0] / 10.0, nb.par[1]))
-            f.write(' </LennardJonesForce>\n')
+                f.write(' </LennardJonesForce>\n')
+            else:
+                f.write(' <NonbondedForce coulomb14scale="0.5" lj14scale="0.5">\n')
+                for att in self.attype:
+                    f.write('  <Atom type="{0}" charge="{1}" sigma="{2:.4f}" '\
+                            'epsilon="{3:.5f}"/>\n'.format(att.name, att.q,
+                            att.par[0]/10.0, att.par[1]))
+                f.write(' </NonbondedForce>\n')
 
             f.write('</ForceField>\n')
 
         self.writepdb()
 
-    def writecharmm(self, allpairs = False):
+    def writecharmm(self, mix='g', allpairs=False):
         with open('field.str', 'w') as f:
-            f.write('* created by fftool\n\n')
+            f.write('* created by fftool; mix = {0}\n\n'.format(mix))
 
             f.write('read rtf card append\n\n')
 
@@ -2051,7 +2058,11 @@ class system(object):
                         att.type, att.m))
             f.write('\n')
 
-            f.write('NONBONDED nbxmod 5 e14fac 0.5 geom\n')
+            if mix == 'g':  # most likely geom is ignored
+                f.write('NONBONDED nbxmod 5 e14fac 0.5 geom\n')
+            else:
+                f.write('NONBONDED nbxmod 5 e14fac 0.5\n')
+
             f.write('!atom  ignored  epsilon   Rmin/2   ignored  eps,1-4   '\
                     'Rmin/2,1-4\n')
             types = []
@@ -2065,7 +2076,7 @@ class system(object):
                             -att.par[1] / (2 * kCal), rmin_2))
             f.write('\n')
 
-            if (allpairs):
+            if allpairs or mix == 'g':
                 f.write('NBFIX\n')
                 f.write('!ai   aj      epsilon   Rmin      eps,1-4   Rmin,1-4\n')
                 pairs = []
@@ -2139,9 +2150,9 @@ class system(object):
         self.writepsf()
         self.writepdb()
         
-    def writegmx(self, mix = 'g'):
+    def writegmx(self, mix='g'):
         with open('field.top', 'w') as f:
-            f.write('! created by fftool\n\n')
+            f.write('! created by fftool; mix = {0}\n\n'.format(mix))
             
             f.write('[ defaults ]\n')
             if mix == 'g':
@@ -2293,7 +2304,7 @@ class system(object):
             f.write('constraint-algorithm  = LINCS\n')
             f.write('continuation          = no\n\n')
             
-    def writedlp(self, cos4 = False):
+    def writedlp(self, cos4=False):
         with open('FIELD', 'w') as f:
             f.write('created by fftool\n')
             f.write('units kJ\n\n')
@@ -2552,7 +2563,7 @@ def main():
         files = args.infiles
     else:
         nmols = args.infiles[::2]   # even elements are numbers of molecules
-        files = args.infiles[1::2]  # odd elements are zmat files
+        files = args.infiles[1::2]  # odd elements are molecule files
     nmol = sum(int(n) for n in nmols)
 
     if args.box and args.rho != 0.0:
@@ -2626,11 +2637,11 @@ def main():
     if args.xml:
         sim.readcoords('simbox.xyz')
         print('xml files\n  field.xml\n  config.pdb')
-        sim.writexml()
+        sim.writexml(args.mix, args.allpairs)
     if args.charmm:
         sim.readcoords('simbox.xyz')
         print('charmm files\n  field.str\n  data.psf\n  config.pdb')
-        sim.writecharmm(args.allpairs)
+        sim.writecharmm(args.mix, args.allpairs)
     if args.gmx:
         sim.readcoords('simbox.xyz')
         print('gromacs files\n  run.mdp\n  field.top\n  config.pdb')
