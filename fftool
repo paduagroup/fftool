@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2021/03/31
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2021/04/02
 # http://perso.ens-lyon.fr/agilio.padua
 
 # Copyright (C) 2013 Agilio Padua
@@ -615,9 +615,6 @@ class mol(object):
                     else:
                         s = ''
                     at.iname = at.name + s
-                    if len(at.iname) > 4:
-                        print('  warning: atom name ' + at.iname +
-                              ' too long for pdb in ' + self.name)
                     break
     
     def fromzmat(self, filename, connect):
@@ -842,14 +839,12 @@ class mol(object):
                         self.ff = tok[2]
                 line = f.readline()
             self.atom = []
-            i = 0
             while line[0:6] == 'HETATM' or line[0:6] == 'ATOM  ':
                 atname = line[12:16].strip()
                 self.atom.append(atom(atname))
-                self.atom[i].x = float(line[30:38])
-                self.atom[i].y = float(line[38:46])
-                self.atom[i].z = float(line[46:54])
-                i += 1
+                self.atom[-1].x = float(line[30:38])
+                self.atom[-1].y = float(line[38:46])
+                self.atom[-1].z = float(line[46:54])
                 line = f.readline()
         if connect and self.ff:           # TODO read conect
             self.connectivity(box)
@@ -1215,9 +1210,12 @@ class mol(object):
                 f.write('REMARK    ' + self.ff + '\n')
             i = 1
             for at in self.atom:
+                if len(at.name) > 4:
+                    print('warning: atom name ' + at.name +
+                        ' too long for pdb in ' + self.name)
                 f.write('HETATM{0:5d} {1:4s} {2:3s}  {3:4d}    '\
                         '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00'\
-                        '          {7:2s}\n'.format(i, at.name,
+                        '          {7:2s}\n'.format(i, at.name[:4],
                         self.name[:3], 1, at.x, at.y, at.z,
                         atomic_symbol(at.name)))
                 i += 1
@@ -1884,6 +1882,9 @@ class system(object):
                 for im in range(sp.nmol):
                     j = 1
                     for at in sp.atom:
+                        if len(at.iname) > 4:
+                            print('warning: atom name ' + at.iname +
+                                ' too long for pdb in ' + sp.name)
                         f.write('HETATM{0:5d} {1:4s} {2:3s}  {3:4d}    '\
                                 '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00'\
                                 '          {7:2s}\n'.format(i + 1,
