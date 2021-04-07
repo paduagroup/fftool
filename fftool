@@ -1942,7 +1942,7 @@ class system(object):
 
             f.write(' <Residues>\n')
             for sp in self.spec:
-                f.write('  <Residue name="{0}">\n'.format(sp.res))
+                f.write('  <Residue name="{0}">\n'.format(sp.name))
                 for at in sp.atom:
                     f.write('   <Atom name="{0}" type="{1}" charge="{2}" '\
                         '/>\n'.format(at.uname, at.utype, at.q))
@@ -2052,7 +2052,7 @@ class system(object):
             f.write('read rtf card append\n\n')
 
             for sp in self.spec:
-                f.write('RESI {0:s} {1:7.3f}\n'.format(sp.res, sp.charge()))
+                f.write('RESI {0:s} {1:7.3f}\n'.format(sp.name, sp.charge()))
                 f.write('GROUP\n')
                 for at in sp.atom:
                     f.write('ATOM {0:5s} {1:5s} {2:7.3f}\n'.format(
