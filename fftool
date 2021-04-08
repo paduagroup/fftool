@@ -2005,36 +2005,50 @@ class system(object):
                 f.write(' </RBTorsionForce>\n')
 
             if allpairs or mix == 'g':
+
                 f.write(' <NonbondedForce coulomb14scale="0.5" lj14scale="0.5">\n')
                 f.write('  <UseAttributeFromResidue name="charge" />\n')
-                for att in self.attype:
-                    f.write('  <Atom class="{0}" sigma="1.0" epsilon="0.0" '\
-                            '/>\n'.format(att.type))
+                for sp in self.spec:
+                    for at in sp.atom:
+                        f.write('  <Atom type="{0}" sigma="1.0" epsilon="0.0" '\
+                            '/>\n'.format(at.utype))
                 f.write(' </NonbondedForce>\n')
                 f.write(' <LennardJonesForce lj14scale="0.5">\n')
-                for att in self.attype:
-                    f.write('  <Atom class="{0}" sigma="{1:.4f}" '\
-                        'epsilon="{2:.5f}" />\n'.format(att.type,
-                        att.par[0]/10.0, att.par[1]))
+                for sp in self.spec:
+                    for at in sp.atom:
+                        f.write('  <Atom type="{0}" sigma="{1:.4f}" '\
+                            'epsilon="{2:.5f}" />\n'.format(at.utype,
+                            at.par[0]/10.0, at.par[1]))
+
                 pairs = []
-                for nb in self.vdw:
-                    if nb.iatp == nb.jatp:
-                        continue
-                    ij = nb.iatp + '-' + nb.jatp
-                    ji = nb.jatp + '-' + nb.iatp
-                    if ij not in pairs and ji not in pairs:
-                        pairs.append(ij)
-                        f.write('  <NBFixPair class1="{0}" class2="{1}" '\
-                            'sigma="{2:.8f}" epsilon="{3:.8f}" />\n'.format(
-                            nb.iatp, nb.jatp, nb.par[0] / 10.0, nb.par[1]))
+                for spi in self.spec:
+                    for ati in spi.atom:
+                        for spj in self.spec:
+                            for atj in spj.atom:
+                                if ati.utype == atj.utype:
+                                    continue
+                                ij = ati.utype + '-' + atj.utype
+                                ji = atj.utype + '-' + ati.utype
+                                if ij not in pairs and ji not in pairs:
+                                    pairs.append(ij)
+                                else:
+                                    continue
+                                for nb in self.vdw:
+                                    if nb.iatp == ati.type and nb.jatp == atj.type or\
+                                       nb.jatp == ati.type and nb.iatp == atj.type:
+                                        break
+                                f.write('  <NBFixPair type1="{0}" type2="{1}" '\
+                                    'sigma="{2:.8f}" epsilon="{3:.8f}" />\n'.format(
+                                    ati.utype, atj.utype,
+                                    nb.par[0] / 10.0, nb.par[1]))
                 f.write(' </LennardJonesForce>\n')
             else:
                 f.write(' <NonbondedForce coulomb14scale="0.5" lj14scale="0.5">\n')
                 f.write('  <UseAttributeFromResidue name="charge" />\n')
-                for att in self.attype:
-                    f.write('  <Atom class="{0}" sigma="{1:.4f}" '\
-                            'epsilon="{2:.5f}" />\n'.format(att.name,
-                            att.par[0]/10.0, att.par[1]))
+                for sp in self.spec:
+                    for at in sp.atom:
+                        f.write('  <Atom type="{0}" sigma="{2:.4f}" epsilon="{3:.5f}"'\
+                            ' />\n'.format(at.utype, at.par[0]/10.0, at.par[1]))
                 f.write(' </NonbondedForce>\n')
 
             f.write('</ForceField>\n')
@@ -2097,8 +2111,6 @@ class system(object):
                 f.write('!ai   aj      epsilon   Rmin      eps,1-4   Rmin,1-4\n')
                 pairs = []
                 for nb in self.vdw:
-                    #if nb.iatp == nb.jatp:
-                    #    continue
                     ij = nb.iatp + '-' + nb.jatp
                     ji = nb.jatp + '-' + nb.iatp
                     if ij not in pairs and ji not in pairs:
