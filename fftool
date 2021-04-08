@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2021/04/07
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2021/04/08
 # http://perso.ens-lyon.fr/agilio.padua
 
 # Copyright (C) 2013 Agilio Padua
@@ -1918,7 +1918,7 @@ class system(object):
                 raise RuntimeError('duplicate residues ' + sp.res)
 
 
-    def writexml(self, mix='g', allpairs='False'):
+    def writexml(self, mix='g', allpairs='False', types='False'):
 
         self.checkdupresidues()
 
@@ -2008,47 +2008,75 @@ class system(object):
 
                 f.write(' <NonbondedForce coulomb14scale="0.5" lj14scale="0.5">\n')
                 f.write('  <UseAttributeFromResidue name="charge" />\n')
-                for sp in self.spec:
-                    for at in sp.atom:
-                        f.write('  <Atom type="{0}" sigma="1.0" epsilon="0.0" '\
-                            '/>\n'.format(at.utype))
+                if types:
+                    for sp in self.spec:
+                        for at in sp.atom:
+                            f.write('  <Atom type="{0}" sigma="1.0" epsilon="0.0" '\
+                                '/>\n'.format(at.utype))
+                else:
+                    for att in self.attype:
+                        f.write('  <Atom class="{0}" sigma="1.0" epsilon="0.0" '\
+                            '/>\n'.format(att.type))
+
                 f.write(' </NonbondedForce>\n')
                 f.write(' <LennardJonesForce lj14scale="0.5">\n')
-                for sp in self.spec:
-                    for at in sp.atom:
-                        f.write('  <Atom type="{0}" sigma="{1:.4f}" '\
-                            'epsilon="{2:.5f}" />\n'.format(at.utype,
-                            at.par[0]/10.0, at.par[1]))
-
-                pairs = []
-                for spi in self.spec:
-                    for ati in spi.atom:
-                        for spj in self.spec:
-                            for atj in spj.atom:
-                                if ati.utype == atj.utype:
-                                    continue
-                                ij = ati.utype + '-' + atj.utype
-                                ji = atj.utype + '-' + ati.utype
-                                if ij not in pairs and ji not in pairs:
-                                    pairs.append(ij)
-                                else:
-                                    continue
-                                for nb in self.vdw:
-                                    if nb.iatp == ati.type and nb.jatp == atj.type or\
-                                       nb.jatp == ati.type and nb.iatp == atj.type:
-                                        break
-                                f.write('  <NBFixPair type1="{0}" type2="{1}" '\
-                                    'sigma="{2:.8f}" epsilon="{3:.8f}" />\n'.format(
-                                    ati.utype, atj.utype,
-                                    nb.par[0] / 10.0, nb.par[1]))
+                if types:
+                    for sp in self.spec:
+                        for at in sp.atom:
+                            f.write('  <Atom type="{0}" sigma="{1:.4f}" '\
+                                'epsilon="{2:.5f}" />\n'.format(at.utype,
+                                at.par[0]/10.0, at.par[1]))
+                    pairs = []
+                    for spi in self.spec:
+                        for ati in spi.atom:
+                            for spj in self.spec:
+                                for atj in spj.atom:
+                                    if ati.utype == atj.utype:
+                                        continue
+                                    ij = ati.utype + '-' + atj.utype
+                                    ji = atj.utype + '-' + ati.utype
+                                    if ij not in pairs and ji not in pairs:
+                                        pairs.append(ij)
+                                    else:
+                                        continue
+                                    for nb in self.vdw:
+                                        if nb.iatp == ati.type and nb.jatp == atj.type or\
+                                        nb.jatp == ati.type and nb.iatp == atj.type:
+                                            break
+                                    f.write('  <NBFixPair type1="{0}" type2="{1}" '\
+                                        'sigma="{2:.8f}" epsilon="{3:.8f}" />\n'.format(
+                                        ati.utype, atj.utype,
+                                        nb.par[0] / 10.0, nb.par[1]))
+                else:
+                    for att in self.attype:
+                        f.write('  <Atom class="{0}" sigma="{1:.4f}" '\
+                            'epsilon="{2:.5f}" />\n'.format(att.type,
+                            att.par[0]/10.0, att.par[1]))
+                    pairs = []
+                    for nb in self.vdw:
+                        if nb.iatp == nb.jatp:
+                            continue
+                        ij = nb.iatp + '-' + nb.jatp
+                        ji = nb.jatp + '-' + nb.iatp
+                        if ij not in pairs and ji not in pairs:
+                            pairs.append(ij)
+                            f.write('  <NBFixPair class1="{0}" class2="{1}" '\
+                                'sigma="{2:.8f}" epsilon="{3:.8f}" />\n'.format(
+                                nb.iatp, nb.jatp, nb.par[0] / 10.0, nb.par[1]))
                 f.write(' </LennardJonesForce>\n')
             else:
                 f.write(' <NonbondedForce coulomb14scale="0.5" lj14scale="0.5">\n')
                 f.write('  <UseAttributeFromResidue name="charge" />\n')
-                for sp in self.spec:
-                    for at in sp.atom:
-                        f.write('  <Atom type="{0}" sigma="{2:.4f}" epsilon="{3:.5f}"'\
-                            ' />\n'.format(at.utype, at.par[0]/10.0, at.par[1]))
+                if types:
+                    for sp in self.spec:
+                        for at in sp.atom:
+                            f.write('  <Atom type="{0}" sigma="{2:.4f}" epsilon="{3:.5f}"'\
+                                ' />\n'.format(at.utype, at.par[0]/10.0, at.par[1]))
+                else:
+                    for att in self.attype:
+                        f.write('  <Atom class="{0}" sigma="{1:.4f}" '\
+                            'epsilon="{2:.5f}" />\n'.format(att.name,
+                            att.par[0]/10.0, att.par[1]))                    
                 f.write(' </NonbondedForce>\n')
 
             f.write('</ForceField>\n')
@@ -2573,6 +2601,8 @@ def main():
     parser.add_argument('-x', '--xml', action = 'store_true',
                         help = 'create OpenMM files .xml .pdb '\
                         '(needs simbox.xyz created by Packmol)')
+    parser.add_argument('--types', action='store_true',
+                        help='unique atom types for non-bonded pairs in xml')
     parser.add_argument('--charmm', action = 'store_true',
                         help = 'create CHARMM files .str .psf .pdb '\
                         '(needs simbox.xyz created by Packmol)')
@@ -2665,7 +2695,7 @@ def main():
     if args.xml:
         sim.readcoords('simbox.xyz')
         print('xml files\n  field.xml\n  config.pdb')
-        sim.writexml(args.mix, args.allpairs)
+        sim.writexml(args.mix, args.allpairs, args.types)
     if args.charmm:
         sim.readcoords('simbox.xyz')
         print('charmm files\n  field.str\n  data.psf\n  config.pdb')
