@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2021/04/08
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2021/04/11
 # http://perso.ens-lyon.fr/agilio.padua
 
 # Copyright (C) 2013 Agilio Padua
@@ -190,6 +190,7 @@ class atom(object):
             return 'atom {:5s}  m = {:7.3f}'.format(self.name, self.m)
 
     def setpar(self, attp, q, pot, par):
+        '''set atom parameters'''
         self.type = attp
         self.q = q
         self.pot = pot
@@ -197,6 +198,7 @@ class atom(object):
 
 
 def dist2atoms(ati, atj, box=None):
+    '''compute distance btween two atoms handling pbc'''
     dx = atj.x - ati.x
     dy = atj.y - ati.y
     dz = atj.z - ati.z
@@ -225,6 +227,7 @@ def dist2atoms(ati, atj, box=None):
 
 
 def angle3atoms(ati, atj, atk, box=None):
+    '''compute angle formed by three atoms handling pbc'''
     djix = ati.x - atj.x
     djiy = ati.y - atj.y
     djiz = ati.z - atj.z    
@@ -288,6 +291,7 @@ class bond(object):
             return 'bond {:5d} {:5d}'.format(self.i + 1, self.j + 1)
 
     def setpar(self, iatp, jatp, pot, par):
+        '''set bond parameters'''
         self.name = '{}-{}'.format(iatp, jatp)
         self.iatp = iatp
         self.jatp = jatp
@@ -295,6 +299,7 @@ class bond(object):
         self.par = par
 
     def seteqval(self):
+        '''set bond equilibrium length'''
         if not hasattr(self, 'name'):
             raise RuntimeError('bond parameters not set')
         if self.pot == 'harm':
@@ -305,6 +310,7 @@ class bond(object):
             raise ValueError('unkown bond potential ' + self.pot)
 
     def checkval(self, r):
+        '''check if bond distance is close to force field value'''
         if not hasattr(self, 'eqval'):
             raise RuntimeError('bond equilibrium value not set')
         delta = abs(r - self.eqval)
@@ -338,6 +344,7 @@ class angle(object):
                                                     self.k + 1)
 
     def setpar(self, iatp, jatp, katp, pot, par):
+        '''set angle parameters'''
         self.name = '{0}-{1}-{2}'.format(iatp, jatp, katp)
         self.iatp = iatp
         self.jatp = jatp
@@ -346,6 +353,7 @@ class angle(object):
         self.par = par
 
     def seteqval(self):
+        '''set angle equilibrium value'''
         if not hasattr(self, 'name'):
             raise RuntimeError('angle parameters not set')
         if self.pot == 'harm':
@@ -356,6 +364,7 @@ class angle(object):
             raise ValueError('unkown angle potential ' + self.pot)
 
     def checkval(self, th):
+        '''check if angle value is close to force field value'''
         if not hasattr(self, 'eqval'):
             raise RuntimeError('angle equilibrium value not set')
         delta = abs(th - self.eqval)
@@ -390,6 +399,7 @@ class dihed(object):
                     self.j + 1, self.k + 1, self.l + 1)
 
     def setpar(self, iatp, jatp, katp, latp, pot, par):
+        '''set dihedral parameters'''
         self.name = '{}-{}-{}-{}'.format(iatp, jatp, katp, latp)
         self.iatp = iatp
         self.jatp = jatp
@@ -400,7 +410,7 @@ class dihed(object):
 
 
 class dimpr(dihed):
-    '''dihedral angle (improper)'''
+    '''improper dihedral angle'''
     
     def __str__(self):
         if hasattr(self, 'name'):
@@ -502,7 +512,7 @@ class zmat(object):
                     line = f.readline()
                         
             # read connects, improper, force field file
-            self.ff = ''
+            self.ffile = None
             self.guessconnect = False
             while line:
                 if line.strip().startswith('#') or line.strip() == '':
@@ -522,10 +532,11 @@ class zmat(object):
                     atoml = int(tok[4])
                     self.improper.append([atomi, atomj, atomk, atoml])
                 else:
-                    self.ff = tok[0]
+                    self.ffile = tok[0]
                 line = f.readline()
                             
     def show(self):
+        '''show z-matrix object'''
         print(self.name)
         i = 0
         for rec in self.zatom:
@@ -548,8 +559,8 @@ class zmat(object):
                 print('{:3d} ({:5}) -- {:3d} ({:5s})'.format(
                     c[0], self.zatom[c[0]-1]['name'],
                     c[1], self.zatom[c[1]-1]['name']))
-        if self.ff:
-            print('field: ' + self.ff)
+        if self.ffile:
+            print('force field: ' + self.ffile)
 
 
 # --------------------------------------
@@ -566,6 +577,8 @@ class mol(object):
         self.dimpr = []
         self.m = 0
         self.nmol = 0
+        self.ffile = None
+        self.ff = None
         self.topol = 'none'
         
         with open(filename, 'r'):
@@ -593,6 +606,7 @@ class mol(object):
             len(self.atom), self.m)
             
     def charge(self):
+        '''calculate molecule charge from atom partial charges'''
         q = 0.0
         for at in self.atom:
             q += at.q
@@ -618,7 +632,7 @@ class mol(object):
 
     def indexatomtypes(self):
         '''
-        set unique atom types for OpenMM using residue name
+        set unique atom types for OpenMM using residue name:
         RES-ATOM-# where # is a serial number
         '''
         names = []
@@ -646,15 +660,17 @@ class mol(object):
                     break
 
     def fromzmat(self, filename, connect):
+        '''read molecule feom z-matrix file'''
+
         z = zmat(filename)
         self.name = z.name
         self.guessconnect = z.guessconnect
-        self.ff = z.ff
+        self.ffile = z.ffile
         for zat in z.zatom:
             self.atom.append(atom(zat['name']))
             self.m += atomic_weight(zat['name'])
         self.zmat2cart(z)
-        if connect and self.ff:          # topology only if ff defined
+        if connect and self.ffile:          # topology only if ff defined
             if not self.guessconnect:
                 for i in range(1, len(z.zatom)):
                     self.bond.append(bond(i, z.zatom[i]['ir'] - 1))
@@ -670,6 +686,8 @@ class mol(object):
         return self
     
     def zmat2cart(self, z):
+        '''convert z-matrix to cartesian coordinates'''
+
         natom = len(self.atom)    
         if natom != len(z.zatom):
             raise RuntimeError('different numbers of atoms in zmat ' + self.name)
@@ -784,22 +802,24 @@ class mol(object):
         return self
     
     def frommdlmol(self, filename, connect):
+        '''reda molecule from MDL mol file'''
+
         with open(filename, 'r') as f:
             tok = f.readline().strip().split()
             self.name = tok[0]            # molecule name
             self.guessconnect = False
             if len(tok) > 1:              # and eventually ff file
-                self.ff = tok[1]
+                self.ffile = tok[1]
                 if len(tok) > 2:
                     if tok[2].startswith('rec'):
                         self.guessconnect = True
             else:
-                self.ff = ''
+                self.ffile = None
             f.readline()                  # program/date info
             line = f.readline().strip()   # comment (eventually ff file)
-            if line and not line.startswith('#') and not self.ff:
+            if line and not line.startswith('#') and not self.ffile:
                 tok = line.split()
-                self.ff = tok[0]
+                self.ffile = tok[0]
                 if len(tok) > 1:
                     if tok[1].startswith('rec'):
                         self.guessconnect = True
@@ -813,7 +833,7 @@ class mol(object):
                 self.atom[i].x = float(tok[0])
                 self.atom[i].y = float(tok[1])
                 self.atom[i].z = float(tok[2])
-            if connect and self.ff:      # topology only if ff defined
+            if connect and self.ffile:      # topology only if ff defined
                 if not self.guessconnect:
                     self.bond = [None] * nbond
                     for k in range(nbond):
@@ -829,22 +849,24 @@ class mol(object):
         return self
                                 
     def fromxyz(self, filename, connect=False, box=None):
+        '''read molecule from xyz file'''
+
         with open(filename, 'r') as f:
             natom = int(f.readline().strip())
             self.atom = [None] * natom
             tok = f.readline().strip().split()
             self.name = tok[0]            # molecule name
             if len(tok) > 1:              # and eventually ff file
-                self.ff = tok[-1]
+                self.ffile = tok[-1]
             else:
-                self.ff = ''
+                self.ffile = None
             for i in range(natom):
                 tok = f.readline().strip().split()
                 self.atom[i] = atom(tok[0])
                 self.atom[i].x = float(tok[1])
                 self.atom[i].y = float(tok[2])
                 self.atom[i].z = float(tok[3])
-        if connect and self.ff:
+        if connect and self.ffile:
             self.connectivity(box)
             self.anglesdiheds()
             if isinstance(box, cell) and box.pbc:
@@ -854,16 +876,18 @@ class mol(object):
         return self
 
     def frompdb(self, filename, connect = False, box = None):
+        '''read molecule from pdb file'''
+
         with open(filename, 'r') as f:
             self.name = ''
-            self.ff = ''
+            self.ffile = None
             line = f.readline()
             while not (line.startswith('HETATM') or line.startswith('ATOM  ')):
                 if line.startswith('COMPND'):
                     tok = line.strip().split()
                     self.name = tok[1]
                     if len(tok) >= 3: 
-                        self.ff = tok[2]
+                        self.ffile = tok[2]
                 line = f.readline()
             self.atom = []
             while line[0:6] == 'HETATM' or line[0:6] == 'ATOM  ':
@@ -873,7 +897,7 @@ class mol(object):
                 self.atom[-1].y = float(line[38:46])
                 self.atom[-1].z = float(line[46:54])
                 line = f.readline()
-        if connect and self.ff:           # TODO read conect
+        if connect and self.ffile:           # TODO read conect
             self.connectivity(box)
             self.anglesdiheds()
             if isinstance(box, cell) and box.pbc:
@@ -885,11 +909,11 @@ class mol(object):
     def connectivity(self, box=None):    
         '''determine connectivity from bond distances in force field'''
 
-        ff = forcefield(self.ff)
+        self.ff = forcefield(self.ffile)
         error = False
         for at in self.atom:
             found = False
-            for ffat in ff.atom:     
+            for ffat in self.ff.atom:     
                 if at.name == ffat.name:
                     at.type = ffat.type
                     found = True
@@ -906,7 +930,7 @@ class mol(object):
                 r = dist2atoms(self.atom[i], self.atom[j], box)
                 names = ['{}-{}'.format(self.atom[i].type, self.atom[j].type),
                          '{}-{}'.format(self.atom[j].type, self.atom[i].type)]
-                for ffbd in ff.bond:
+                for ffbd in self.ff.bond:
                     nameff = '{}-{}'.format(ffbd.iatp, ffbd.jatp)
                     if nameff in names:
                         if ffbd.checkval(r):
@@ -992,22 +1016,24 @@ class mol(object):
     def setff(self, box=None):
         '''set force field parameters'''
         
-        if not self.ff:
+        if not self.ffile:
+            print('  warning: no force field for ' + self.name)
             for at in self.atom:
                 at.setpar(at.name, 0.0, 'lj', [0.0, 0.0])
             return self
         
-        ff = forcefield(self.ff)
+        if not self.ff:
+            self.ff = forcefield(self.ffile)
 
         error = False
         # identify atom types and set parameters
         for at in self.atom:
             found = False
-            for ffat in ff.atom:     
+            for ffat in self.ff.atom:     
                 if at.name == ffat.name:
                     if found:
                         print('  warning: duplicate atom ' + at.name + ' in ' +
-                              self.ff)
+                              self.ffile)
                     at.setpar(ffat.type, ffat.q, ffat.pot, ffat.par)
                     at.m = ffat.m
                     found = True
@@ -1025,7 +1051,7 @@ class mol(object):
             names = [ '{}-{}'.format(ti, tj), '{}-{}'.format(tj, ti) ]
             r = dist2atoms(self.atom[bd.i], self.atom[bd.j], box)
             found = False
-            for ffbd in ff.bond:
+            for ffbd in self.ff.bond:
                 nameff = '{}-{}'.format(ffbd.iatp, ffbd.jatp)
                 if nameff in names:
                     bd.setpar(ffbd.iatp, ffbd.jatp, ffbd.pot, ffbd.par)
@@ -1035,7 +1061,7 @@ class mol(object):
                             bd.i + 1, bd.j + 1, r))
                     if found:
                         print('  warning: duplicate bond ' + bd.name + ' in ' +
-                              self.ff)
+                              self.ffile)
                     found = True
             if not found:
                 print('  error in ' + self.name + ': no parameters for bond ' +
@@ -1059,7 +1085,7 @@ class mol(object):
                              box)
             found = False
             check = True
-            for ffan in ff.angle:
+            for ffan in self.ff.angle:
                 nameff = '{}-{}-{}'.format(ffan.iatp, ffan.jatp, ffan.katp)
                 if nameff in names:
                     an.setpar(ffan.iatp, ffan.jatp, ffan.katp,
@@ -1068,7 +1094,7 @@ class mol(object):
                         check = False
                     if found:
                         print('  warning: duplicate angle {} in {}'.format(
-                            an.name, self.ff))
+                            an.name, self.ffile))
                     found = True
             if not check:
                 toremove.append(an)
@@ -1091,7 +1117,7 @@ class mol(object):
             names = [ '{}-{}-{}-{}'.format(ti, tj, tk, tl),
                       '{}-{}-{}-{}'.format(tl, tk, tj, ti) ]
             found = False
-            for ffdh in ff.dihed:
+            for ffdh in self.ff.dihed:
                 nameff = '{}-{}-{}-{}'.format(ffdh.iatp, ffdh.jatp, ffdh.katp,
                     ffdh.latp)
                 if nameff in names:
@@ -1099,7 +1125,7 @@ class mol(object):
                               ffdh.pot, ffdh.par)
                     if found:
                         print('  warning: duplicate dihedral {} in {}'.format(
-                            dh.name, self.ff))
+                            dh.name, self.ffile))
                     found = True
             if not found:
                 toremove.append(dh)
@@ -1121,7 +1147,7 @@ class mol(object):
                       '{}-{}-{}-{}'.format(tj, tl, tk, ti),
                       '{}-{}-{}-{}'.format(tl, tj, tk, ti) ]
             found = False
-            for ffdi in ff.dimpr:
+            for ffdi in self.ff.dimpr:
                 nameff = '{}-{}-{}-{}'.format(ffdi.iatp, ffdi.jatp, ffdi.katp,
                     ffdi.latp)
                 if nameff in names:
@@ -1146,7 +1172,7 @@ class mol(object):
                               ffdi.pot, ffdi.par)
                     if found:
                         print('  warning: duplicate improper {} in {}'.format(
-                            di.name, self.ff))
+                            di.name, self.ffile))
                     found = True
             if not found:
                 toremove.append(di)
@@ -1183,13 +1209,13 @@ class mol(object):
         print('{:d} improper'.format(len(self.dimpr)))
         for di in self.dimpr:
             print(di)
-        if self.ff:
-            print('field: ' + self.ff)
+        if self.ffile:
+            print('field: ' + self.ffile)
 
     def showxyz(self, symbol = False):
         print(len(self.atom))
-        if self.ff:
-            print(self.name + ' ' + self.ff)
+        if self.ffile:
+            print(self.name + ' ' + self.ffile)
         else:
             print(self.name)
         for at in self.atom:
@@ -1204,8 +1230,8 @@ class mol(object):
         outfile = (self.filename).rsplit('.', 1)[0] + '_pack.xyz'
         with open(outfile, 'w') as f:
             f.write(str(len(self.atom)) + '\n')
-            if self.ff:
-                f.write(self.name + ' ' + self.ff + '\n')
+            if self.ffile:
+                f.write(self.name + ' ' + self.ffile + '\n')
             else:
                 f.write(self.name + '\n')
             for at in self.atom:
@@ -1218,8 +1244,8 @@ class mol(object):
 
     def showpdb(self):
         print('COMPND    ' + self.name)
-        if self.ff:
-            print('REMARK    ' + self.ff)
+        if self.ffile:
+            print('REMARK    ' + self.ffile)
         i = 1
         for at in self.atom:
             print('HETATM{0:5d} {1:4s} {2:3s}  {3:4d}    '\
@@ -1234,8 +1260,8 @@ class mol(object):
         outfile = (self.filename).rsplit('.', 1)[0] + '.pdb'
         with open(outfile, 'w') as f:
             f.write('COMPND    ' + self.name + '\n')
-            if self.ff:
-                f.write('REMARK    ' + self.ff + '\n')
+            if self.ffile:
+                f.write('REMARK    ' + self.ffile + '\n')
             i = 1
             for at in self.atom:
                 if len(at.name) > 4:
@@ -1264,75 +1290,74 @@ class forcefield(object):
         self.dihed = []
         self.dimpr = []
 
-        with open(filename, 'r') as f:
-            i = ib = ia = ih = im = 0
-            for line in f:
-                if line.startswith('#') or line.strip() == '':
-                    continue
-            
-                if line.lower().startswith('atom'):
-                    section = 'atoms'
-                    continue
-                elif line.lower().startswith('bond'):
-                    section = 'bonds'
-                    continue
-                elif line.lower().startswith('angl'):
-                    section = 'angles'
-                    continue
-                elif line.lower().startswith('dihe'):
-                    section = 'dihedrals'
-                    continue
-                elif line.lower().startswith('impro'):
-                    section = 'improper'
-                    continue
-                tok = line.strip().split()
-                if section == 'atoms':
-                    name = tok[0]
-                    attp = tok[1]
-                    m = float(tok[2])
-                    q = float(tok[3])
-                    pot = tok[4]
-                    par = [float(p) for p in tok[5:]]
-                    self.atom.append(atom(name, m))
-                    self.atom[i].setpar(attp, q, pot, par)
-                    i += 1
-                elif section == 'bonds':
-                    iatp = tok[0]
-                    jatp = tok[1]
-                    pot = tok[2]
-                    par = [float(p) for p in tok[3:]]
-                    self.bond.append(bond())
-                    self.bond[ib].setpar(iatp, jatp, pot, par)
-                    ib += 1
-                elif section == 'angles':
-                    iatp = tok[0]
-                    jatp = tok[1]
-                    katp = tok[2]
-                    pot = tok[3]
-                    par = [float(p) for p in tok[4:]]
-                    self.angle.append(angle())
-                    self.angle[ia].setpar(iatp, jatp, katp, pot, par)
-                    ia += 1
-                elif section == 'dihedrals':
-                    iatp = tok[0]
-                    jatp = tok[1]
-                    katp = tok[2]
-                    latp = tok[3]
-                    pot = tok[4]
-                    par = [float(p) for p in tok[5:]]
-                    self.dihed.append(dihed())
-                    self.dihed[ih].setpar(iatp, jatp, katp, latp, pot, par)
-                    ih += 1
-                elif section == 'improper':
-                    iatp = tok[0]
-                    jatp = tok[1]
-                    katp = tok[2]
-                    latp = tok[3]
-                    pot = tok[4]
-                    par = [float(p) for p in tok[5:]]
-                    self.dimpr.append(dimpr())
-                    self.dimpr[im].setpar(iatp, jatp, katp, latp, pot, par)
-                    im += 1
+        i = ib = ia = ih = im = 0
+        for line in open(filename, 'r'):
+            if line.startswith('#') or line.strip() == '':
+                continue
+        
+            if line.lower().startswith('atom'):
+                section = 'atoms'
+                continue
+            elif line.lower().startswith('bond'):
+                section = 'bonds'
+                continue
+            elif line.lower().startswith('angl'):
+                section = 'angles'
+                continue
+            elif line.lower().startswith('dihe'):
+                section = 'dihedrals'
+                continue
+            elif line.lower().startswith('impro'):
+                section = 'improper'
+                continue
+            tok = line.strip().split()
+            if section == 'atoms':
+                name = tok[0]
+                attp = tok[1]
+                m = float(tok[2])
+                q = float(tok[3])
+                pot = tok[4]
+                par = [float(p) for p in tok[5:]]
+                self.atom.append(atom(name, m))
+                self.atom[i].setpar(attp, q, pot, par)
+                i += 1
+            elif section == 'bonds':
+                iatp = tok[0]
+                jatp = tok[1]
+                pot = tok[2]
+                par = [float(p) for p in tok[3:]]
+                self.bond.append(bond())
+                self.bond[ib].setpar(iatp, jatp, pot, par)
+                ib += 1
+            elif section == 'angles':
+                iatp = tok[0]
+                jatp = tok[1]
+                katp = tok[2]
+                pot = tok[3]
+                par = [float(p) for p in tok[4:]]
+                self.angle.append(angle())
+                self.angle[ia].setpar(iatp, jatp, katp, pot, par)
+                ia += 1
+            elif section == 'dihedrals':
+                iatp = tok[0]
+                jatp = tok[1]
+                katp = tok[2]
+                latp = tok[3]
+                pot = tok[4]
+                par = [float(p) for p in tok[5:]]
+                self.dihed.append(dihed())
+                self.dihed[ih].setpar(iatp, jatp, katp, latp, pot, par)
+                ih += 1
+            elif section == 'improper':
+                iatp = tok[0]
+                jatp = tok[1]
+                katp = tok[2]
+                latp = tok[3]
+                pot = tok[4]
+                par = [float(p) for p in tok[5:]]
+                self.dimpr.append(dimpr())
+                self.dimpr[im].setpar(iatp, jatp, katp, latp, pot, par)
+                im += 1
                         
         for bn in self.bond:
             bn.seteqval()
@@ -1340,6 +1365,7 @@ class forcefield(object):
             an.seteqval()
 
     def show(self):
+        print(self.filename)
         for at in self.atom:
             print(at)
         for bd in self.bond:
@@ -1531,7 +1557,7 @@ class system(object):
     def show(self):
         for sp in self.spec:
             print('{}  {:d} molecules, force field {}'.format(sp.name,
-                sp.nmol, sp.ff))
+                sp.nmol, sp.ffile))
             for at in sp.atom:
                 print(at)
             for bd in sp.bond:
@@ -2713,15 +2739,13 @@ def main():
     else:
         connect = False
 
-    print('molecule descriptions')
+    print('molecules               force field')
     spec = []
-    i = 0
     for zfile in files:
-        print('  ' + zfile)
         spec.append(mol(zfile, connect, box))
-        spec[i].nmol = int(nmols[i])
-        spec[i].writexyz()
-        i += 1
+        print('  {:20s}   {}'.format(zfile, spec[-1].ffile))
+        spec[-1].nmol = int(nmols[-1])
+        spec[-1].writexyz()
 
     print('species                 nmol  bonds   charge')
     for sp in spec:
