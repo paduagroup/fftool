@@ -2741,11 +2741,13 @@ def main():
 
     print('molecules               force field')
     spec = []
+    i = 0
     for zfile in files:
         spec.append(mol(zfile, connect, box))
-        print('  {:20s}   {}'.format(zfile, spec[-1].ffile))
-        spec[-1].nmol = int(nmols[-1])
-        spec[-1].writexyz()
+        print('  {:20s}   {}'.format(zfile, spec[i].ffile))
+        spec[i].nmol = int(nmols[i])
+        spec[i].writexyz()
+        i += 1
 
     print('species                 nmol  bonds   charge')
     for sp in spec:
