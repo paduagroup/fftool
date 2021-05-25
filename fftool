@@ -1,22 +1,27 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2021/04/19
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2021/05/25
 # http://perso.ens-lyon.fr/agilio.padua
 
-# Copyright (C) 2013 Agilio Padua
+# Copyright 2013 Agilio Padua
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# Permission is hereby granted, free of charge, to any person obtaining a 
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+# and/or sell copies of the Software, and to permit persons to whom the 
+# Software is furnished to do so, subject to the following conditions:
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# The above copyright notice and this permission notice shall be included in 
+# all copies or substantial portions of the Software.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
 
 import argparse
 import math
@@ -580,6 +585,7 @@ class mol(object):
         self.ffile = None
         self.ff = None
         self.topol = 'none'
+        self.nbond = 0
         
         with open(filename, 'r'):
             self.filename = filename
@@ -594,6 +600,7 @@ class mol(object):
             self.frompdb(filename, connect, box)
         else:
             raise ValueError('unsupported molecule file extension')
+        self.nbond = len(self.bond)
 
         self.setff(box)
 
@@ -2734,26 +2741,20 @@ def main():
     rho = nmol / (box.vol * 1.0e-27 * 6.022e+23)
     print('density {:.3f} mol/L  volume {:.1f} A^3'.format(rho, box.vol))
 
-    if args.lammps or args.xml or args.charmm or args.gmx or args.dlpoly:
-        connect = True
-    else:
-        connect = False
-
-    print('molecules               force field')
+    print('molecule_file      species           nmol force_field      '\
+          'nbond source  charge')
+    connect = True
     spec = []
     i = 0
     for zfile in files:
         spec.append(mol(zfile, connect, box))
-        print('  {:20s}   {}'.format(zfile, spec[i].ffile))
         spec[i].nmol = int(nmols[i])
         spec[i].writexyz()
+        print('  {:16s} {:16s} {:5d} {:16s} {:5d} {:5s} {:+8.4f}'\
+            .format(zfile, spec[i].name, spec[i].nmol, spec[i].ffile,
+                    spec[i].nbond, spec[i].topol, spec[i].charge()))
         i += 1
 
-    print('species                 nmol  bonds   charge')
-    for sp in spec:
-        print('  {:20s} {:5d}  {:5s} {:+8.4f}'.format(sp.name,
-              sp.nmol, sp.topol, sp.charge()))
-        
     sim = system(spec, box, args.mix)
 
     if args.lammps:
