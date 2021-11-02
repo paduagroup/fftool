@@ -1,0 +1,15 @@
+# OPC water (kJ/mol, A, deg)
+# add special M site at 0.1594 A from Ow using LAMMPS tip4p pair styles
+
+ATOMS
+#   type  m/uma    q/e    pot   pars
+Ow  Ow   15.999   -1.3582 lj    3.16655  0.89036
+Hw  Hw    1.008    0.6791 lj    0.00000  0.00000
+
+BONDS
+# i j    pot    re/A    ka/kJmol-1
+Ow  Hw   cons   0.8724  4331.53
+
+ANGLES
+# i  j  k    pot    th/deg   ka/kjmol-1
+Hw  Ow  Hw   cons   103.6   317.57

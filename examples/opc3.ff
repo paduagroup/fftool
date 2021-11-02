@@ -1,0 +1,14 @@
+# OPC3 water (kJ/mol, A, deg)
+
+ATOMS
+#   type  m/uma    q/e    pot   pars
+Ow  Ow   15.999   -0.8952 lj    3.17427  0.68369
+Hw  Hw    1.008    0.4476 lj    0.00000  0.00000
+
+BONDS
+# i j    pot    re/A    ka/kJmol-1
+Ow  Hw   cons   0.9789  4331.53
+
+ANGLES
+# i  j  k    pot    th/deg   ka/kjmol-1
+Hw  Ow  Hw   cons   109.47   317.57
