@@ -1752,9 +1752,9 @@ class system(object):
             f.write('fix TPSTAT all npt temp ${TK} ${TK} 100 '\
                     'iso ${PBAR} ${PBAR} 1000\n\n')
 
+            f.write('thermo 1000\n')
             f.write('thermo_style custom step cpu etotal ke pe '\
-                    'evdwl ecoul elong temp press vol density\n')
-            f.write('thermo 1000\n\n')
+                    'evdwl ecoul elong temp press vol density\n\n')
             
             f.write('dump TRAJ all custom 1000 dump.lammpstrj '\
                      'id mol type element q xu yu zu\n')
