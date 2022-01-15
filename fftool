@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2021/05/25
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2022/01/15
 # http://perso.ens-lyon.fr/agilio.padua
 
 # Copyright 2013 Agilio Padua
@@ -1763,21 +1763,22 @@ class system(object):
                 f.write(' ' + atomic_symbol(att.name))
             f.write('\n\n')
 
-            f.write('variable vinst equal vol\n')
-            f.write('fix VAVG all ave/time 10 1000 50000 v_vinst\n\n')
-
             f.write('# restart 10000 restart1.lmp restart2.lmp\n\n')
-            
-            f.write('run 50000\n\n')
 
-            f.write('variable lscale equal (f_VAVG/v_vinst)^(1.0/3.0)\n')
-            f.write('print "scaling coordinates by ${lscale}"\n')
-            f.write('change_box all x scale ${lscale} y scale ${lscale} '\
+            f.write('# uncomment the following to rescale to average volume at end of equilibration\n')
+            f.write('#variable vinst equal vol\n')
+            f.write('#fix VAVG all ave/time 10 1000 50000 v_vinst\n\n')
+            
+            f.write('#run 50000\n\n')
+
+            f.write('#variable lscale equal (f_VAVG/v_vinst)^(1.0/3.0)\n')
+            f.write('#print "scaling coordinates by ${lscale}"\n')
+            f.write('#change_box all x scale ${lscale} y scale ${lscale} '\
                     'z scale ${lscale} remap\n\n')
 
-            f.write('unfix VAVG\n')
-            f.write('unfix TPSTAT\n')
-            f.write('fix TSTAT all nvt temp ${TK} ${TK} 100\n\n')
+            f.write('#unfix VAVG\n')
+            f.write('#unfix TPSTAT\n')
+            f.write('#fix TSTAT all nvt temp ${TK} ${TK} 100\n\n')
 
             f.write('run 10000\n\n')
 
