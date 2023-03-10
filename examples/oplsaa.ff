@@ -1,4 +1,4 @@
-# oplsaa.ff, version 2020/05/29
+# oplsaa.ff, version 2023/03/10
 # units: kJ/mol, A, deg
 # bond and angle force constants are in the form k/2 (x - x0)^2
 # use cons for constrained bonds and angles
@@ -59,14 +59,23 @@ SZ    SZ  32.066   0.130  lj    3.56   1.65268
 OY    OY  15.999  -0.420  lj    2.93   1.17152
 CSZ   CT  12.011  -0.035  lj    3.50   0.27614
 # carbonates OPLS
-C_2   C_2 12.011   0.784  lj    3.75   0.43932
+# vinylene carbonate
 O_2   O_2 15.999  -0.508  lj    2.96   0.87864
+C_2   C_2 12.011   0.784  lj    3.75   0.43932
 OS    OS  15.999  -0.246  lj    3.00   0.71128
 CM    CM  12.011  -0.068  lj    3.55   0.31798
 HCM   HC   1.008   0.176  lj    2.42   0.12552
+# ethylene and propylene carbonate
+OCC   O_2 15.999  -0.500  lj    2.96   0.87864
+COC   C_2 12.011   0.860  lj    3.75   0.43932
+OSC   OS  15.999  -0.450  lj    3.00   0.71128
+C2C   CT  12.011   0.210  lj    3.50   0.27614
+HCC   HC   1.008   0.030  lj    2.42   0.06276
+C1C   CT  12.011   0.160  lj    3.50   0.27614
+C3C   CT  12.011  -0.100  lj    3.50   0.27614
 # amides, pyrrolidones
-CO    C   12.011   0.500  lj    3.75   0.43932
 OC    O   15.999  -0.500  lj    2.96   0.87864
+CO    C   12.011   0.500  lj    3.75   0.43932
 HCO   HC   1.008   0.000  lj    2.42   0.06276
 NCO   N   14.007  -0.140  lj    3.25   0.71128
 CTN   CT  12.011  -0.110  lj    3.50   0.27614
@@ -105,6 +114,7 @@ C_2 OS   harm   1.370   1790.8
 CM  OS   harm   1.370   3765.6
 CM  CM   harm   1.340   4594.0
 CM  HC   cons   1.080   2845.1
+CT  OS   harm   1.410   2677.8
 # amides, pyrrolidones, urea
 C   O    harm   1.229   4769.8
 C   HC   cons   1.090   2845.1
@@ -147,6 +157,9 @@ C_2 OS  CM   harm   107.0   585.8
 OS  CM  CM   harm   108.6   585.8
 OS  CM  HC   harm   125.7   292.9
 CM  CM  HC   harm   125.7   292.9
+CT  OS  C_2  harm   116.9   694.5
+CT  CT  OS   harm   109.5   418.4
+HC  CT  OS   harm   109.5   292.9
 # amides, pyrrolidones, urea
 N   C   O    harm   122.9   669.4
 O   C   HC   harm   123.0   292.9
@@ -201,6 +214,13 @@ C_2 OS  CM  HC   opls    0.0000    0.0000    3.1798    0.0000
 OS  CM  CM  OS   opls    0.0000   58.5760    0.0000    0.0000
 OS  CM  CM  HC   opls    0.0000   58.5760    0.0000    0.0000
 HC  CM  CM  HC   opls    0.0000   58.5760    0.0000    0.0000
+CT  OS  C_2 O_2  opls    0.0000   20.9200    0.0000    0.0000
+CT  CT  OS  C_2  opls   -5.1045   -0.5272    1.7657    0.0000
+HC  CT  OS  C_2  opls   -0.0000    0.0000    0.8284    0.0000
+CT  OS  C_2 OS   opls    0.0000   20.9200    0.0000    0.0000
+OS  CT  CT  OS   opls   -2.3012    0.0000    0.0000    0.0000
+HC  CT  CT  OS   opls    0.0000    0.0000    1.9581    0.0000
+CT  CT  CT  OS   opls    7.1588   -2.0920    2.7740    0.0000
 # amides, pyrrolidones, urea
 CT  N   C   O    opls    0.0000   25.4764    0.0000    0.0000
 CT  N   C   HC   opls    9.6232   25.4764    0.0000    0.0000
