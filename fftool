@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2022/01/15
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/03/10
 # http://perso.ens-lyon.fr/agilio.padua
 
 # Copyright 2013 Agilio Padua
@@ -78,6 +78,24 @@ def atomic_number(name):
     else:
         print('warning: unknown atomic weight for atom ' + name)
         return 0
+
+# --------------------------------------
+
+def hexiflarge(i, ndig):
+    """
+    convert number to a hex starting with A if more than n digits
+    VMD convention in PDB files with natom > 99999, nmol > 9999
+    used by OpenMM 
+    """
+
+    hexlim = int('A'+(ndig-1)*'0', 16)
+    declim = 10**ndig
+
+    if i < declim:
+        return f'{i}'
+    else:
+        i = i - declim + hexlim
+        return f'{i:X}'
 
 # --------------------------------------
 
@@ -1916,6 +1934,7 @@ class system(object):
             # f.write('\n')
 
 
+
     def writepdb(self):
         with open('config.pdb', 'w') as f:
             f.write('TITLE     created by fftool\n')
@@ -1928,32 +1947,35 @@ class system(object):
             for sp in self.spec:
                 for im in range(sp.nmol):
                     j = 1
+                    molidx = hexiflarge(nmol + 1, 4)
                     for at in sp.atom:
                         if len(at.uname) > 4:
                             print('warning: atom name ' + at.uname +
                                 ' too long for pdb in ' + sp.name)
-                        f.write('HETATM{0:5d} {1:4s} {2:3s}  {3:4d}    '\
+                        atidx = hexiflarge(i + 1, 5)
+                        f.write('HETATM{0:>5s} {1:4s} {2:3s}  {3:>4s}    '\
                                 '{4:8.3f}{5:8.3f}{6:8.3f}  1.00  0.00'\
-                                '          {7:>2s}\n'.format(i + 1,
-                                at.uname[:4], sp.res, nmol + 1,
+                                '          {7:>2s}\n'.format(atidx,
+                                at.uname[:4], sp.res, molidx,
                                 self.x[i], self.y[i], self.z[i],
                                 atomic_symbol(at.name)))
                         j += 1
                         i += 1
                     nmol += 1
 
-            i = shift = 1
+            shift = 1
             for sp in self.spec:
                 natom = len(sp.atom)
                 for im in range(sp.nmol):
                     for bd in sp.bond:
+                        atidx_i = hexiflarge(bd.i + shift, 5)
+                        atidx_j = hexiflarge(bd.j + shift, 5)
                         if bd.i < bd.j:
-                            f.write('CONECT{0:5d}{1:5d}\n'.format(
-                                bd.i + shift, bd.j + shift))
+                            f.write('CONECT{0:>5s}{1:>5s}\n'.format(
+                                atidx_i, atidx_j))
                         else:
-                            f.write('CONECT{0:5d}{1:5d}\n'.format(
-                                bd.j + shift, bd.i + shift))
-                        i += 1
+                            f.write('CONECT{0:>5s}{1:>5s}\n'.format(
+                                atidx_j, atidx_i))
                     shift += natom
 
             f.write('END\n')
