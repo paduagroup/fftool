@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/03/10
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/07/19
 # http://perso.ens-lyon.fr/agilio.padua
 
 # Copyright 2013 Agilio Padua
@@ -42,13 +42,13 @@ atomic_wt = {'H': 1.008, 'Li': 6.941, 'B': 10.811, 'C': 12.011,
              'Na': 22.990, 'Mg': 24.305, 'Al': 26.982, 'Si':  28.086,
              'P': 30.974, 'S': 32.065, 'Cl': 35.453, 'Ar': 39.948,
              'K': 39.098, 'Ca': 40.078, 'Ti': 47.867, 'Fe': 55.845,
-             'Zn': 65.38, 'Se': 78.971, 'Br': 79.904, 'Kr': 83.798,
+             'Cu': 63.546, 'Zn': 65.38, 'Se': 78.971, 'Br': 79.904, 'Kr': 83.798,
              'Mo': 95.96, 'Ru': 101.07, 'Sn': 118.710, 'Te': 127.60,
              'I': 126.904, 'Xe': 131.293}
 
 atomic_nr = {'H': 1, 'Li': 3, 'B': 5, 'C': 6, 'N': 7, 'O': 8, 'F': 9, 'Ne': 10,
              'Na': 11, 'Mg': 12, 'Al': 13, 'Si': 14, 'P': 15, 'S': 16,
-             'Cl': 17, 'Ar': 18, 'K': 19, 'Ca': 20, 'Ti': 22, 'Fe': 26,
+             'Cl': 17, 'Ar': 18, 'K': 19, 'Ca': 20, 'Ti': 22, 'Fe': 26, 'Cu': 29,
              'Zn': 30, 'Se': 34, 'Br': 35, 'Kr': 36, 'Mo': 42, 'Ru': 44,
              'Sn': 50, 'Te': 52, 'I': 53, 'Xe': 54}
     
