@@ -39,10 +39,7 @@ Requirements
 
 * [Packmol](http://www.ime.unicamp.br/~martinez/packmol/) to pack
   molecules and materials in the simultion box.
-
-* [PyPy](http://pypy.org) (optional) can bring speed
-  improvements for large systems.
-
+  
 
 Obtaining
 ---------
