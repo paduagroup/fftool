@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/07/19
-# http://perso.ens-lyon.fr/agilio.padua
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/10/18
 
 # Copyright 2013 Agilio Padua
 #
@@ -1706,29 +1705,29 @@ class system(object):
                     f.write('pair_coeff {:4d} {:4d} {} {:12.6f} {:12.6f}  '\
                         '# {} {}\n'.format(
                         att.ityp + 1, att.ityp + 1, 'lj/cut/coul/long',
-                        att.par[1] / ecnv, att.par[0], att.name, att.name))
+                        att.par[1] / ecnv, att.par[0], att.name, att.name))    
+
+                for nb in self.vdw:
+                    f.write('pair_coeff {:4d} {:4d} {} {:12.6f} {:12.6f}'\
+                        '  # {} {}\n'.format(
+                        nb.ityp + 1, nb.jtyp + 1, 'lj/cut/coul/long',
+                        nb.par[1] / ecnv, nb.par[0], nb.i, nb.j))
+                f.write('\n')
+ 
             else:
                 f.write('pair_modify tail yes\n')
                 f.write('kspace_style pppm 1.0e-5\n\n')
 
                 f.write('read_data data.lmp\n\n')
 
-                if len(self.vdw) <= 12:
+                with open('pair.lmp', 'w') as fp:
                     for nb in self.vdw:
-                        f.write('pair_coeff {:4d} {:4d} {} {:12.6f} {:12.6f}'\
-                            '  # {} {}\n'.format(
-                            nb.ityp + 1, nb.jtyp + 1, 'lj/cut/coul/long',
-                            nb.par[1] / ecnv, nb.par[0], nb.i, nb.j))
-                else:
-                    with open('pair.lmp', 'w') as fp:
-                        for nb in self.vdw:
-                            fp.write('pair_coeff {:4d} {:4d} {} {:12.6f} '\
-                                '{:12.6f}  # {} {}\n'.format(
-                                    nb.ityp + 1, nb.jtyp + 1,
-                                    'lj/cut/coul/long',
-                                    nb.par[1] / ecnv, nb.par[0], nb.i, nb.j))
-                    f.write('include pair.lmp\n')
-            f.write('\n')
+                        fp.write('pair_coeff {:4d} {:4d} {} {:12.6f} '\
+                            '{:12.6f}  # {} {}\n'.format(
+                                nb.ityp + 1, nb.jtyp + 1,
+                                'lj/cut/coul/long',
+                                nb.par[1] / ecnv, nb.par[0], nb.i, nb.j))
+                f.write('include pair.lmp\n\n')
 
             f.write('# minimize 1.0e-4 1.0e-6 100 1000\n')
             f.write('# reset_timestep 0\n\n')
@@ -2789,7 +2788,7 @@ def main():
         else:
             raise ValueError('invalid units: choose [r]eal or [m]etal')
         print('  in.lmp\n  data.lmp')
-        if (args.allpairs and len(sim.vdw) > 12):
+        if (args.allpairs):
             print('  pair.lmp')
         sim.writelmp(args.mix, args.allpairs, args.units)
     if args.xml:
