@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/10/18
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/10/25
 
 # Copyright 2013 Agilio Padua
 #
@@ -220,7 +220,7 @@ class atom(object):
 
 
 def dist2atoms(ati, atj, box=None):
-    '''compute distance btween two atoms handling pbc'''
+    '''compute distance between two atoms handling pbc'''
     dx = atj.x - ati.x
     dy = atj.y - ati.y
     dz = atj.z - ati.z
@@ -952,13 +952,15 @@ class mol(object):
         for i in range(0, natom-1):
             for j in range(i+1, natom):
                 r = dist2atoms(self.atom[i], self.atom[j], box)
-                names = ['{}-{}'.format(self.atom[i].type, self.atom[j].type),
-                         '{}-{}'.format(self.atom[j].type, self.atom[i].type)]
+                if r > self.ff.maxbondlen:
+                    continue
+                btype = ((self.atom[i].type, self.atom[j].type),
+                         (self.atom[j].type, self.atom[i].type))
                 for ffbd in self.ff.bond:
-                    nameff = '{}-{}'.format(ffbd.iatp, ffbd.jatp)
-                    if nameff in names:
-                        if ffbd.checkval(r):
-                            self.bond.append(bond(i, j))
+                    btypeff = (ffbd.iatp, ffbd.jatp)
+                    if btypeff in btype and ffbd.checkval(r):
+                        self.bond.append(bond(i, j))
+                        break
                                         
     def anglesdiheds(self):
         '''identify angles and dihedrals based on bond connectivity'''
@@ -1072,12 +1074,12 @@ class mol(object):
         for bd in self.bond:
             ti = self.atom[bd.i].type
             tj = self.atom[bd.j].type
-            names = [ '{}-{}'.format(ti, tj), '{}-{}'.format(tj, ti) ]
+            btype = ((ti, tj), (tj, ti))
             r = dist2atoms(self.atom[bd.i], self.atom[bd.j], box)
             found = False
             for ffbd in self.ff.bond:
-                nameff = '{}-{}'.format(ffbd.iatp, ffbd.jatp)
-                if nameff in names:
+                btypeff = (ffbd.iatp, ffbd.jatp)
+                if btypeff in btype:
                     bd.setpar(ffbd.iatp, ffbd.jatp, ffbd.pot, ffbd.par)
                     if not ffbd.checkval(r):
                         print('  warning: {} bond {} {:d}-{:d} '\
@@ -1103,15 +1105,14 @@ class mol(object):
             ti = self.atom[an.i].type
             tj = self.atom[an.j].type
             tk = self.atom[an.k].type
-            names = [ '{}-{}-{}'.format(ti, tj, tk),
-                      '{}-{}-{}'.format(tk, tj, ti) ]
+            atype = ((ti, tj, tk), (tk, tj, ti))
             th = angle3atoms(self.atom[an.i], self.atom[an.j], self.atom[an.k],
                              box)
             found = False
             check = True
             for ffan in self.ff.angle:
-                nameff = '{}-{}-{}'.format(ffan.iatp, ffan.jatp, ffan.katp)
-                if nameff in names:
+                atypeff = (ffan.iatp, ffan.jatp, ffan.katp)
+                if atypeff in atype:
                     an.setpar(ffan.iatp, ffan.jatp, ffan.katp,
                               ffan.pot, ffan.par)                        
                     if not ffan.checkval(th):
@@ -1127,8 +1128,8 @@ class mol(object):
                     an.i+1, an.j+1, an.k+1, th))
             if not found:
                 toremove.append(an)
-                if names[0] not in anmiss:
-                    anmiss.append(names[0])
+                if atype[0] not in anmiss:
+                    anmiss.append(atype[0])
         for an in toremove:
             self.angle.remove(an)
 
@@ -1138,13 +1139,11 @@ class mol(object):
             tj = self.atom[dh.j].type
             tk = self.atom[dh.k].type
             tl = self.atom[dh.l].type
-            names = [ '{}-{}-{}-{}'.format(ti, tj, tk, tl),
-                      '{}-{}-{}-{}'.format(tl, tk, tj, ti) ]
+            dtype = ((ti, tj, tk, tl), (tl, tk, tj, ti))
             found = False
             for ffdh in self.ff.dihed:
-                nameff = '{}-{}-{}-{}'.format(ffdh.iatp, ffdh.jatp, ffdh.katp,
-                    ffdh.latp)
-                if nameff in names:
+                dtypeff = (ffdh.iatp, ffdh.jatp, ffdh.katp, ffdh.latp)
+                if dtypeff in dtype:
                     dh.setpar(ffdh.iatp, ffdh.jatp, ffdh.katp, ffdh.latp,
                               ffdh.pot, ffdh.par)
                     if found:
@@ -1153,8 +1152,8 @@ class mol(object):
                     found = True
             if not found:
                 toremove.append(dh)
-                if names[0] not in dhmiss:
-                    dhmiss.append(names[0])
+                if dtype[0] not in dhmiss:
+                    dhmiss.append(dtype[0])
         for dh in toremove:
             self.dihed.remove(dh)
         
@@ -1164,33 +1163,28 @@ class mol(object):
             tj = self.atom[di.j].type
             tk = self.atom[di.k].type
             tl = self.atom[di.l].type
-            names = [ '{}-{}-{}-{}'.format(ti, tj, tk, tl),
-                      '{}-{}-{}-{}'.format(tj, ti, tk, tl),
-                      '{}-{}-{}-{}'.format(ti, tl, tk, tj),
-                      '{}-{}-{}-{}'.format(tl, ti, tk, tj),
-                      '{}-{}-{}-{}'.format(tj, tl, tk, ti),
-                      '{}-{}-{}-{}'.format(tl, tj, tk, ti) ]
+            dtype = ((ti, tj, tk, tl), (tj, ti, tk, tl), (ti, tl, tk, tj),
+                     (tl, ti, tk, tj), (tj, tl, tk, ti), (tl, tj, tk, ti))
             found = False
             for ffdi in self.ff.dimpr:
-                nameff = '{}-{}-{}-{}'.format(ffdi.iatp, ffdi.jatp, ffdi.katp,
-                    ffdi.latp)
-                if nameff in names:
+                dtypeff = (ffdi.iatp, ffdi.jatp, ffdi.katp, ffdi.latp)
+                if dtypeff in dtype:
                     # sort atom numbering according to impropers in ff
-                    if nameff == names[1] and tj != ti:
+                    if dtypeff == dtype[1] and tj != ti:
                         di.i, di.j = di.j, di.i
-                    elif nameff == names[2] and tl != tj:
+                    elif dtypeff == dtype[2] and tl != tj:
                         di.j, di.l = di.l, di.j
-                    elif nameff == names[3]:
+                    elif dtypeff == dtype[3]:
                         if tl != tj:
                             di.j, di.l = di.l, di.j
                         if tj != ti:
                             di.i, di.j = di.j, di.i
-                    elif nameff == names[4]:
+                    elif dtypeff == dtype[4]:
                         if tl != ti:
                             di.i, di.l = di.l, di.i
                         if tj != ti:
                             di.i, di.j = di.j, di.i
-                    elif nameff == names[5] and tl != ti:
+                    elif dtypeff == dtype[5] and tl != ti:
                         di.i, di.l = di.l, di.i
                     di.setpar(ffdi.iatp, ffdi.jatp, ffdi.katp, ffdi.latp,
                               ffdi.pot, ffdi.par)
@@ -1200,19 +1194,20 @@ class mol(object):
                     found = True
             if not found:
                 toremove.append(di)
-                if names[0] not in dimiss:
-                    dimiss.append(names[0])
+                if dtype[0] not in dimiss:
+                    dimiss.append(dtype[0])
         for di in toremove:
             self.dimpr.remove(di)
 
         if len(anmiss) or len(dhmiss) or len(dimiss): 
             print('  warning: missing force field parameters')
-            for s in anmiss:
-                print('    angle type ' + s)
-            for s in dhmiss:
-                print('    dihedral type ' + s)
-            for s in dimiss:
-                print('    improper type ' + s)
+            for m in anmiss:
+                print(f'    angle type {m[0]}-{m[1]}-{m[2]}')
+            for m in dhmiss:
+                print(f'    dihedral type {m[0]}-{m[1]}-{m[2]}-{m[3]}')
+            for m in dimiss:
+                print(f'    improper type {m[0]}-{m[1]}-{m[2]}-{m[3]}')
+
 
     def show(self):
         print('{}: {:d} molecules'.format(self.name, self.nmol))
@@ -1313,6 +1308,7 @@ class forcefield(object):
         self.angle = []
         self.dihed = []
         self.dimpr = []
+        self.maxbondlen = 0.0
 
         i = ib = ia = ih = im = 0
         for line in open(filename, 'r'):
@@ -1353,6 +1349,8 @@ class forcefield(object):
                 self.bond.append(bond())
                 self.bond[ib].setpar(iatp, jatp, pot, par)
                 ib += 1
+                if par[0] > self.maxbondlen:
+                    self.maxbondlen = par[0]
             elif section == 'angles':
                 iatp = tok[0]
                 jatp = tok[1]
