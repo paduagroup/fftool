@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/10/25
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/10/26
 
 # Copyright 2013 Agilio Padua
 #
@@ -2000,7 +2000,7 @@ class system(object):
             ndihed += sp.nmol * (len(sp.dihed) + len(sp.dimpr))
 
         root = ET.Element('ForceField')
-        comment = ET.Comment('created by fftool; mix = {}'.format(mix))
+        comment = ET.Comment(f'created by fftool; mix = {mix}')
         root.append(comment)
         ftree = ET.ElementTree(root)
         root = ftree.getroot()
@@ -2012,7 +2012,7 @@ class system(object):
                 attype.set('name', at.utype)
                 attype.set('class', at.type)
                 attype.set('element', atomic_symbol(at.name))
-                attype.set('mass', '{:.3f}'.format(at.m))
+                attype.set('mass', f'{at.m:.3f}')
 
         residues = ET.SubElement(root, 'Residues')
         for sp in self.spec:
@@ -2022,7 +2022,7 @@ class system(object):
                 atom = ET.SubElement(residue, 'Atom')
                 atom.set('name', at.uname)
                 atom.set('type', at.utype)
-                atom.set('charge', '{}'.format(at.q))
+                atom.set('charge', f'{at.q}')
             for bd in sp.bond:
                 bond = ET.SubElement(residue, 'Bond')
                 bond.set('atomName1', sp.atom[bd.i].uname)
@@ -2034,8 +2034,8 @@ class system(object):
                 bond = ET.SubElement(bondforce, 'Bond')
                 bond.set('class1', bdt.iatp)
                 bond.set('class2', bdt.jatp)
-                bond.set('length', '{:.5f}'.format(bdt.par[0] / 10.0))
-                bond.set('k', '{:.1f}'.format(bdt.par[1] * 100.0))
+                bond.set('length', f'{bdt.par[0] / 10:.5f}')
+                bond.set('k', f'{bdt.par[1] * 100:.1f}')
     
         if nangle:
             angleforce = ET.SubElement(root, 'HarmonicAngleForce')
@@ -2044,8 +2044,8 @@ class system(object):
                 bond.set('class1', ant.iatp)
                 bond.set('class2', ant.jatp)
                 bond.set('class3', ant.katp)
-                bond.set('angle', '{:.5f}'.format(ant.par[0] * math.pi/180.0))
-                bond.set('k', '{:.2f}'.format(ant.par[1]))
+                bond.set('angle', f'{ant.par[0] * math.pi/180:.5f}')
+                bond.set('k', f'{ant.par[1]:.2f}')
 
         if ndihed:
             torsionforce = ET.SubElement(root, 'RBTorsionForce')
@@ -2063,12 +2063,12 @@ class system(object):
                 dihed.set('class2', dht.jatp)
                 dihed.set('class3', dht.katp)
                 dihed.set('class4', dht.latp)
-                dihed.set('c0', '{:.5f}'.format(c0))
-                dihed.set('c1', '{:.5f}'.format(c1))
-                dihed.set('c2', '{:.5f}'.format(c2))
-                dihed.set('c3', '{:.5f}'.format(c3))
-                dihed.set('c4', '{:.5f}'.format(c4))
-                dihed.set('c5', '{:.5f}'.format(c5))
+                dihed.set('c0', f'{c0:.5f}')
+                dihed.set('c1', f'{c1:.5f}')
+                dihed.set('c2', f'{c2:.5f}')
+                dihed.set('c3', f'{c3:.5f}')
+                dihed.set('c4', f'{c4:.5f}')
+                dihed.set('c5', f'{c5:.5f}')
 
             for dit in self.ditype:
                 # convert OPLS to RB
@@ -2083,12 +2083,12 @@ class system(object):
                 dimpr.set('class2', dit.jatp)
                 dimpr.set('class3', dit.katp)
                 dimpr.set('class4', dit.latp)
-                dimpr.set('c0', '{:.5f}'.format(c0))
-                dimpr.set('c1', '{:.5f}'.format(c1))
-                dimpr.set('c2', '{:.5f}'.format(c2))
-                dimpr.set('c3', '{:.5f}'.format(c3))
-                dimpr.set('c4', '{:.5f}'.format(c4))
-                dimpr.set('c5', '{:.5f}'.format(c5))
+                dimpr.set('c0', f'{c0:.5f}')
+                dimpr.set('c1', f'{c1:.5f}')
+                dimpr.set('c2', f'{c2:.5f}')
+                dimpr.set('c3', f'{c3:.5f}')
+                dimpr.set('c4', f'{c4:.5f}')
+                dimpr.set('c5', f'{c5:.5f}')
 
         if allpairs or mix == 'g':
             nbforce = ET.SubElement(root, 'NonbondedForce')
@@ -2117,8 +2117,8 @@ class system(object):
                     for at in sp.atom:
                         atom = ET.SubElement(ljforce, 'Atom')
                         atom.set('type', at.utype)
-                        atom.set('sigma', '{:.4f}'.format(at.par[0] / 10.0))
-                        atom.set('epsilon', '{:.5f}'.format(at.par[1]))
+                        atom.set('sigma', f'{at.par[0] / 10:.4f}')
+                        atom.set('epsilon', f'{at.par[1]:.5f}')
                 pairs = []
                 for spi in self.spec:
                     for ati in spi.atom:
@@ -2126,8 +2126,8 @@ class system(object):
                             for atj in spj.atom:
                                 if ati.utype == atj.utype:
                                     continue
-                                ij = ati.utype + '-' + atj.utype
-                                ji = atj.utype + '-' + ati.utype
+                                ij = (ati.utype, atj.utype)
+                                ji = (atj.utype, ati.utype)
                                 if ij not in pairs and ji not in pairs:
                                     pairs.append(ij)
                                 else:
@@ -2139,17 +2139,15 @@ class system(object):
                                 nbfix = ET.SubElement(ljforce, 'NBFixPair')
                                 nbfix.set('type1', ati.utype)
                                 nbfix.set('type2', atj.utype)
-                                nbfix.set('sigma', '{:.8f}'.format(
-                                    nb.par[0] / 10.0))
-                                nbfix.set('epsilon', '{:.8f}'.format(
-                                    nb.par[1]))
+                                nbfix.set('sigma', f'{nb.par[0] / 10:.8f}')
+                                nbfix.set('epsilon', f'{nb.par[1]:.8f}')
 
             else:
                 for att in self.attype:
                     atom = ET.SubElement(ljforce, 'Atom')
                     atom.set('class', att.type)
-                    atom.set('sigma', '{:.4f}'.format(att.par[0] / 10.0))
-                    atom.set('epsilon', '{:.5f}'.format(att.par[1]))
+                    atom.set('sigma', f'{att.par[0] / 10:.4f}')
+                    atom.set('epsilon', f'{att.par[1]:.5f}')
                 pairs = []
                 for nb in self.vdw:
                     if nb.iatp == nb.jatp:
@@ -2161,8 +2159,8 @@ class system(object):
                         nbfix = ET.SubElement(ljforce, 'NBFixPair')
                         nbfix.set('class1', nb.iatp)
                         nbfix.set('class2', nb.jatp)
-                        nbfix.set('sigma', '{:.8f}'.format(nb.par[0] / 10.0))
-                        nbfix.set('epsilon', '{:.8f}'.format(nb.par[1]))
+                        nbfix.set('sigma', f'{nb.par[0] / 10:.8f}')
+                        nbfix.set('epsilon', f'{nb.par[1]:.8f}')
 
         else:
             nbforce = ET.SubElement(root, 'NonbondedForce')
@@ -2175,14 +2173,14 @@ class system(object):
                     for at in sp.atom:
                         atom = ET.SubElement(nbforce, 'Atom')
                         atom.set('type', at.utype)
-                        atom.set('sigma', '{:.4f}'.format(at.par[0] / 10.0))
-                        atom.set('epsilon', '{:.5f}'.format(at.par[1]))
+                        atom.set('sigma', f'{at.par[0] / 10:.4f}')
+                        atom.set('epsilon', f'{at.par[1]:.5f}')
             else:
                 for att in self.attype:
                     atom = ET.SubElement(nbforce, 'Atom')
                     atom.set('class', att.type)
-                    atom.set('sigma', '{:.4f}'.format(att.par[0] / 10.0))
-                    atom.set('epsilon', '{:.5f}'.format(att.par[1]))
+                    atom.set('sigma', f'{att.par[0] / 10:.4f}')
+                    atom.set('epsilon', f'{att.par[1]:.5f}')
 
         indent_xml(root)
         ftree.write('field.xml')
