@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/11/01
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/11/02
 
 # Copyright 2013 Agilio Padua
 #
@@ -1091,7 +1091,7 @@ class mol(object):
                     found = True
             if not found:
                 print('  error in ' + self.name + ': no parameters for bond ' +
-                      names[0])
+                      bd.name)
                 error = True
         if error:
             raise RuntimeError
@@ -1433,8 +1433,7 @@ class vdw(object):
                 self.par[1] = math.sqrt(iat.par[1] * jat.par[1])
                 
     def __str__(self):
-        return 'vdw {:2s} {:2s}  {} {}'.format(self.i, self.j, self.pot,
-            str(self.par))
+        return f'vdw {self.i:2s} {self.j:2s}  {self.pot} {str(self.par)}'
 
 
 # --------------------------------------
@@ -1704,12 +1703,6 @@ class system(object):
                         '# {} {}\n'.format(
                         att.ityp + 1, att.ityp + 1, 'lj/cut/coul/long',
                         att.par[1] / ecnv, att.par[0], att.name, att.name))    
-
-                for nb in self.vdw:
-                    f.write('pair_coeff {:4d} {:4d} {} {:12.6f} {:12.6f}'\
-                        '  # {} {}\n'.format(
-                        nb.ityp + 1, nb.jtyp + 1, 'lj/cut/coul/long',
-                        nb.par[1] / ecnv, nb.par[0], nb.i, nb.j))
                 f.write('\n')
  
             else:
@@ -2128,11 +2121,12 @@ class system(object):
             nbforce.set('lj14scale', '0.5')
             resattr = ET.SubElement(nbforce, 'UseAttributeFromResidue')
             resattr.set('name', 'charge')
-            for att in self.attype:
-                atom = ET.SubElement(nbforce, 'Atom')
-                atom.set('class', att.type)
-                atom.set('sigma', f'{att.par[0] / 10:.4f}')
-                atom.set('epsilon', f'{att.par[1]:.5f}')
+            for sp in self.spec:
+                for at in sp.atom:
+                    atom = ET.SubElement(nbforce, 'Atom')
+                    atom.set('type', at.utype)
+                    atom.set('sigma', f'{at.par[0] / 10:.4f}')
+                    atom.set('epsilon', f'{at.par[1]:.5f}')
 
         indent_xml(root)
         ftree.write('field.xml')
@@ -2140,13 +2134,19 @@ class system(object):
         self.writepdb()
 
     def writexmltypes(self, mix='g', allpairs=False):
-        '''
-        In order to use scaleLJxml, non-bonded i-j terms have to be identified by fragment.
-        We have the unique atom types required by OpenMM to set Drude particle-core pairs.
-        But if we use these for the non-bonded terms, then the NBFixPairs list becomes huge.
+        """
+        Use non-bonded types as the atom class (instead of the bonded types).
+
+        This is more general since it allows for variations in LJ parameters
+        while keeping the same bonded type. 
+
+        Furthermore, to scale LJ terms when adding polarization (scaleLJxml),
+        the non-bonded i-j terms have to be identified by fragment.
+        We could use the unique atom types required by OpenMM to set Drude particle-core pairs,
+        but the NBFixPairs list becomes huge with large molecules (many unique atom types).
         Therefore here we use the non-bonded types as atom class, instead of the bonded types.
         Bonded terms will be more numerous but NBFixPairs will be much less.
-        '''
+        """
 
         self.checkdupresidues()
 
@@ -2386,7 +2386,7 @@ class system(object):
             for sp in self.spec:
                 for at in sp.atom:
                     if at.name not in types:
-                        atom = ET.SubElement(ljforce, 'Atom')
+                        atom = ET.SubElement(nbforce, 'Atom')
                         atom.set('class', at.name)
                         atom.set('sigma', f'{at.par[0] / 10:.4f}')
                         atom.set('epsilon', f'{at.par[1]:.5f}')
@@ -2399,6 +2399,7 @@ class system(object):
 
 
     def writecharmm(self, mix='g', allpairs=False):
+        '''TODO: use non-bonded types as class, same as in writexml()'''
 
         self.checkdupresidues()
 
@@ -2453,13 +2454,15 @@ class system(object):
                 f.write('!ai   aj      epsilon   Rmin      eps,1-4   Rmin,1-4\n')
                 pairs = []
                 for nb in self.vdw:
-                    ij = nb.iatp + '-' + nb.jatp
-                    ji = nb.jatp + '-' + nb.iatp
+                    if nb.i == nb.j:
+                        continue
+                    ij = (nb.i, nb.j)
+                    ji = (nb.j, nb.i)
                     if ij not in pairs and ji not in pairs:
                         pairs.append(ij)
                         rmin = nb.par[0] * 2.0**(1.0/6.0)
                         f.write('{:5s} {:5s} {:9.5f} {:9.5f} {:9.5f} '\
-                            '{:9.5f}\n'.format(nb.iatp, nb.jatp,
+                            '{:9.5f}\n'.format(nb.i, nb.j,
                             -nb.par[1] / kCal, rmin,
                             -nb.par[1] / (2 * kCal), rmin))
                 f.write('\n')
@@ -2530,12 +2533,11 @@ class system(object):
             
             f.write('[ defaults ]\n')
             if mix == 'g':
-                combrule = 3
+                comb = 3
             else:
-                combrule = 2
+                comb = 2
             f.write('; nbfunc   comb-rule   gen-pairs   fudgeLJ fudgeQQ\n')
-            f.write('  1        {:1d}           yes         0.5     0.5\n\n'\
-                    .format(combrule))
+            f.write(f'  1        {comb:1d}           yes         0.5     0.5\n\n')
             
             f.write('[ atomtypes ]\n')
             f.write('; name  at.nr     mass   charge  ptype  '\
