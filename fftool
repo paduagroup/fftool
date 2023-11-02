@@ -1577,8 +1577,7 @@ class system(object):
 
     def show(self):
         for sp in self.spec:
-            print('{}  {:d} molecules, force field {}'.format(sp.name,
-                sp.nmol, sp.ffile))
+            print(f'{sp.name}  {sp.nmol:d} molecules, force field {sp.ffile}')
             for at in sp.atom:
                 print(at)
             for bd in sp.bond:
@@ -1595,13 +1594,13 @@ class system(object):
     def writepackmol(self, packfile, outfile, tol=2.5, d=0.0):
         with open(packfile, 'w') as f:
             f.write('# created by fftool\n')
-            f.write('tolerance {:3.1f}\n'.format(tol))
+            f.write(f'tolerance {tol:3.1f}\n')
             f.write('filetype xyz\n')
-            f.write('output {}\n'.format(outfile))
+            f.write(f'output {outfile}\n')
             for sp in self.spec:
                 xyzfile = (sp.filename).rsplit('.', 1)[0] + '_pack.xyz'
-                f.write('\nstructure {}\n'.format(xyzfile))
-                f.write('  number {}\n'.format(sp.nmol))
+                f.write(f'\nstructure {xyzfile}\n')
+                f.write(f'  number {sp.mol}\n')
                 if self.box.triclinic:
                     o = vec3(0.0, 0.0, 0.0)
                     p = vec3(self.box.lx, 0.0, 0.0)
@@ -1617,12 +1616,12 @@ class system(object):
                     top = plane(q, t, v)
                     left = plane(o, q, r)
                     right = plane(p, v, s)
-                    f.write('  over plane {}\n'.format(back))
-                    f.write('  below plane {}\n'.format(front))
-                    f.write('  over plane {}\n'.format(bottom))
-                    f.write('  below plane {}\n'.format(top))
-                    f.write('  over plane {}\n'.format(left))
-                    f.write('  below plane {}\n'.format(right))
+                    f.write(f'  over plane {back}\n')
+                    f.write(f'  below plane {front}\n')
+                    f.write(f'  over plane {bottom}\n')
+                    f.write(f'  below plane {top}\n')
+                    f.write(f'  over plane {left}\n')
+                    f.write(f'  below plane {right}\n')
                 else:
                     if self.box.center:
                         f.write('  inside box {:.4f} {:.4f} {:.4f} {:.4f}'
@@ -1998,13 +1997,16 @@ class system(object):
         root = ftree.getroot()
 
         atomtypes = ET.SubElement(root, 'AtomTypes')
+        types = []
         for sp in self.spec:
             for at in sp.atom:
-                attype = ET.SubElement(atomtypes, 'Type')
-                attype.set('name', at.utype)
-                attype.set('class', at.type)
-                attype.set('element', atomic_symbol(at.name))
-                attype.set('mass', f'{at.m:.3f}')
+                if at.name not in types:
+                    types.append(at.name)
+                    attype = ET.SubElement(atomtypes, 'Type')
+                    attype.set('name', at.name)
+                    attype.set('class', at.type)
+                    attype.set('element', atomic_symbol(at.name))
+                    attype.set('mass', f'{at.m:.3f}')
 
         residues = ET.SubElement(root, 'Residues')
         for sp in self.spec:
@@ -2013,7 +2015,7 @@ class system(object):
             for at in sp.atom:
                 atom = ET.SubElement(residue, 'Atom')
                 atom.set('name', at.uname)
-                atom.set('type', at.utype)
+                atom.set('type', at.name)
                 atom.set('charge', f'{at.q}')
             for bd in sp.bond:
                 bond = ET.SubElement(residue, 'Bond')
@@ -2090,7 +2092,7 @@ class system(object):
             resattr.set('name', 'charge')
             for att in self.attype:
                 atom = ET.SubElement(nbforce, 'Atom')
-                atom.set('class', att.type)
+                atom.set('type', att.name)
                 atom.set('sigma', '1.0')
                 atom.set('epsilon', '0.0')
 
@@ -2098,20 +2100,20 @@ class system(object):
             ljforce.set('lj14scale', '0.5')
             for att in self.attype:
                 atom = ET.SubElement(ljforce, 'Atom')
-                atom.set('class', att.type)
+                atom.set('type', att.name)
                 atom.set('sigma', f'{att.par[0] / 10:.4f}')
                 atom.set('epsilon', f'{att.par[1]:.5f}')
             pairs = []
             for nb in self.vdw:
-                if nb.iatp == nb.jatp:
+                if nb.i == nb.j:
                     continue
-                ij = (nb.iatp, nb.jatp)
-                ji = (nb.jatp, nb.iatp)
+                ij = (nb.i, nb.j)
+                ji = (nb.j, nb.i)
                 if ij not in pairs and ji not in pairs:
                     pairs.append(ij)
                     nbfix = ET.SubElement(ljforce, 'NBFixPair')
-                    nbfix.set('class1', nb.iatp)
-                    nbfix.set('class2', nb.jatp)
+                    nbfix.set('type1', nb.i)
+                    nbfix.set('type2', nb.j)
                     nbfix.set('sigma', f'{nb.par[0] / 10:.8f}')
                     nbfix.set('epsilon', f'{nb.par[1]:.8f}')
 
@@ -2124,7 +2126,7 @@ class system(object):
             for sp in self.spec:
                 for at in sp.atom:
                     atom = ET.SubElement(nbforce, 'Atom')
-                    atom.set('type', at.utype)
+                    atom.set('type', at.name)
                     atom.set('sigma', f'{at.par[0] / 10:.4f}')
                     atom.set('epsilon', f'{at.par[1]:.5f}')
 
@@ -2399,12 +2401,12 @@ class system(object):
 
 
     def writecharmm(self, mix='g', allpairs=False):
-        '''TODO: use non-bonded types as class, same as in writexml()'''
+        '''use non-bonded types as class, same as in writexml()'''
 
         self.checkdupresidues()
 
         with open('field.str', 'w') as f:
-            f.write('* created by fftool; mix = {}\n\n'.format(mix))
+            f.write(f'* created by fftool; mix = {mix}\n\n')
 
             f.write('read rtf card append\n\n')
 
@@ -2424,11 +2426,12 @@ class system(object):
 
             f.write('ATOMS\n')
             types = []
-            for att in self.attype:
-                if att.type not in types:
-                    types.append(att.type)
-                    f.write('MASS  -1  {:5s} {:9.5f}\n'.format(
-                        att.type, att.m))
+            for sp in self.spec:
+                for at in sp.atom:
+                    if at.name not in types:
+                        types.append(at.name)
+                        f.write('MASS  -1  {:5s} {:9.5f}\n'.format(
+                            at.name, at.m))
             f.write('\n')
 
             if mix == 'g':  # most likely geom is ignored
@@ -2439,14 +2442,15 @@ class system(object):
             f.write('!atom  ignored  epsilon   Rmin/2   ignored  eps,1-4   '\
                     'Rmin/2,1-4\n')
             types = []
-            for att in self.attype:
-                if att.type not in types:
-                    types.append(att.type)
-                    rmin_2 = (att.par[0] / 2.0) * 2.0**(1.0/6.0) 
-                    f.write('{:5s}  0.0    {:9.5f} {:9.5f}  0.0    '\
-                            '{:9.5f} {:9.5f}\n'.format(att.type,
-                            -att.par[1] / kCal, rmin_2,
-                            -att.par[1] / (2 * kCal), rmin_2))
+            for sp in self.spec:
+                for at in sp.atom:
+                    if at.name not in types:
+                        types.append(at.name)
+                        rmin_2 = (at.par[0] / 2.0) * 2.0**(1.0/6.0) 
+                        f.write('{:5s}  0.0    {:9.5f} {:9.5f}  0.0    '\
+                            '{:9.5f} {:9.5f}\n'.format(at.name,
+                            -at.par[1] / kCal, rmin_2,
+                            -at.par[1] / (2 * kCal), rmin_2))
             f.write('\n')
 
             if allpairs or mix == 'g':
@@ -2470,53 +2474,140 @@ class system(object):
             f.write('BONDS\n')
             f.write('!ai   aj      kb        b0\n')
             for bdt in self.bdtype:
-                f.write('{:5s} {:5s} {:8.2f} {:8.3f}\n'.format(
-                    bdt.iatp, bdt.jatp, bdt.par[1] / (2 * kCal), bdt.par[0]))
+                itypes = []
+                jtypes = []
+                for sp in self.spec:
+                    for at in sp.atom:
+                        if at.type == bdt.iatp and at.name not in itypes:
+                            itypes.append(at.name)
+                        if at.type == bdt.jatp and at.name not in jtypes:
+                            jtypes.append(at.name)
+                types = [(i, j) for i in itypes for j in jtypes]
+                if bdt.iatp == bdt.jatp:
+                    utypes = []
+                    for t in types:
+                        ti = (t[1], t[0])
+                        if t not in utypes and ti not in utypes:
+                            utypes.append(t)
+                else:
+                    utypes = types
+                for cl in utypes:
+                    f.write('{:5s} {:5s} {:8.2f} {:8.3f}\n'.format(
+                        cl[0], cl[1], bdt.par[1] / (2 * kCal), bdt.par[0]))
             f.write('\n')
 
             f.write('ANGLES\n')
             f.write('!ai   aj    ak      kth     th0\n')
             for ant in self.antype:
-                f.write('{:5s} {:5s} {:5s} {:7.2f} {:8.2f}\n'.format(
-                    ant.iatp, ant.jatp, ant.katp,
-                    ant.par[1] / (2 * kCal), ant.par[0]))
+                itypes = []
+                jtypes = []
+                ktypes = []
+                for sp in self.spec:
+                    for at in sp.atom:
+                        if at.type == ant.iatp and at.name not in itypes:
+                            itypes.append(at.name)
+                        if at.type == ant.jatp and at.name not in jtypes:
+                            jtypes.append(at.name)
+                        if at.type == ant.katp and at.name not in ktypes:
+                            ktypes.append(at.name)
+                types = [(i, j, k) for i in itypes for j in jtypes for k in ktypes]
+                if ant.iatp == ant.katp:
+                    utypes = []
+                    for t in types:
+                        ti = (t[2], t[1], t[0])
+                        if t not in utypes and ti not in utypes:
+                            utypes.append(t)
+                else:
+                    utypes = types
+                for cl in utypes:
+                    f.write('{:5s} {:5s} {:5s} {:7.2f} {:8.2f}\n'.format(
+                        cl[0], cl[1], cl[2],
+                        ant.par[1] / (2 * kCal), ant.par[0]))
             f.write('\n')
 
             f.write('DIHEDRALS\n')
             f.write('!ai   aj    ak    al      kchi   n   delta\n')
             for dht in self.dhtype:
-                zero = True
-                for i in range(4):
-                    if dht.par[i] != 0.0:
-                        zero = False
-                        kchi = dht.par[i] / (2.0 * kCal)
-                        delta = (i % 2) * 180.0  # 180 on V2 (i=1) and V4 (i=3)
-                        f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
-                            ' {:8.2f}\n'.format(dht.iatp, dht.jatp, dht.katp,
-                            dht.latp, kchi, i + 1, delta))
-                if zero:
-                     f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
-                        ' {:8.2f}\n'.format(dht.iatp, dht.jatp, dht.katp,
-                        dht.latp, 0.0, 1, 0.0))
+                itypes = []
+                jtypes = []
+                ktypes = []
+                ltypes = []
+                for sp in self.spec:
+                    for at in sp.atom:
+                        if at.type == dht.iatp and at.name not in itypes:
+                            itypes.append(at.name)
+                        if at.type == dht.jatp and at.name not in jtypes:
+                            jtypes.append(at.name)
+                        if at.type == dht.katp and at.name not in ktypes:
+                            ktypes.append(at.name)
+                        if at.type == dht.latp and at.name not in ltypes:
+                            ltypes.append(at.name)
+                types = [(i, j, k, l) for i in itypes for j in jtypes for k in ktypes for l in ltypes]
+                if dht.iatp == dht.latp and dht.jatp == dht.katp:
+                    utypes = []
+                    for t in types:
+                        ti = (t[3], t[2], t[1], t[0])
+                        if t not in utypes and ti not in utypes:
+                            utypes.append(t)
+                else:
+                    utypes = types
+                for cl in utypes:
+                    zero = True
+                    for i in range(4):
+                        if dht.par[i] != 0.0:
+                            zero = False
+                            kchi = dht.par[i] / (2.0 * kCal)
+                            delta = (i % 2) * 180.0  # 180 on V2 (i=1) and V4 (i=3)
+                            f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
+                                ' {:8.2f}\n'.format(cl[0], cl[1], cl[2], cl[3],
+                                                     kchi, i + 1, delta))
+                    if zero:
+                         f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
+                            ' {:8.2f}\n'.format(cl[0], cl[1], cl[2], cl[3],
+                                                0.0, 1, 0.0))
 
             f.write('\n')
 
             f.write('IMPROPER\n')
             f.write('!ai   aj    ak    al      kchi   n   delta\n')
             for dit in self.ditype:
-                zero = True
-                for i in range(4):
-                    if dit.par[i] != 0.0:
-                        zero = False
-                        kchi = dit.par[i] / (2.0 * kCal)
-                        delta = (i % 2) * 180.0
-                        f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
-                            ' {:8.2f}\n'.format(dit.iatp, dit.jatp, dit.katp,
-                            dit.latp, kchi, i + 1, delta))                    
-                if zero:
-                     f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
-                        ' {:8.2f}\n'.format(dht.iatp, dht.jatp, dht.katp,
-                        dht.latp, 0.0, 1, 0.0))
+                itypes = []
+                jtypes = []
+                ktypes = []
+                ltypes = []
+                for sp in self.spec:
+                    for at in sp.atom:
+                        if at.type == dit.iatp and at.name not in itypes:
+                            itypes.append(at.name)
+                        if at.type == dit.jatp and at.name not in jtypes:
+                            jtypes.append(at.name)
+                        if at.type == dit.katp and at.name not in ktypes:
+                            ktypes.append(at.name)
+                        if at.type == dit.latp and at.name not in ltypes:
+                            ltypes.append(at.name)
+                types = [(i, j, k, l) for i in itypes for j in jtypes for k in ktypes for l in ltypes]
+                if dit.iatp == dit.katp:
+                    utypes = []
+                    for t in types:
+                        ti = (t[1], t[0], t[2], t[3])
+                        if t not in utypes and ti not in utypes:
+                            utypes.append(t)
+                else:
+                    utypes = types
+                for cl in utypes:
+                    zero = True
+                    for i in range(4):
+                        if dit.par[i] != 0.0:
+                            zero = False
+                            kchi = dit.par[i] / (2.0 * kCal)
+                            delta = (i % 2) * 180.0
+                            f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
+                                ' {:8.2f}\n'.format(cl[0], cl[1], cl[2], cl[3],
+                                                    kchi, i + 1, delta))                    
+                    if zero:
+                         f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
+                            ' {:8.2f}\n'.format(cl[0], cl[1], cl[2], cl[3],
+                                                0.0, 1, 0.0))
             f.write('\n')
             f.write('END\n')
 
