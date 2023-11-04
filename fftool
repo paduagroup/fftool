@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/11/02
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/11/04
 
 # Copyright 2013 Agilio Padua
 #
@@ -1600,7 +1600,7 @@ class system(object):
             for sp in self.spec:
                 xyzfile = (sp.filename).rsplit('.', 1)[0] + '_pack.xyz'
                 f.write(f'\nstructure {xyzfile}\n')
-                f.write(f'  number {sp.mol}\n')
+                f.write(f'  number {sp.nmol}\n')
                 if self.box.triclinic:
                     o = vec3(0.0, 0.0, 0.0)
                     p = vec3(self.box.lx, 0.0, 0.0)
@@ -2139,15 +2139,13 @@ class system(object):
         """
         Use non-bonded types as the atom class (instead of the bonded types).
 
-        This is more general since it allows for variations in LJ parameters
-        while keeping the same bonded type. 
-
+        This is more general since it allows for variations in LJ parameters.
         Furthermore, to scale LJ terms when adding polarization (scaleLJxml),
         the non-bonded i-j terms have to be identified by fragment.
         We could use the unique atom types required by OpenMM to set Drude particle-core pairs,
-        but the NBFixPairs list becomes huge with large molecules (many unique atom types).
-        Therefore here we use the non-bonded types as atom class, instead of the bonded types.
-        Bonded terms will be more numerous but NBFixPairs will be much less.
+        but the NBFixPairs list becomes huge with large molecules.
+        Therefore, here we use the non-bonded types as atom class, instead of the bonded types.
+        Bonded terms will be a bit more numerous but NBFixPairs will be much less.
         """
 
         self.checkdupresidues()
@@ -2190,152 +2188,89 @@ class system(object):
 
         if nbond:
             bondforce = ET.SubElement(root, 'HarmonicBondForce')
-            for bdt in self.bdtype:
-                itypes = []
-                jtypes = []
-                for sp in self.spec:
-                    for at in sp.atom:
-                        if at.type == bdt.iatp and at.name not in itypes:
-                            itypes.append(at.name)
-                        if at.type == bdt.jatp and at.name not in jtypes:
-                            jtypes.append(at.name)
-                types = [(i, j) for i in itypes for j in jtypes]
-                if bdt.iatp == bdt.jatp:
-                    utypes = []
-                    for t in types:
-                        ti = (t[1], t[0])
-                        if t not in utypes and ti not in utypes:
-                            utypes.append(t)
-                else:
-                    utypes = types
-                for cl in utypes:
-                    bond = ET.SubElement(bondforce, 'Bond')
-                    bond.set('class1', cl[0])
-                    bond.set('class2', cl[1])
-                    bond.set('length', f'{bdt.par[0] / 10:.5f}')
-                    bond.set('k', f'{bdt.par[1] * 100:.1f}')
+            types = []
+            for sp in self.spec:
+                for bd in sp.bond:
+                    tp = (sp.atom[bd.i].name, sp.atom[bd.j].name)
+                    ti = (tp[1], tp[0])
+                    if tp not in types and ti not in types:
+                        types.append(tp)
+                        bond = ET.SubElement(bondforce, 'Bond')
+                        bond.set('class1', tp[0])
+                        bond.set('class2', tp[1])
+                        bond.set('length', f'{bd.par[0] / 10:.5f}')
+                        bond.set('k', f'{bd.par[1] * 100:.1f}')
 
         if nangle:
             angleforce = ET.SubElement(root, 'HarmonicAngleForce')
-            for ant in self.antype:
-                itypes = []
-                jtypes = []
-                ktypes = []
-                for sp in self.spec:
-                    for at in sp.atom:
-                        if at.type == ant.iatp and at.name not in itypes:
-                            itypes.append(at.name)
-                        if at.type == ant.jatp and at.name not in jtypes:
-                            jtypes.append(at.name)
-                        if at.type == ant.katp and at.name not in ktypes:
-                            ktypes.append(at.name)
-                types = [(i, j, k) for i in itypes for j in jtypes for k in ktypes]
-                if ant.iatp == ant.katp:
-                    utypes = []
-                    for t in types:
-                        ti = (t[2], t[1], t[0])
-                        if t not in utypes and ti not in utypes:
-                            utypes.append(t)
-                else:
-                    utypes = types
-                for cl in utypes:
-                    angle = ET.SubElement(angleforce, 'Angle')
-                    angle.set('class1', cl[0])
-                    angle.set('class2', cl[1])
-                    angle.set('class3', cl[2])
-                    angle.set('angle', f'{ant.par[0] * math.pi/180:.5f}')
-                    angle.set('k', f'{ant.par[1]:.2f}')
+            types = []
+            for sp in self.spec:
+                for an in sp.angle:
+                    tp = (sp.atom[an.i].name, sp.atom[an.j].name, sp.atom[an.k].name)
+                    ti = (tp[2], tp[1], tp[0])
+                    if tp not in types and ti not in types:
+                        types.append(tp)
+                        angle = ET.SubElement(angleforce, 'Angle')
+                        angle.set('class1', tp[0])
+                        angle.set('class2', tp[1])
+                        angle.set('class3', tp[2])
+                        angle.set('angle', f'{an.par[0] * math.pi/180:.5f}')
+                        angle.set('k', f'{an.par[1]:.2f}')
 
         if ndihed:
             torsionforce = ET.SubElement(root, 'RBTorsionForce')
             eps = 1e-12
-            for dht in self.dhtype:
-                # convert OPLS to RB
-                c0 = dht.par[1] + 0.5 * (dht.par[0] + dht.par[2]) + eps
-                c1 = 0.5 * (-dht.par[0] + 3 * dht.par[2]) + eps
-                c2 = -dht.par[1] + 4 * dht.par[3] + eps
-                c3 = -2 * dht.par[2] + eps
-                c4 = -4 * dht.par[3] + eps
-                c5 = 0.0
-                itypes = []
-                jtypes = []
-                ktypes = []
-                ltypes = []
-                for sp in self.spec:
-                    for at in sp.atom:
-                        if at.type == dht.iatp and at.name not in itypes:
-                            itypes.append(at.name)
-                        if at.type == dht.jatp and at.name not in jtypes:
-                            jtypes.append(at.name)
-                        if at.type == dht.katp and at.name not in ktypes:
-                            ktypes.append(at.name)
-                        if at.type == dht.latp and at.name not in ltypes:
-                            ltypes.append(at.name)
-                types = [(i, j, k, l) for i in itypes for j in jtypes for k in ktypes for l in ltypes]
-                if dht.iatp == dht.latp and dht.jatp == dht.katp:
-                    utypes = []
-                    for t in types:
-                        ti = (t[3], t[2], t[1], t[0])
-                        if t not in utypes and ti not in utypes:
-                            utypes.append(t)
-                else:
-                    utypes = types
-                for cl in utypes:
-                    dihed = ET.SubElement(torsionforce, 'Proper')
-                    dihed.set('class1', cl[0])
-                    dihed.set('class2', cl[1])
-                    dihed.set('class3', cl[2])
-                    dihed.set('class4', cl[3])
-                    dihed.set('c0', f'{c0:.5f}')
-                    dihed.set('c1', f'{c1:.5f}')
-                    dihed.set('c2', f'{c2:.5f}')
-                    dihed.set('c3', f'{c3:.5f}')
-                    dihed.set('c4', f'{c4:.5f}')
-                    dihed.set('c5', f'{c5:.5f}')
+            types = []
+            for sp in self.spec:
+                for dh in sp.dihed:
+                    tp = (sp.atom[dh.i].name, sp.atom[dh.j].name, sp.atom[dh.k].name, sp.atom[dh.l].name)
+                    ti = (tp[3], tp[2], tp[1], tp[0])
+                    if tp not in types and ti not in types:
+                        types.append(tp)
+                        # convert OPLS to RB
+                        c0 = dh.par[1] + 0.5 * (dh.par[0] + dh.par[2]) + eps
+                        c1 = 0.5 * (-dh.par[0] + 3 * dh.par[2]) + eps
+                        c2 = -dh.par[1] + 4 * dh.par[3] + eps
+                        c3 = -2 * dh.par[2] + eps
+                        c4 = -4 * dh.par[3] + eps
+                        c5 = 0.0
+                        dihed = ET.SubElement(torsionforce, 'Proper')
+                        dihed.set('class1', tp[0])
+                        dihed.set('class2', tp[1])
+                        dihed.set('class3', tp[2])
+                        dihed.set('class4', tp[3])
+                        dihed.set('c0', f'{c0:.5f}')
+                        dihed.set('c1', f'{c1:.5f}')
+                        dihed.set('c2', f'{c2:.5f}')
+                        dihed.set('c3', f'{c3:.5f}')
+                        dihed.set('c4', f'{c4:.5f}')
+                        dihed.set('c5', f'{c5:.5f}')
 
-            for dit in self.ditype:
-                # convert OPLS to RB
-                c0 = dit.par[1] + 0.5 * (dit.par[0] + dit.par[2]) + eps
-                c1 = 0.5 * (-dit.par[0] + 3 * dit.par[2]) + eps
-                c2 = -dit.par[1] + 4 * dit.par[3] + eps
-                c3 = -2 * dit.par[2] + eps
-                c4 = -4 * dit.par[3] + eps
-                c5 = 0.0
-                itypes = []
-                jtypes = []
-                ktypes = []
-                ltypes = []
-                for sp in self.spec:
-                    for at in sp.atom:
-                        if at.type == dit.iatp and at.name not in itypes:
-                            itypes.append(at.name)
-                        if at.type == dit.jatp and at.name not in jtypes:
-                            jtypes.append(at.name)
-                        if at.type == dit.katp and at.name not in ktypes:
-                            ktypes.append(at.name)
-                        if at.type == dit.latp and at.name not in ltypes:
-                            ltypes.append(at.name)
-                types = [(i, j, k, l) for i in itypes for j in jtypes for k in ktypes for l in ltypes]
-                if dit.iatp == dit.katp:
-                    utypes = []
-                    for t in types:
-                        ti = (t[1], t[0], t[2], t[3])
-                        if t not in utypes and ti not in utypes:
-                            utypes.append(t)
-                else:
-                    utypes = types
-                for cl in utypes:
-                    dimpr = ET.SubElement(torsionforce, 'Improper')
-                    dimpr.set('class1', cl[0])
-                    dimpr.set('class2', cl[1])
-                    dimpr.set('class3', cl[2])
-                    dimpr.set('class4', cl[3])
-                    dimpr.set('c0', f'{c0:.5f}')
-                    dimpr.set('c1', f'{c1:.5f}')
-                    dimpr.set('c2', f'{c2:.5f}')
-                    dimpr.set('c3', f'{c3:.5f}')
-                    dimpr.set('c4', f'{c4:.5f}')
-                    dimpr.set('c5', f'{c5:.5f}')
+            types = []
+            for sp in self.spec:
+                for di in sp.dimpr:
+                    tp = (sp.atom[di.i].name, sp.atom[di.j].name, sp.atom[di.k].name, sp.atom[di.l].name)
+                    ti = (tp[1], tp[0], tp[2], tp[3])
+                    if tp not in types and ti not in types:
+                        types.append(tp)
+                        # convert OPLS to RB
+                        c0 = di.par[1] + 0.5 * (di.par[0] + di.par[2]) + eps
+                        c1 = 0.5 * (-di.par[0] + 3 * di.par[2]) + eps
+                        c2 = -di.par[1] + 4 * di.par[3] + eps
+                        c3 = -2 * di.par[2] + eps
+                        c4 = -4 * di.par[3] + eps
+                        c5 = 0.0
+                        dimpr = ET.SubElement(torsionforce, 'Improper')
+                        dimpr.set('class1', tp[0])
+                        dimpr.set('class2', tp[1])
+                        dimpr.set('class3', tp[2])
+                        dimpr.set('class4', tp[3])
+                        dimpr.set('c0', f'{c0:.5f}')
+                        dimpr.set('c1', f'{c1:.5f}')
+                        dimpr.set('c2', f'{c2:.5f}')
+                        dimpr.set('c3', f'{c3:.5f}')
+                        dimpr.set('c4', f'{c4:.5f}')
+                        dimpr.set('c5', f'{c5:.5f}')
 
         if allpairs or mix == 'g':
             nbforce = ET.SubElement(root, 'NonbondedForce')
@@ -2473,141 +2408,76 @@ class system(object):
 
             f.write('BONDS\n')
             f.write('!ai   aj      kb        b0\n')
-            for bdt in self.bdtype:
-                itypes = []
-                jtypes = []
-                for sp in self.spec:
-                    for at in sp.atom:
-                        if at.type == bdt.iatp and at.name not in itypes:
-                            itypes.append(at.name)
-                        if at.type == bdt.jatp and at.name not in jtypes:
-                            jtypes.append(at.name)
-                types = [(i, j) for i in itypes for j in jtypes]
-                if bdt.iatp == bdt.jatp:
-                    utypes = []
-                    for t in types:
-                        ti = (t[1], t[0])
-                        if t not in utypes and ti not in utypes:
-                            utypes.append(t)
-                else:
-                    utypes = types
-                for cl in utypes:
-                    f.write('{:5s} {:5s} {:8.2f} {:8.3f}\n'.format(
-                        cl[0], cl[1], bdt.par[1] / (2 * kCal), bdt.par[0]))
+            types = []
+            for sp in self.spec:
+                for bd in sp.bond:
+                    tp = (sp.atom[bd.i].name, sp.atom[bd.j].name)
+                    ti = (tp[1], tp[0])
+                    if tp not in types and ti not in types:
+                        types.append(tp)
+                        f.write('{:5s} {:5s} {:8.2f} {:8.3f}\n'.format(
+                            tp[0], tp[1], bd.par[1] / (2 * kCal), bd.par[0]))
             f.write('\n')
 
             f.write('ANGLES\n')
             f.write('!ai   aj    ak      kth     th0\n')
-            for ant in self.antype:
-                itypes = []
-                jtypes = []
-                ktypes = []
-                for sp in self.spec:
-                    for at in sp.atom:
-                        if at.type == ant.iatp and at.name not in itypes:
-                            itypes.append(at.name)
-                        if at.type == ant.jatp and at.name not in jtypes:
-                            jtypes.append(at.name)
-                        if at.type == ant.katp and at.name not in ktypes:
-                            ktypes.append(at.name)
-                types = [(i, j, k) for i in itypes for j in jtypes for k in ktypes]
-                if ant.iatp == ant.katp:
-                    utypes = []
-                    for t in types:
-                        ti = (t[2], t[1], t[0])
-                        if t not in utypes and ti not in utypes:
-                            utypes.append(t)
-                else:
-                    utypes = types
-                for cl in utypes:
-                    f.write('{:5s} {:5s} {:5s} {:7.2f} {:8.2f}\n'.format(
-                        cl[0], cl[1], cl[2],
-                        ant.par[1] / (2 * kCal), ant.par[0]))
+            types = []
+            for sp in self.spec:
+                for an in sp.angle:
+                    tp = (sp.atom[an.i].name, sp.atom[an.j].name, sp.atom[an.k].name)
+                    ti = (tp[2], tp[1], tp[0])
+                    if tp not in types and ti not in types:
+                        types.append(tp)
+                        f.write('{:5s} {:5s} {:5s} {:7.2f} {:8.2f}\n'.format(
+                            tp[0], tp[1], tp[2],
+                            an.par[1] / (2 * kCal), an.par[0]))
             f.write('\n')
 
             f.write('DIHEDRALS\n')
             f.write('!ai   aj    ak    al      kchi   n   delta\n')
-            for dht in self.dhtype:
-                itypes = []
-                jtypes = []
-                ktypes = []
-                ltypes = []
-                for sp in self.spec:
-                    for at in sp.atom:
-                        if at.type == dht.iatp and at.name not in itypes:
-                            itypes.append(at.name)
-                        if at.type == dht.jatp and at.name not in jtypes:
-                            jtypes.append(at.name)
-                        if at.type == dht.katp and at.name not in ktypes:
-                            ktypes.append(at.name)
-                        if at.type == dht.latp and at.name not in ltypes:
-                            ltypes.append(at.name)
-                types = [(i, j, k, l) for i in itypes for j in jtypes for k in ktypes for l in ltypes]
-                if dht.iatp == dht.latp and dht.jatp == dht.katp:
-                    utypes = []
-                    for t in types:
-                        ti = (t[3], t[2], t[1], t[0])
-                        if t not in utypes and ti not in utypes:
-                            utypes.append(t)
-                else:
-                    utypes = types
-                for cl in utypes:
-                    zero = True
-                    for i in range(4):
-                        if dht.par[i] != 0.0:
-                            zero = False
-                            kchi = dht.par[i] / (2.0 * kCal)
-                            delta = (i % 2) * 180.0  # 180 on V2 (i=1) and V4 (i=3)
-                            f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
-                                ' {:8.2f}\n'.format(cl[0], cl[1], cl[2], cl[3],
-                                                     kchi, i + 1, delta))
-                    if zero:
-                         f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
-                            ' {:8.2f}\n'.format(cl[0], cl[1], cl[2], cl[3],
-                                                0.0, 1, 0.0))
-
+            types = []
+            for sp in self.spec:
+                for dh in sp.dihed:
+                    tp = (sp.atom[dh.i].name, sp.atom[dh.j].name, sp.atom[dh.k].name, sp.atom[dh.l].name)
+                    ti = (tp[3], tp[2], tp[1], tp[0])
+                    if tp not in types and ti not in types:
+                        types.append(tp)
+                        zero = True
+                        for i in range(4):
+                            if dh.par[i] != 0.0:
+                                zero = False
+                                kchi = dh.par[i] / (2.0 * kCal)
+                                delta = (i % 2) * 180.0  # 180 on V2 (i=1) and V4 (i=3)
+                                f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
+                                    ' {:8.2f}\n'.format(tp[0], tp[1], tp[2], tp[3],
+                                                         kchi, i + 1, delta))
+                        if zero:
+                             f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
+                                ' {:8.2f}\n'.format(tp[0], tp[1], tp[2], tp[3],
+                                                    0.0, 1, 0.0))
             f.write('\n')
-
             f.write('IMPROPER\n')
             f.write('!ai   aj    ak    al      kchi   n   delta\n')
-            for dit in self.ditype:
-                itypes = []
-                jtypes = []
-                ktypes = []
-                ltypes = []
-                for sp in self.spec:
-                    for at in sp.atom:
-                        if at.type == dit.iatp and at.name not in itypes:
-                            itypes.append(at.name)
-                        if at.type == dit.jatp and at.name not in jtypes:
-                            jtypes.append(at.name)
-                        if at.type == dit.katp and at.name not in ktypes:
-                            ktypes.append(at.name)
-                        if at.type == dit.latp and at.name not in ltypes:
-                            ltypes.append(at.name)
-                types = [(i, j, k, l) for i in itypes for j in jtypes for k in ktypes for l in ltypes]
-                if dit.iatp == dit.katp:
-                    utypes = []
-                    for t in types:
-                        ti = (t[1], t[0], t[2], t[3])
-                        if t not in utypes and ti not in utypes:
-                            utypes.append(t)
-                else:
-                    utypes = types
-                for cl in utypes:
-                    zero = True
-                    for i in range(4):
-                        if dit.par[i] != 0.0:
-                            zero = False
-                            kchi = dit.par[i] / (2.0 * kCal)
-                            delta = (i % 2) * 180.0
-                            f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
-                                ' {:8.2f}\n'.format(cl[0], cl[1], cl[2], cl[3],
-                                                    kchi, i + 1, delta))                    
-                    if zero:
-                         f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
-                            ' {:8.2f}\n'.format(cl[0], cl[1], cl[2], cl[3],
-                                                0.0, 1, 0.0))
+            types = []
+            for sp in self.spec:
+                for di in sp.dimpr:
+                    tp = (sp.atom[di.i].name, sp.atom[di.j].name, sp.atom[di.k].name, sp.atom[di.l].name)
+                    ti = (tp[1], tp[0], tp[2], tp[3])
+                    if tp not in types and ti not in types:
+                        types.append(tp)
+                        zero = True
+                        for i in range(4):
+                            if di.par[i] != 0.0:
+                                zero = False
+                                kchi = di.par[i] / (2.0 * kCal)
+                                delta = (i % 2) * 180.0
+                                f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
+                                    ' {:8.2f}\n'.format(tp[0], tp[1], tp[2], tp[3],
+                                                        kchi, i + 1, delta))                    
+                        if zero:
+                             f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
+                                ' {:8.2f}\n'.format(tp[0], tp[1], tp[2], tp[3],
+                                                    0.0, 1, 0.0))
             f.write('\n')
             f.write('END\n')
 
