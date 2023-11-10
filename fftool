@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/11/04
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/11/10
 
 # Copyright 2013 Agilio Padua
 #
@@ -24,7 +24,6 @@
 
 import argparse
 import math
-import collections
 import xml.etree.ElementTree as ET
 
 # tolerances when deducing bonds and angles from input configuration
@@ -82,13 +81,13 @@ def atomic_number(name):
 
 def hexiflarge(i, ndig):
     """
-    convert number to a hex starting with A if more than n digits
+    convert number to hex starting with A if more than n digits
     VMD convention in PDB files with natom > 99999, nmol > 9999
     used by OpenMM 
     """
 
-    hexlim = int('A'+(ndig-1)*'0', 16)
     declim = 10**ndig
+    hexlim = int('A' + (ndig-1)*'0', 16)
 
     if i < declim:
         return f'{i}'
@@ -622,8 +621,8 @@ class mol(object):
         self.setff(box)
 
         self.res = self.name.replace('-', '').replace('+', '')[:3]  # 3-char residue name
-        self.indexatomnames()
-        self.indexatomtypes()
+        self.resatomnames()
+        self.sysatomtypes()
         
     def __str__(self):
         return 'molecule {}  {:d} atoms  m = {:8.4f}'.format(self.name,
@@ -634,53 +633,42 @@ class mol(object):
         q = 0.0
         for at in self.atom:
             q += at.q
-        return q + 1.e-12
+        return q + 1e-12
 
-    def indexatomnames(self):
-        '''set unique atom names in residues appending numbers to element'''
-        names = []
+    def resatomnames(self):
+        '''
+        set unique atom names in residues appending numbers to element
+        using base 32 if more than 100 atoms in residue
+        '''
+        nl = []
         for at in self.atom:
-            names.append(atomic_symbol(at.name))
-        cnt = collections.Counter(names)
-        n = dict.fromkeys(cnt, 0)
+            nl.append(atomic_symbol(at.name))
+        cnt = {item: nl.count(item) for item in nl}
+        names = dict.fromkeys(cnt, 0)
         for at in self.atom:
-            for key in n:
-                if at.name[0] == key:
-                    n[key] += 1
+            for key in names:
+                if atomic_symbol(at.name) == key:
+                    names[key] += 1
                     if cnt[key] > 1:
-                        s = str(n[key])
+                        at.uname = key + str(names[key])
                     else:
-                        s = ''
-                    at.uname = at.name[0] + s
+                        at.uname = key
                     break
 
-    def indexatomtypes(self):
+    def sysatomtypes(self):
         '''
         set unique atom types for entire system using residue name:
         RES-ATOM-# where # is a serial number
         '''
-        names = []
+        ns = set()
         for at in self.atom:
-            names.append(at.name)
-        cnt = collections.Counter(names)
-        n = dict.fromkeys(cnt, 0)
+            ns.add(at.name)
+        names = dict.fromkeys(ns, 0)
         for at in self.atom:
-            for key in n:
+            for key in names:
                 if at.name == key:
-                    n[key] += 1
-                    #if at.name[-1].isdigit():
-                    #    if n[key] <= 26:
-                    #        s = chr(ord('`') + n[key])   # lowercase
-                    #    elif n[key] <= 702:
-                    #        q, r = divmod(n[key] - 1, 26)
-                    #        s = chr(ord('`') + q) + chr(ord('a') + r )
-                    #    else:
-                    #        raise RuntimeError('unable to index too many atoms '
-                    #            + at.uname + ' in ' + self.name)
-                    #else:
-                    #    s = str(n[key])
-                    #at.utype = self.name[:3] + '-' + at.name + s
-                    at.utype = self.res + '-' + at.name + '-' + str(n[key])
+                    names[key] += 1
+                    at.utype = self.res + '-' + at.name + '-' + str(names[key])
                     break
 
     def fromzmat(self, filename, connect):
