@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/11/10
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/11/11
 
 # Copyright 2013 Agilio Padua
 #
@@ -162,25 +162,7 @@ class vec3(object):
 
 # --------------------------------------
 
-def indent_xml(elem, level=0, hor=' ', ver='\n'):
-    '''pretty-print xml from element tree'''
 
-    spc = ver + level * hor
-    if len(elem):
-        if not elem.text or not elem.text.strip():
-            elem.text = spc + hor
-        if not elem.tail or not elem.tail.strip():
-            elem.tail = spc
-        for elem in elem:
-            indent_xml(elem, level + 1, hor, ver)
-        if not elem.tail or not elem.tail.strip():
-            elem.tail = spc
-    else:
-        if level and (not elem.tail or not elem.tail.strip()):
-            elem.tail = spc
-
-# --------------------------------------
- 
 class atom(object):
     '''atom in a molecule or in a force field'''
 
@@ -2118,7 +2100,7 @@ class system(object):
                     atom.set('sigma', f'{at.par[0] / 10:.4f}')
                     atom.set('epsilon', f'{at.par[1]:.5f}')
 
-        indent_xml(root)
+        ET.indent(root, space=' ')
         ftree.write('field.xml')
 
         self.writepdb()
@@ -2317,7 +2299,7 @@ class system(object):
                         atom.set('epsilon', f'{at.par[1]:.5f}')
                         types.append(at.name)
 
-        indent_xml(root)
+        ET.indent(root, space=' ')
         ftree.write('field.xml')
 
         self.writepdb()
