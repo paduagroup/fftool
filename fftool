@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/11/11
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/11/13
 
 # Copyright 2013 Agilio Padua
 #
@@ -25,6 +25,7 @@
 import argparse
 import math
 import xml.etree.ElementTree as ET
+import numpy as np
 
 # tolerances when deducing bonds and angles from input configuration
 BondTol = 0.25                          # Angstrom
@@ -619,8 +620,11 @@ class mol(object):
 
     def resatomnames(self):
         '''
-        set unique atom names in residues appending numbers to element
-        using base 32 if more than 100 atoms in residue
+        Set unique atom names in residues (for xml, CHARMM),
+        keeping under 4 chars as required by PDB format.
+        Append numbers to element.
+        Use base 32 if more than 999 (1-char atomic symbol) or more than 
+        99 atoms (2-char atomic symbol) of the same element in residue.
         '''
         nl = []
         for at in self.atom:
@@ -631,16 +635,19 @@ class mol(object):
             for key in names:
                 if atomic_symbol(at.name) == key:
                     names[key] += 1
-                    if cnt[key] > 1:
+                    if cnt[key] == 1:
+                        at.uname = key
+                    elif (len(key) == 1 and cnt[key] < 1000) or \
+                         (len(key) == 2 and cnt[key] < 100):
                         at.uname = key + str(names[key])
                     else:
-                        at.uname = key
+                        at.uname = key + np.base_repr(names[key], base=32)
                     break
 
     def sysatomtypes(self):
         '''
-        set unique atom types for entire system using residue name:
-        RES-ATOM-# where # is a serial number
+        set unique atom types for entire system using residue name (for xml, CHARMM)
+        RES-ATOM-XX where XX is a serial number
         '''
         ns = set()
         for at in self.atom:
