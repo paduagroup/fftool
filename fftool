@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/11/13
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/11/24
 
 # Copyright 2013 Agilio Padua
 #
@@ -296,7 +296,7 @@ class bond(object):
 
     def setpar(self, iatp, jatp, pot, par):
         '''set bond parameters'''
-        self.name = '{}-{}'.format(iatp, jatp)
+        self.name = f'{iatp}-{jatp}'
         self.iatp = iatp
         self.jatp = jatp
         self.pot = pot
@@ -349,7 +349,7 @@ class angle(object):
 
     def setpar(self, iatp, jatp, katp, pot, par):
         '''set angle parameters'''
-        self.name = '{0}-{1}-{2}'.format(iatp, jatp, katp)
+        self.name = f'{iatp}-{jatp}-{katp}'
         self.iatp = iatp
         self.jatp = jatp
         self.katp = katp
@@ -404,7 +404,7 @@ class dihed(object):
 
     def setpar(self, iatp, jatp, katp, latp, pot, par):
         '''set dihedral parameters'''
-        self.name = '{}-{}-{}-{}'.format(iatp, jatp, katp, latp)
+        self.name = f'{iatp}-{jatp}-{katp}-{latp}'
         self.iatp = iatp
         self.jatp = jatp
         self.katp = katp
@@ -1287,11 +1287,22 @@ class forcefield(object):
         self.dimpr = []
         self.maxbondlen = 0.0
 
-        i = ib = ia = ih = im = 0
+        if '.xml' in filename:
+            self.readxml(filename)
+        else:
+            self.readff(filename)
+
+        for bn in self.bond:
+            bn.seteqval()
+        for an in self.angle:
+            an.seteqval()
+
+    def readff(self, filename):
+        '''read force field database from ff file'''
+
         for line in open(filename, 'r'):
             if line.startswith('#') or line.strip() == '':
                 continue
-        
             if line.lower().startswith('atom'):
                 section = 'atoms'
                 continue
@@ -1316,16 +1327,14 @@ class forcefield(object):
                 pot = tok[4]
                 par = [float(p) for p in tok[5:]]
                 self.atom.append(atom(name, m))
-                self.atom[i].setpar(attp, q, pot, par)
-                i += 1
+                self.atom[-1].setpar(attp, q, pot, par)
             elif section == 'bonds':
                 iatp = tok[0]
                 jatp = tok[1]
                 pot = tok[2]
                 par = [float(p) for p in tok[3:]]
                 self.bond.append(bond())
-                self.bond[ib].setpar(iatp, jatp, pot, par)
-                ib += 1
+                self.bond[-1].setpar(iatp, jatp, pot, par)
                 if par[0] > self.maxbondlen:
                     self.maxbondlen = par[0]
             elif section == 'angles':
@@ -1335,8 +1344,7 @@ class forcefield(object):
                 pot = tok[3]
                 par = [float(p) for p in tok[4:]]
                 self.angle.append(angle())
-                self.angle[ia].setpar(iatp, jatp, katp, pot, par)
-                ia += 1
+                self.angle[-1].setpar(iatp, jatp, katp, pot, par)
             elif section == 'dihedrals':
                 iatp = tok[0]
                 jatp = tok[1]
@@ -1345,8 +1353,7 @@ class forcefield(object):
                 pot = tok[4]
                 par = [float(p) for p in tok[5:]]
                 self.dihed.append(dihed())
-                self.dihed[ih].setpar(iatp, jatp, katp, latp, pot, par)
-                ih += 1
+                self.dihed[-1].setpar(iatp, jatp, katp, latp, pot, par)
             elif section == 'improper':
                 iatp = tok[0]
                 jatp = tok[1]
@@ -1355,13 +1362,64 @@ class forcefield(object):
                 pot = tok[4]
                 par = [float(p) for p in tok[5:]]
                 self.dimpr.append(dimpr())
-                self.dimpr[im].setpar(iatp, jatp, katp, latp, pot, par)
-                im += 1
-                        
-        for bn in self.bond:
-            bn.seteqval()
-        for an in self.angle:
-            an.seteqval()
+                self.dimpr[-1].setpar(iatp, jatp, katp, latp, pot, par)
+
+    def readxml(self, filename):
+        '''read force field database in xml format'''
+
+        ftree = ET.parse(filename)
+        root = ftree.getroot()
+
+        atoms = root.find('Atoms')
+        for at in atoms:
+            name = at.get('type')
+            attp = at.get('class')
+            m = float(at.get('mass'))
+            q = float(at.get('charge'))
+            pot = at.get('potential')
+            par = [float(at.get('sigma')), float(at.get('epsilon'))]
+            self.atom.append(atom(name, m))
+            self.atom[-1].setpar(attp, q, pot, par[:2])
+        bonds = root.find('Bonds')
+        for bd in bonds:
+            iatp = bd.get('class1')
+            jatp = bd.get('class2')
+            pot = bd.get('potential')
+            par = [float(bd.get('length')), float(bd.get('k'))]
+            self.bond.append(bond())
+            self.bond[-1].setpar(iatp, jatp, pot, par[:2])
+            if par[0] > self.maxbondlen:
+                self.maxbondlen = par[0]
+        angles = root.find('Angles')
+        for an in angles:
+            iatp = an.get('class1')
+            jatp = an.get('class2')
+            katp = an.get('class3')
+            pot = an.get('potential')
+            par = [float(an.get('angle')), float(an.get('k'))]
+            self.angle.append(angle())
+            self.angle[-1].setpar(iatp, jatp, katp, pot, par[:2])
+        torsions = root.find('Torsions')
+        for dh in torsions.iter('Proper'):
+            iatp = dh.get('class1')
+            jatp = dh.get('class2')
+            katp = dh.get('class3')
+            latp = dh.get('class4')
+            pot = dh.get('potential')
+            par = [float(dh.get('v1')), float(dh.get('v2')),
+                float(dh.get('v3')), float(dh.get('v4'))]
+            self.dihed.append(dihed())
+            self.dihed[-1].setpar(iatp, jatp, katp, latp, pot, par)
+        for di in torsions.iter('Improper'):
+            iatp = di.get('class1')
+            jatp = di.get('class2')
+            katp = di.get('class3')
+            latp = di.get('class4')
+            pot = di.get('potential')
+            par = [float(di.get('v1')), float(di.get('v2')),
+                float(di.get('v3')), float(di.get('v4'))]
+            self.dimpr.append(dimpr())
+            self.dimpr[-1].setpar(iatp, jatp, katp, latp, pot, par)
 
     def show(self):
         print(self.filename)
