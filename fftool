@@ -935,7 +935,7 @@ class mol(object):
                          (self.atom[j].type, self.atom[i].type))
                 for ffbd in self.ff.bond:
                     btypeff = (ffbd.iatp, ffbd.jatp)
-                    if (btypeff in btype) and ffbd.checkval(r):
+                    if btypeff in btype and ffbd.checkval(r):
                         self.bond.append(bond(i, j))
                         break
                                         
