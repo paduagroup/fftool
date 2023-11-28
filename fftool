@@ -4,20 +4,20 @@
 
 # Copyright 2013 Agilio Padua
 #
-# Permission is hereby granted, free of charge, to any person obtaining a 
+# Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
-# to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-# and/or sell copies of the Software, and to permit persons to whom the 
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
 # Software is furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in 
+# The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
@@ -50,7 +50,7 @@ atomic_nr = {'H': 1, 'Li': 3, 'B': 5, 'C': 6, 'N': 7, 'O': 8, 'F': 9, 'Ne': 10,
              'Cl': 17, 'Ar': 18, 'K': 19, 'Ca': 20, 'Ti': 22, 'Fe': 26, 'Cu': 29,
              'Zn': 30, 'Se': 34, 'Br': 35, 'Kr': 36, 'Mo': 42, 'Ru': 44,
              'Sn': 50, 'Te': 52, 'I': 53, 'Xe': 54}
-    
+
 def atomic_weight(name):
     if name[:2] in atomic_wt:
         return atomic_wt[name[:2]]
@@ -84,7 +84,7 @@ def hexiflarge(i, ndig):
     """
     convert number to hex starting with A if more than n digits
     VMD convention in PDB files with natom > 99999, nmol > 9999
-    used by OpenMM 
+    used by OpenMM
     """
 
     declim = 10**ndig
@@ -121,7 +121,7 @@ class vec3(object):
 
     def __abs__(self):
         return math.sqrt(self.x**2 + self.y**2 + self.z**2)
-    
+
     def __add__(self, other):
         if isinstance(other, vec3):
             return vec3(self.x + other.x, self.y + other.y, self.z + other.z)
@@ -134,7 +134,7 @@ class vec3(object):
         else:
             raise TypeError('wrong type in vec3 subtraction')
 
-    def __mul__(self, other): 
+    def __mul__(self, other):
         if isinstance(other, vec3): # dot product
             return self.x * other.x + self.y * other.y + self.z * other.z
         else:
@@ -153,8 +153,8 @@ class vec3(object):
         return str(self) + ' instance at 0x' + str(hex(id(self))[2:].upper())
 
     def cross(self, other):
-        return vec3(self.y * other.z - self.z * other.y,  
-                    self.z * other.x - self.x * other.z,  
+        return vec3(self.y * other.z - self.z * other.y,
+                    self.z * other.x - self.x * other.z,
                     self.x * other.y - self.y * other.x)
 
     def unit(self):
@@ -234,7 +234,7 @@ def angle3atoms(ati, atj, atk, box=None):
     '''compute angle formed by three atoms handling pbc'''
     djix = ati.x - atj.x
     djiy = ati.y - atj.y
-    djiz = ati.z - atj.z    
+    djiz = ati.z - atj.z
     djkx = atk.x - atj.x
     djky = atk.y - atj.y
     djkz = atk.z - atj.z
@@ -415,7 +415,7 @@ class dihed(object):
 
 class dimpr(dihed):
     '''improper dihedral angle'''
-    
+
     def __str__(self):
         if hasattr(self, 'name'):
             if self.i != -1:
@@ -424,7 +424,7 @@ class dimpr(dihed):
                     self.name, self.pot, str(self.par))
             else:
                 return 'improper {}  {} {}'.format(self.name, self.pot,
-                                                   str(self.par))  
+                                                   str(self.par))
         else:
             return 'improper {:5d} {:5d} {:5d} {:5d}'.format(self.i + 1,
                    self.j + 1, self.k + 1, self.l + 1)
@@ -439,7 +439,7 @@ class zmat(object):
         self.zatom = []
         self.connect = []
         self.improper = []
-        
+
         with open(filename, 'r') as f:
 
             # read molecule name
@@ -452,7 +452,7 @@ class zmat(object):
             line = f.readline()
             while line.strip().startswith('#') or line.strip() == '':
                 line = f.readline()
-            
+
             tok = line.strip().split()
             if len(tok) > 1:   # there can be line numbers
                 shift = 1
@@ -495,7 +495,7 @@ class zmat(object):
                         'id': id, 'dvar': dvar, 'd': d}
                 self.zatom.append(zatom)
                 line = f.readline()
-                
+
             # read variables
             if variables:
                 if line.strip().lower().startswith('var') or line.strip()=='':
@@ -514,7 +514,7 @@ class zmat(object):
                         if rec['dvar'] == key:
                             rec['d'] = val
                     line = f.readline()
-                        
+
             # read connects, improper, force field file
             self.ffile = None
             self.guessconnect = False
@@ -538,7 +538,7 @@ class zmat(object):
                 else:
                     self.ffile = tok[0]
                 line = f.readline()
-                            
+
     def show(self):
         '''show z-matrix object'''
         print(self.name)
@@ -584,8 +584,7 @@ class mol(object):
         self.ffile = None
         self.ff = None
         self.topol = 'none'
-        self.nbond = 0
-        
+
         with open(filename, 'r'):
             self.filename = filename
         ext = filename.split('.')[-1].strip().lower()
@@ -599,18 +598,17 @@ class mol(object):
             self.frompdb(filename, connect, box)
         else:
             raise ValueError('unsupported molecule file extension')
-        self.nbond = len(self.bond)
 
         self.setff(box)
 
         self.res = self.name.replace('-', '').replace('+', '')[:3]  # 3-char residue name
         self.resatomnames()
         self.sysatomtypes()
-        
+
     def __str__(self):
         return 'molecule {}  {:d} atoms  m = {:8.4f}'.format(self.name,
             len(self.atom), self.m)
-            
+
     def charge(self):
         '''calculate molecule charge from atom partial charges'''
         q = 0.0
@@ -623,7 +621,7 @@ class mol(object):
         Set unique atom names in residues (for xml, CHARMM),
         keeping under 4 chars as required by PDB format.
         Append numbers to element.
-        Use base 32 if more than 999 (1-char atomic symbol) or more than 
+        Use base 32 if more than 999 (1-char atomic symbol) or more than
         99 atoms (2-char atomic symbol) of the same element in residue.
         '''
         nl = []
@@ -681,15 +679,15 @@ class mol(object):
             else:
                 self.connectivity()
                 self.topol = 'guess'
-            for di in z.improper:                 
+            for di in z.improper:
                 self.dimpr.append(dimpr(di[0]-1, di[1]-1, di[2]-1, di[3]-1))
             self.anglesdiheds()
         return self
-    
+
     def zmat2cart(self, z):
         '''convert z-matrix to cartesian coordinates'''
 
-        natom = len(self.atom)    
+        natom = len(self.atom)
         if natom != len(z.zatom):
             raise RuntimeError('different numbers of atoms in zmat ' + self.name)
 
@@ -737,7 +735,7 @@ class mol(object):
         self.atom[2].z = 0.0
         if natom == 3:
             return self
-        
+
         # nth atom at distance r from atom ir forms angle a at 3-ir-ia
         # and dihedral angle between planes 3-ir-ia and ir-ia-id
         for i in range(3, natom):
@@ -756,7 +754,7 @@ class mol(object):
             # / |CD x BC| is the unit vector normal to the plane BCD. m =
             # BC x n / |BC x n| is the unit vector on the plane BCD normal
             # to the direction BC.
-            #                               
+            #
             #                               .'A
             #                 ------------.' /.-----------------
             #                /           b /  .               /
@@ -776,7 +774,7 @@ class mol(object):
             #                 /  .           /     V      ..
             #         C------B...b          D              a
             #
-            
+
             BA = r
             vB = vec3(self.atom[ir].x, self.atom[ir].y, self.atom[ir].z)
             vC = vec3(self.atom[ia].x, self.atom[ia].y, self.atom[ia].z)
@@ -784,7 +782,7 @@ class mol(object):
 
             vBC = vC - vB
             vCD = vD - vC
-            
+
             BC = abs(vBC)
             bB = BA * math.cos(ang)
             bA = BA * math.sin(ang)
@@ -801,7 +799,7 @@ class mol(object):
             self.atom[i].y = vA.y
             self.atom[i].z = vA.z
         return self
-    
+
     def frommdlmol(self, filename, connect):
         '''reda molecule from MDL mol file'''
 
@@ -848,7 +846,7 @@ class mol(object):
                     self.topol = 'guess'
                 self.anglesdiheds()
         return self
-                                
+
     def fromxyz(self, filename, connect=False, box=None):
         '''read molecule from xyz file'''
 
@@ -887,7 +885,7 @@ class mol(object):
                 if line.startswith('COMPND'):
                     tok = line.strip().split()
                     self.name = tok[1]
-                    if len(tok) >= 3: 
+                    if len(tok) >= 3:
                         self.ffile = tok[2]
                 line = f.readline()
             self.atom = []
@@ -906,15 +904,15 @@ class mol(object):
             else:
                 self.topol = 'guess'
         return self
-    
-    def connectivity(self, box=None):    
+
+    def connectivity(self, box=None):
         '''determine connectivity from bond distances in force field'''
 
         self.ff = forcefield(self.ffile)
         error = False
         for at in self.atom:
             found = False
-            for ffat in self.ff.atom:     
+            for ffat in self.ff.atom:
                 if at.name == ffat.name:
                     at.type = ffat.type
                     found = True
@@ -938,10 +936,10 @@ class mol(object):
                     if btypeff in btype and ffbd.checkval(r):
                         self.bond.append(bond(i, j))
                         break
-                                        
+
     def anglesdiheds(self):
         '''identify angles and dihedrals based on bond connectivity'''
-                 
+
         natom = len(self.atom)
         nbond = len(self.bond)
 
@@ -954,7 +952,7 @@ class mol(object):
         for i in range(natom):  # find neighbour atoms to each atom i
             nb = 0
             neib = []
-            for bd in self.bond:          
+            for bd in self.bond:
                 if i == bd.i:
                     neib.append(bd.j)
                     nb += 1
@@ -1004,7 +1002,7 @@ class mol(object):
             for i in range(natom):  # find atoms with 3 neighbours
                 nb = 0
                 neib = []
-                for bd in self.bond:          
+                for bd in self.bond:
                     if i == bd.i:
                         neib.append(bd.j)
                         nb += 1
@@ -1013,18 +1011,18 @@ class mol(object):
                         nb += 1
                 if nb == 3:
                     self.dimpr.append(dimpr(neib[0], neib[1], i, neib[2]))
-        
+
         return self
-    
+
     def setff(self, box=None):
         '''set force field parameters'''
-        
+
         if not self.ffile:
             print('  warning: no force field for ' + self.name)
             for at in self.atom:
                 at.setpar(at.name, 0.0, 'lj', [0.0, 0.0])
             return self
-        
+
         if not self.ff:
             self.ff = forcefield(self.ffile)
 
@@ -1032,7 +1030,7 @@ class mol(object):
         # identify atom types and set parameters
         for at in self.atom:
             found = False
-            for ffat in self.ff.atom:     
+            for ffat in self.ff.atom:
                 if at.name == ffat.name:
                     if found:
                         print('  warning: duplicate atom ' + at.name + ' in ' +
@@ -1046,7 +1044,7 @@ class mol(object):
                 error = True
         if error:
             raise RuntimeError
-            
+
         # identify bonded terms and set parameters
         for bd in self.bond:
             ti = self.atom[bd.i].type
@@ -1091,7 +1089,7 @@ class mol(object):
                 atypeff = (ffan.iatp, ffan.jatp, ffan.katp)
                 if atypeff in atype:
                     an.setpar(ffan.iatp, ffan.jatp, ffan.katp,
-                              ffan.pot, ffan.par)                        
+                              ffan.pot, ffan.par)
                     if not ffan.checkval(th):
                         check = False
                     if found:
@@ -1133,7 +1131,7 @@ class mol(object):
                     dhmiss.append(dtype[0])
         for dh in toremove:
             self.dihed.remove(dh)
-        
+
         toremove = []
         for di in self.dimpr:
             ti = self.atom[di.i].type
@@ -1176,7 +1174,7 @@ class mol(object):
         for di in toremove:
             self.dimpr.remove(di)
 
-        if len(anmiss) or len(dhmiss) or len(dimiss): 
+        if len(anmiss) or len(dhmiss) or len(dimiss):
             print('  warning: missing force field parameters')
             for m in anmiss:
                 print(f'    angle type {m[0]}-{m[1]}-{m[2]}')
@@ -1436,8 +1434,8 @@ class forcefield(object):
 
 
 class vdw(object):
-    '''van der Waals interaction'''        
-    
+    '''van der Waals interaction'''
+
     def __init__(self, iat, jat, mix='g'):
         self.i = iat.name
         self.j = jat.name
@@ -1445,7 +1443,7 @@ class vdw(object):
         self.jatp = jat.type
         self.ityp = iat.ityp
         self.jtyp = jat.ityp
-        
+
         if iat.pot != jat.pot:
             raise RuntimeError('vdw with incompatible potential types ' +
               self.i + ' ' + self.j)
@@ -1466,7 +1464,7 @@ class vdw(object):
                 else:
                     self.par[0] = (iat.par[0] + jat.par[0]) / 2.
                 self.par[1] = math.sqrt(iat.par[1] * jat.par[1])
-                
+
     def __str__(self):
         return f'vdw {self.i:2s} {self.j:2s}  {self.pot} {str(self.par)}'
 
@@ -1498,7 +1496,7 @@ class cell(object):
 
         self.pbc = pbc                    # 'x', 'xy', 'xyz', etc.
         self.center = center
-        
+
         NDIG = 14
         ca = round(math.cos(alpha * math.pi/180.0), NDIG)
         cb = round(math.cos(beta  * math.pi/180.0), NDIG)
@@ -1592,7 +1590,7 @@ class system(object):
                 self.vdw.append(vdw(self.attype[i], self.attype[j], mix))
 
     def build_type_list(self, term, termtype):
-        '''build a list of atom or bonded term types'''        
+        '''build a list of atom or bonded term types'''
         for a in term:
             found = False
             for b in termtype:
@@ -1608,7 +1606,7 @@ class system(object):
             for i in range(ntypes):
                 if a.name == termtype[i].name:
                     a.ityp = termtype[i].ityp = i
-                    break       
+                    break
 
     def show(self):
         for sp in self.spec:
@@ -1686,7 +1684,7 @@ class system(object):
                 self.x[i] = float(tok[1])
                 self.y[i] = float(tok[2])
                 self.z[i] = float(tok[3])
-            
+
     def writelmp(self, mix='g', allpairs=False, units='r'):
         natom = nbond = nangle = ndihed = 0
         for sp in self.spec:
@@ -1694,7 +1692,7 @@ class system(object):
             nbond += sp.nmol * len(sp.bond)
             nangle += sp.nmol * len(sp.angle)
             ndihed += sp.nmol * (len(sp.dihed) + len(sp.dimpr))
-        
+
         with open('in.lmp', 'w') as f:
             f.write('# created by fftool\n\n')
             if units == 'r':
@@ -1705,7 +1703,7 @@ class system(object):
                 ecnv = eV
             else:
                 raise ValueError('unknown units for lammps files')
-                
+
             f.write('boundary p p p\n\n')
 
             f.write('atom_style full\n')
@@ -1716,7 +1714,7 @@ class system(object):
             if ndihed:
                 f.write('dihedral_style opls\n')
             f.write('\n')
-            
+
             f.write('special_bonds lj/coul 0.0 0.0 0.5\n\n')
 
             f.write('# remove hybrid if not necessary\n')
@@ -1736,9 +1734,9 @@ class system(object):
                     f.write('pair_coeff {:4d} {:4d} {} {:12.6f} {:12.6f}  '\
                         '# {} {}\n'.format(
                         att.ityp + 1, att.ityp + 1, 'lj/cut/coul/long',
-                        att.par[1] / ecnv, att.par[0], att.name, att.name))    
+                        att.par[1] / ecnv, att.par[0], att.name, att.name))
                 f.write('\n')
- 
+
             else:
                 f.write('pair_modify tail yes\n')
                 f.write('kspace_style pppm 1.0e-5\n\n')
@@ -1756,7 +1754,7 @@ class system(object):
 
             f.write('# minimize 1.0e-4 1.0e-6 100 1000\n')
             f.write('# reset_timestep 0\n\n')
-            
+
             shakebd = shakean = False
             for bdt in self.bdtype:
                 if bdt.pot == 'cons':
@@ -1785,7 +1783,7 @@ class system(object):
                 f.write('timestep 1.0\n\n')
             elif units == 'm':
                 f.write('timestep 0.001\n\n')
-                
+
             f.write('variable TK equal 300.0\n')
             f.write('variable PBAR equal 1.0\n\n')
 
@@ -1797,7 +1795,7 @@ class system(object):
             f.write('thermo 1000\n')
             f.write('thermo_style custom step cpu etotal ke pe '\
                     'evdwl ecoul elong temp press vol density\n\n')
-            
+
             f.write('dump TRAJ all custom 1000 dump.lammpstrj '\
                      'id mol type element q xu yu zu\n')
             f.write('dump_modify TRAJ element')
@@ -1810,7 +1808,7 @@ class system(object):
             f.write('# uncomment the following to rescale to average volume at end of equilibration\n')
             f.write('#variable vinst equal vol\n')
             f.write('#fix VAVG all ave/time 10 1000 50000 v_vinst\n\n')
-            
+
             f.write('#run 50000\n\n')
 
             f.write('#variable lscale equal (f_VAVG/v_vinst)^(1.0/3.0)\n')
@@ -1836,7 +1834,7 @@ class system(object):
             if ndihed:
                 f.write('{:d} dihedrals\n'.format(ndihed))
             # f.write('\n')
-                
+
             f.write('{:d} atom types\n'.format(len(self.attype)))
             if nbond:
                 f.write('{:d} bond types\n'.format(len(self.bdtype)))
@@ -1901,7 +1899,7 @@ class system(object):
                     for at in sp.atom:
                         f.write('{0:7d} {1:7d} {2:4d} {3:10.6f} '\
                                  '{4:13.6e} {5:13.6e} {6:13.6e}  # {7} {8}\n'\
-                                 .format(i + 1, nmol + 1, at.ityp + 1, at.q, 
+                                 .format(i + 1, nmol + 1, at.ityp + 1, at.q,
                                  self.x[i], self.y[i], self.z[i],
                                  at.name, sp.name))
                         i += 1
@@ -1954,7 +1952,7 @@ class system(object):
                                      di.name))
                             i += 1
                         shift += natom
-                    
+
             # f.write('\n')
 
 
@@ -2065,7 +2063,7 @@ class system(object):
                 bond.set('class2', bdt.jatp)
                 bond.set('length', f'{bdt.par[0] / 10:.5f}')
                 bond.set('k', f'{bdt.par[1] * 100:.1f}')
-    
+
         if nangle:
             angleforce = ET.SubElement(root, 'HarmonicAngleForce')
             for ant in self.antype:
@@ -2416,7 +2414,7 @@ class system(object):
                 for at in sp.atom:
                     if at.name not in types:
                         types.append(at.name)
-                        rmin_2 = (at.par[0] / 2.0) * 2.0**(1.0/6.0) 
+                        rmin_2 = (at.par[0] / 2.0) * 2.0**(1.0/6.0)
                         f.write('{:5s}  0.0    {:9.5f} {:9.5f}  0.0    '\
                             '{:9.5f} {:9.5f}\n'.format(at.name,
                             -at.par[1] / kCal, rmin_2,
@@ -2508,7 +2506,7 @@ class system(object):
                                 delta = (i % 2) * 180.0
                                 f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
                                     ' {:8.2f}\n'.format(tp[0], tp[1], tp[2], tp[3],
-                                                        kchi, i + 1, delta))                    
+                                                        kchi, i + 1, delta))
                         if zero:
                              f.write('{:5s} {:5s} {:5s} {:5s} {:7.3f}  {:1d}'\
                                 ' {:8.2f}\n'.format(tp[0], tp[1], tp[2], tp[3],
@@ -2526,7 +2524,7 @@ class system(object):
 
         with open('field.top', 'w') as f:
             f.write('! created by fftool; mix = {}\n\n'.format(mix))
-            
+
             f.write('[ defaults ]\n')
             if mix == 'g':
                 comb = 3
@@ -2534,7 +2532,7 @@ class system(object):
                 comb = 2
             f.write('; nbfunc   comb-rule   gen-pairs   fudgeLJ fudgeQQ\n')
             f.write(f'  1        {comb:1d}           yes         0.5     0.5\n\n')
-            
+
             f.write('[ atomtypes ]\n')
             f.write('; name  at.nr     mass   charge  ptype  '\
                     'sigma        epsilon\n')
@@ -2639,7 +2637,7 @@ class system(object):
             f.write('integrator            = sd; md\n')
             f.write('dt                    = 0.001\n')
             f.write('nsteps                = 10000\n\n')
-            
+
             f.write('nstlog                = 1000\n')
             f.write('nstxout-compressed    = 1000\n\n')
 
@@ -2672,12 +2670,12 @@ class system(object):
             f.write('constraints           = h-bonds\n')
             f.write('constraint-algorithm  = LINCS\n')
             f.write('continuation          = no\n\n')
-            
+
     def writedlp(self, cos4=False):
         with open('FIELD', 'w') as f:
             f.write('created by fftool\n')
             f.write('units kJ\n\n')
-            
+
             f.write('molecular types {:d}\n'.format(len(self.spec)))
             for sp in self.spec:
                 f.write('{0}\n'.format(sp.name))
@@ -2687,7 +2685,7 @@ class system(object):
                     f.write('{:5s} {:8.4f} {:6.3f} 1  # {}\n'.format(
                             at.name, at.m, at.q, at.type))
                 ncons = 0
-                for bd in sp.bond: 
+                for bd in sp.bond:
                     if bd.pot == 'cons':
                         ncons += 1
                 f.write('constraints {:d}\n'.format(ncons))
@@ -2851,7 +2849,7 @@ class system(object):
 
             f.write('\n{:8d} !NIMPHI: impropers\n'.format(ndimpr))
             i = shift = 1
-            for sp in self.spec:                     
+            for sp in self.spec:
                 natom = len(sp.atom)
                 for im in range(sp.nmol):
                     for di in sp.dimpr:
@@ -2866,7 +2864,7 @@ class system(object):
                 f.write('\n')
 
             f.write('\n')
-                    
+
 # --------------------------------------
 
 
@@ -2897,10 +2895,10 @@ def main():
     parser.add_argument('-m', '--mix', default = 'g',
                         help = '[a]rithmetic or [g]eometric sigma_ij '\
                         '(default: g)')
-    parser.add_argument('-l', '--lammps', action = 'store_true', 
+    parser.add_argument('-l', '--lammps', action = 'store_true',
                         help = 'create LAMMPS files in.lmp data.lmp '\
                         '(needs simbox.xyz created by Packmol)')
-    parser.add_argument('-a', '--allpairs', action = 'store_true', 
+    parser.add_argument('-a', '--allpairs', action = 'store_true',
                         help = 'write all I-J pairs to LAMMPS files')
     parser.add_argument('-u', '--units', default = 'r',
                         help = 'LAMMPS units [r]eal or [m]etal (default: r)')
@@ -2921,7 +2919,7 @@ def main():
     parser.add_argument('-d', '--dlpoly', action = 'store_true',
                         help = 'create DLPOLY files FIELD CONFIG '\
                         '(needs simbox.xyz created by Packmol)')
-    parser.add_argument('--cos4', action = 'store_true', 
+    parser.add_argument('--cos4', action = 'store_true',
                         help = 'use cos4 dihedrals in DLPOLY FIELD')
     parser.add_argument('infiles', nargs='+',
                         help = 'n1 infile1 [n2 infile2 ...], '\
@@ -2939,7 +2937,7 @@ def main():
 
     if args.box and args.rho != 0.0:
         raise RuntimeError('supply density or box dimensions, not both')
-    
+
     if args.box:
         tok = args.box.split(',')
         if len(tok) == 1:
@@ -2968,7 +2966,7 @@ def main():
     print('density {:.3f} mol/L  volume {:.1f} A^3'.format(rho, box.vol))
 
     print('molecule_file      species           nmol force_field      '\
-          'nbond source  charge')
+          'natom nbond source  charge')
     connect = True
     spec = []
     i = 0
@@ -2976,9 +2974,10 @@ def main():
         spec.append(mol(zfile, connect, box))
         spec[i].nmol = int(nmols[i])
         spec[i].writexyz()
-        print('  {:16s} {:16s} {:5d} {:16s} {:5d} {:5s} {:+8.4f}'\
+        print('  {:16s} {:16s} {:5d} {:16s} {:5d} {:5d} {:5s} {:+8.4f}'\
             .format(zfile, spec[i].name, spec[i].nmol, spec[i].ffile,
-                    spec[i].nbond, spec[i].topol, spec[i].charge()))
+                    len(spec[i].atom), len(spec[i].bond), spec[i].topol,
+                    spec[i].charge()))
         i += 1
 
     sim = system(spec, box, args.mix)
