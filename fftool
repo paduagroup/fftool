@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/11/27
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2023/12/03
 
 # Copyright 2013 Agilio Padua
 #
@@ -2039,7 +2039,7 @@ class system(object):
                     attype.set('name', at.name)
                     attype.set('class', at.type)
                     attype.set('element', atomic_symbol(at.name))
-                    attype.set('mass', f'{at.m:.3f}')
+                    attype.set('mass', f'{at.m:.4f}')
 
         residues = ET.SubElement(root, 'Residues')
         for sp in self.spec:
@@ -2062,7 +2062,7 @@ class system(object):
                 bond.set('class1', bdt.iatp)
                 bond.set('class2', bdt.jatp)
                 bond.set('length', f'{bdt.par[0] / 10:.5f}')
-                bond.set('k', f'{bdt.par[1] * 100:.1f}')
+                bond.set('k', f'{bdt.par[1] * 100:.2f}')
 
         if nangle:
             angleforce = ET.SubElement(root, 'HarmonicAngleForce')
@@ -2134,7 +2134,7 @@ class system(object):
             for att in self.attype:
                 atom = ET.SubElement(ljforce, 'Atom')
                 atom.set('type', att.name)
-                atom.set('sigma', f'{att.par[0] / 10:.4f}')
+                atom.set('sigma', f'{att.par[0] / 10:.5f}')
                 atom.set('epsilon', f'{att.par[1]:.5f}')
             pairs = []
             for nb in self.vdw:
@@ -2160,7 +2160,7 @@ class system(object):
                 for at in sp.atom:
                     atom = ET.SubElement(nbforce, 'Atom')
                     atom.set('type', at.name)
-                    atom.set('sigma', f'{at.par[0] / 10:.4f}')
+                    atom.set('sigma', f'{at.par[0] / 10:.5f}')
                     atom.set('epsilon', f'{at.par[1]:.5f}')
 
         ET.indent(root, space=' ')
@@ -2203,7 +2203,7 @@ class system(object):
                 attype.set('name', at.utype)
                 attype.set('class', at.name)
                 attype.set('element', atomic_symbol(at.name))
-                attype.set('mass', f'{at.m:.3f}')
+                attype.set('mass', f'{at.m:.4f}')
 
         residues = ET.SubElement(root, 'Residues')
         for sp in self.spec:
@@ -2232,7 +2232,7 @@ class system(object):
                         bond.set('class1', tp[0])
                         bond.set('class2', tp[1])
                         bond.set('length', f'{bd.par[0] / 10:.5f}')
-                        bond.set('k', f'{bd.par[1] * 100:.1f}')
+                        bond.set('k', f'{bd.par[1] * 100:.2f}')
 
         if nangle:
             angleforce = ET.SubElement(root, 'HarmonicAngleForce')
@@ -2248,7 +2248,7 @@ class system(object):
                         angle.set('class2', tp[1])
                         angle.set('class3', tp[2])
                         angle.set('angle', f'{an.par[0] * math.pi/180:.5f}')
-                        angle.set('k', f'{an.par[1]:.2f}')
+                        angle.set('k', f'{an.par[1]:.2}')
 
         if ndihed:
             torsionforce = ET.SubElement(root, 'RBTorsionForce')
@@ -2328,7 +2328,7 @@ class system(object):
                     if at.name not in types:
                         atom = ET.SubElement(ljforce, 'Atom')
                         atom.set('class', at.name)
-                        atom.set('sigma', f'{at.par[0] / 10:.4f}')
+                        atom.set('sigma', f'{at.par[0] / 10:.5f}')
                         atom.set('epsilon', f'{at.par[1]:.5f}')
                         types.append(at.name)
 
@@ -2358,7 +2358,7 @@ class system(object):
                     if at.name not in types:
                         atom = ET.SubElement(nbforce, 'Atom')
                         atom.set('class', at.name)
-                        atom.set('sigma', f'{at.par[0] / 10:.4f}')
+                        atom.set('sigma', f'{at.par[0] / 10:.5f}')
                         atom.set('epsilon', f'{at.par[1]:.5f}')
                         types.append(at.name)
 
