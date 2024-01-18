@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2024/01/11
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2024/01/18
 
 # Copyright 2013 Agilio Padua
 #
@@ -82,9 +82,8 @@ def atomic_number(name):
 
 def hexiflarge(i, ndig):
     """
-    convert number to hex starting with A if more than n digits
-    VMD convention in PDB files with natom > 99999, nmol > 9999
-    used by OpenMM
+    Convert number to hex starting with A if more than n digits.
+    VMD, OpenMM convention in PDB files with natom > 99999, nmol > 9999
     """
 
     declim = 10**ndig
