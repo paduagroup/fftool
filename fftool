@@ -2934,6 +2934,10 @@ def main():
         files = args.infiles[1::2]  # odd elements are molecule files
     nmol = sum(int(n) for n in nmols)
 
+    if args.xml or args.charmm or args.gmx: 
+        if nmol > 34575:
+            raise ValueError('the maximum number of molecules in a PDB file is 34575')
+
     if args.box and args.rho != 0.0:
         raise RuntimeError('supply density or box dimensions, not both')
 
@@ -2955,7 +2959,7 @@ def main():
         else:
             raise ValueError('wrong box dimensions and angles')
     elif args.rho != 0.0:
-        a = b = c = math.pow(nmol / (args.rho * 6.022e+23 * 1.0e-27), 1./3.)
+        a = b = c = math.pow(nmol / (args.rho * 6.022e+23 * 1.0e-27), 1/3)
         alpha = beta = gamma = 90.0
     else:
         raise RuntimeError('density or box dimensions need to be supplied')
