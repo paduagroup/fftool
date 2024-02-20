@@ -2020,7 +2020,7 @@ class system(object):
             f.write('_atom_site.Cartn_z\n')
             f.write('_atom_site.pdbx_formal_charge\n')
             i = seq = 0
-            #Create a list to link atom names in a residue and the id (= index) of the residue. 
+            # Create a list to link atom names in a residue and the id (= index) of the residue. 
             atom_in_residue = []
             for sp in self.spec:
                 for im in range(sp.nmol):
@@ -2047,12 +2047,12 @@ class system(object):
                 natom = len(sp.atom)
                 for im in range(sp.nmol):
                     for bd in sp.bond:
-                        atidx_i = (bd.i + shift)-1
-                        atidx_j = (bd.j + shift)-1
-                        #Find the residues id in which atom_i and atom_j are localised. 
+                        atidx_i = (bd.i + shift) - 1
+                        atidx_j = (bd.j + shift) - 1
+                        # Find the residues id in which atom_i and atom_j are localised. 
                         label_seq_id_i = atom_in_residue[atidx_i][1]
                         label_seq_id_j = atom_in_residue[atidx_j][1]
-                        #Find the names of atom_i and atom_j in their respective residues.
+                        # Find the names of atom_i and atom_j in their respective residues.
                         label_atom_id_i = atom_in_residue[atidx_i][0]
                         label_atom_id_j = atom_in_residue[atidx_j][0]
                         if bd.i < bd.j:
