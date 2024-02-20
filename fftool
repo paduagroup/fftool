@@ -2014,20 +2014,54 @@ class system(object):
             f.write('_atom_site.label_atom_id\n')
             f.write('_atom_site.label_comp_id\n')
             f.write('_atom_site.label_seq_id\n')
+            f.write('_atom_site.label_asym_id\n')
             f.write('_atom_site.Cartn_x\n')
             f.write('_atom_site.Cartn_y\n')
             f.write('_atom_site.Cartn_z\n')
             f.write('_atom_site.pdbx_formal_charge\n')
             i = seq = 0
+            #Create a list to link atom names in a residue and the id (= index) of the residue. 
+            atom_in_residue = []
             for sp in self.spec:
                 for im in range(sp.nmol):
                     for at in sp.atom:
-                        f.write(f'ATOM {i+1:8d} {atomic_symbol(at.name):2s} '
-                                f'{at.uname:5s} {sp.res:4s} {seq+1:7d} '
+                        f.write(f'HETATM {i+1:8d} {atomic_symbol(at.name):2s} '
+                                f'{at.uname:5s} {sp.res:4s} {seq+1:7d} {0:2d} '
                                 f'{self.x[i]:12.5e} {self.y[i]:12.5e} {self.z[i]:12.5e} '
                                 f'{at.q:5.2f}\n')
+                        atom_in_residue.append([at.uname,seq+1])
                         i += 1
                     seq += 1
+            f.write('#\n')        
+            f.write('loop_\n')
+            f.write('_struct_conn.id\n')
+            f.write('_struct_conn.ptnr1_label_seq_id\n')
+            f.write('_struct_conn.ptnr2_label_seq_id\n')
+            f.write('_struct_conn.ptnr1_label_atom_id\n')
+            f.write('_struct_conn.ptnr2_label_atom_id\n')
+            f.write('_struct_conn.ptnr1_label_asym_id\n')
+            f.write('_struct_conn.ptnr2_label_asym_id\n')
+            f.write('_struct_conn.conn_type_id\n')
+            shift = 1
+            for sp in self.spec:
+                natom = len(sp.atom)
+                for im in range(sp.nmol):
+                    for bd in sp.bond:
+                        atidx_i = (bd.i + shift)-1
+                        atidx_j = (bd.j + shift)-1
+                        #Find the residues id in which atom_i and atom_j are localised. 
+                        label_seq_id_i = atom_in_residue[atidx_i][1]
+                        label_seq_id_j = atom_in_residue[atidx_j][1]
+                        #Find the names of atom_i and atom_j in their respective residues.
+                        label_atom_id_i = atom_in_residue[atidx_i][0]
+                        label_atom_id_j = atom_in_residue[atidx_j][0]
+                        if bd.i < bd.j:
+                            f.write(f'CONECT {label_seq_id_i:8d} {label_seq_id_j:8d} '
+                                    f'{label_atom_id_i:5s} {label_atom_id_j:5s} 0 0 covale\n')
+                        else:
+                            f.write(f'CONECT {label_seq_id_j:8d} {label_seq_id_i:8d} '
+                                    f'{label_atom_id_j:5s} {label_atom_id_i:5s} 0 0 covale\n')
+                    shift += natom
             f.write('data_\n')
 
 
@@ -2988,7 +3022,7 @@ def main():
         files = args.infiles[1::2]  # odd elements are molecule files
     nmol = sum(int(n) for n in nmols)
 
-    if args.xml or args.charmm or args.gmx: 
+    if args.charmm or args.gmx: 
         if nmol > 34575:
             raise ValueError('the maximum number of molecules in a PDB file is 34575')
 
@@ -3053,7 +3087,7 @@ def main():
         sim.writelmp(args.mix, args.allpairs, args.units)
     if args.xml:
         sim.readcoords('simbox.xyz')
-        print('xml files\n  field.xml\n  config.pdb')
+        print('xml files\n  field.xml\n  config.mmcif')
         if args.types:
             sim.writexmltypes(args.mix, args.allpairs)
         else:
