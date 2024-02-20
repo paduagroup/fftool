@@ -1,5 +1,4 @@
-fftool
-======
+# fftool
 
 [![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.18618.svg)](http://dx.doi.org/10.5281/zenodo.18618)
 
@@ -15,8 +14,7 @@ simulations, check the [CL&Pol](https://github.com/agiliopadua/clandpol) tools
 and database.
 
 
-Contents
---------
+## Contents
 
 * `fftool`: builds a simulation box and the corresponding force field for
     systems containing molecules, ions or extended materials. It requires the
@@ -32,8 +30,7 @@ Contents
 * `examples/`: examples of molecule files and force field databases.
 
 
-Requirements
-------------
+## Requirements
 
 * [Python](http://www.python.org/)
 
@@ -41,16 +38,14 @@ Requirements
   molecules and materials in the simultion box.
   
 
-Obtaining
----------
+## Obtaining
 
 Download the files or clone the repository:
 
     git clone https://github.com/agiliopadua/fftool.git
 
 
-Tutorial
--------
+## Tutorial
 
 These are instructions on how to build an force field files and an initial
 configuration for a system composed of molecules, ions or materials. 
@@ -129,8 +124,7 @@ configuration for a system composed of molecules, ions or materials.
     manually to include interaction potentials.
 
 
-Deducing Bonds and Angles
-------------------------
+## Deducing Bonds and Angles
 
 When inferring connectivity from atomic coordinates, distances in the
 coordinates file are compared with equilibrium distances specified for bonds in
@@ -165,8 +159,7 @@ editing the `fftool` source, namely the global variables `BondTol` and
 the tolerances are set too large.
 
 
-Improper Dihedrals
-----------------
+## Improper Dihedrals
 
 Improper dihedrals are often used to increase the rigidity of planar atoms (sp2)
 and differ from proper dihedrals in how they are defined. A proper dihedral
@@ -188,8 +181,7 @@ of the atoms in the true improper dihedrals in the files created, by testing
 with a minimal system.
 
 
-Periodic Boundary Conditions
-----------------------------
+## Periodic Boundary Conditions
 
 In molecular systems the initial configuration will generaly not contain
 molecules crossing boundaries of the simulation box. A buffer distance of 1.5
@@ -224,11 +216,13 @@ The `pack.inp` file will likely need manual editing in order to position the
 atoms of the material precisely.
 
 
-Force Field File Format
--------------------
+## Force Field File Format
 
-The `fftool` script reads a database of molecular force field terms in the
-format described below. See the `examples` directory.
+The `fftool` script reads a database of molecular force field parameters in `xml` format (similar to the format used by OpenMM), or in the original `.ff` format described below. See the `examples` directory.
+
+The `ff2xml` script converts from the original to the `xml` format.
+
+### .ff format
 
 Blank lines and lines starting with `#` are ignored.
 
@@ -291,8 +285,7 @@ intramolecular atom types:
         CA  CA  CA  HA   opls    0.0000    9.2048    0.0000    0.0000
 
 
-References
-----------
+## References
 
 * [Packmol](http://www.ime.unicamp.br/~martinez/packmol/):
   L. Martinez et al. J Comp Chem 30 (2009) 2157, DOI:
