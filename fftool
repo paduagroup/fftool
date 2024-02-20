@@ -2065,25 +2065,6 @@ class system(object):
             f.write('data_\n')
 
 
-    def writeaddbonds(self):
-        """addBond commands to create OpenMM topology jointly with PDBx"""
-        with open('addbonds.py', 'w') as f:
-            f.write('def addBonds(topology):\n')
-            shift = 0
-            for sp in self.spec:
-                natom = len(sp.atom)
-                for im in range(sp.nmol):
-                    for bd in sp.bond:
-                        if bd.i < bd.j:
-                            i = bd.i + shift
-                            j = bd.j + shift
-                        else:
-                            i = bd.j + shift
-                            j = bd.i + shift
-                        f.write(f'    topology.addBond({i}, {j})\n')
-                    shift += natom
-
-
     def checkdupresidues(self):
         '''check if residue names are unique'''
         residues = []
@@ -2250,7 +2231,6 @@ class system(object):
 
         self.writepdb()
         self.writepdbxmmcif()
-        self.writeaddbonds()
 
 
     def writexmltypes(self, mix='g', allpairs=False):
@@ -2452,7 +2432,6 @@ class system(object):
 
         self.writepdb()
         self.writepdbxmmcif()
-        self.writeaddbonds()
 
 
     def writecharmm(self, mix='g', allpairs=False):
