@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2024/01/18
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2024/02/20
 
 # Copyright 2013 Agilio Padua
 #
@@ -623,10 +623,8 @@ class mol(object):
         Use base 32 if more than 999 (1-char atomic symbol) or more than
         99 atoms (2-char atomic symbol) of the same element in residue.
         '''
-        nl = []
-        for at in self.atom:
-            nl.append(atomic_symbol(at.name))
-        cnt = {item: nl.count(item) for item in nl}
+        namelist = [atomic_symbol(at.name) for at in self.atom]
+        cnt = {item: namelist.count(item) for item in namelist}
         names = dict.fromkeys(cnt, 0)
         for at in self.atom:
             for key in names:
@@ -646,10 +644,8 @@ class mol(object):
         set unique atom types for entire system using residue name (for xml, CHARMM)
         RES-ATOM-XX where XX is a serial number
         '''
-        ns = set()
-        for at in self.atom:
-            ns.add(at.name)
-        names = dict.fromkeys(ns, 0)
+        nameset = set(at.name for at in self.atom)
+        names = dict.fromkeys(nameset, 0)
         for at in self.atom:
             for key in names:
                 if at.name == key:
@@ -1378,45 +1374,48 @@ class forcefield(object):
             self.atom.append(atom(name, m))
             self.atom[-1].setpar(attp, q, pot, par[:2])
         bonds = root.find('Bonds')
-        for bd in bonds:
-            iatp = bd.get('class1')
-            jatp = bd.get('class2')
-            pot = bd.get('potential')
-            par = [float(bd.get('length')), float(bd.get('k'))]
-            self.bond.append(bond())
-            self.bond[-1].setpar(iatp, jatp, pot, par[:2])
-            if par[0] > self.maxbondlen:
-                self.maxbondlen = par[0]
+        if bonds:
+            for bd in bonds:
+                iatp = bd.get('class1')
+                jatp = bd.get('class2')
+                pot = bd.get('potential')
+                par = [float(bd.get('length')), float(bd.get('k'))]
+                self.bond.append(bond())
+                self.bond[-1].setpar(iatp, jatp, pot, par[:2])
+                if par[0] > self.maxbondlen:
+                    self.maxbondlen = par[0]
         angles = root.find('Angles')
-        for an in angles:
-            iatp = an.get('class1')
-            jatp = an.get('class2')
-            katp = an.get('class3')
-            pot = an.get('potential')
-            par = [float(an.get('angle')), float(an.get('k'))]
-            self.angle.append(angle())
-            self.angle[-1].setpar(iatp, jatp, katp, pot, par[:2])
+        if angles:
+            for an in angles:
+                iatp = an.get('class1')
+                jatp = an.get('class2')
+                katp = an.get('class3')
+                pot = an.get('potential')
+                par = [float(an.get('angle')), float(an.get('k'))]
+                self.angle.append(angle())
+                self.angle[-1].setpar(iatp, jatp, katp, pot, par[:2])
         torsions = root.find('Torsions')
-        for dh in torsions.iter('Proper'):
-            iatp = dh.get('class1')
-            jatp = dh.get('class2')
-            katp = dh.get('class3')
-            latp = dh.get('class4')
-            pot = dh.get('potential')
-            par = [float(dh.get('v1')), float(dh.get('v2')),
-                float(dh.get('v3')), float(dh.get('v4'))]
-            self.dihed.append(dihed())
-            self.dihed[-1].setpar(iatp, jatp, katp, latp, pot, par)
-        for di in torsions.iter('Improper'):
-            iatp = di.get('class1')
-            jatp = di.get('class2')
-            katp = di.get('class3')
-            latp = di.get('class4')
-            pot = di.get('potential')
-            par = [float(di.get('v1')), float(di.get('v2')),
-                float(di.get('v3')), float(di.get('v4'))]
-            self.dimpr.append(dimpr())
-            self.dimpr[-1].setpar(iatp, jatp, katp, latp, pot, par)
+        if torsions:
+            for dh in torsions.iter('Proper'):
+                iatp = dh.get('class1')
+                jatp = dh.get('class2')
+                katp = dh.get('class3')
+                latp = dh.get('class4')
+                pot = dh.get('potential')
+                par = [float(dh.get('v1')), float(dh.get('v2')),
+                    float(dh.get('v3')), float(dh.get('v4'))]
+                self.dihed.append(dihed())
+                self.dihed[-1].setpar(iatp, jatp, katp, latp, pot, par)
+            for di in torsions.iter('Improper'):
+                iatp = di.get('class1')
+                jatp = di.get('class2')
+                katp = di.get('class3')
+                latp = di.get('class4')
+                pot = di.get('potential')
+                par = [float(di.get('v1')), float(di.get('v2')),
+                    float(di.get('v3')), float(di.get('v4'))]
+                self.dimpr.append(dimpr())
+                self.dimpr[-1].setpar(iatp, jatp, katp, latp, pot, par)
 
     def show(self):
         print(self.filename)
@@ -1963,11 +1962,10 @@ class system(object):
                     '{6:11s}{7:4d}\n'.format(
                     self.box.a, self.box.b, self.box.c,
                     self.box.alpha, self.box.beta, self.box.gamma, 'P 1', 1))
-            i = nmol = 0
+            i = seq = 0
             for sp in self.spec:
                 for im in range(sp.nmol):
-                    j = 1
-                    molidx = hexiflarge(nmol + 1, 4)
+                    molidx = hexiflarge(seq + 1, 4)
                     for at in sp.atom:
                         if len(at.uname) > 4:
                             print('warning: atom name ' + at.uname +
@@ -1979,9 +1977,8 @@ class system(object):
                                 at.uname[:4], sp.res, molidx,
                                 self.x[i], self.y[i], self.z[i],
                                 atomic_symbol(at.name)))
-                        j += 1
                         i += 1
-                    nmol += 1
+                    seq += 1
 
             shift = 1
             for sp in self.spec:
@@ -1997,8 +1994,60 @@ class system(object):
                             f.write('CONECT{0:>5s}{1:>5s}\n'.format(
                                 atidx_j, atidx_i))
                     shift += natom
-
             f.write('END\n')
+
+
+    def writepdbxmmcif(self):
+        with open('config.mmcif', 'w') as f:
+            f.write('data_\n')
+            f.write('_cell.entry_id          simbox\n')
+            f.write(f'_cell.length_a          {self.box.a}\n')
+            f.write(f'_cell.length_b          {self.box.b}\n')
+            f.write(f'_cell.length_c          {self.box.c}\n')
+            f.write(f'_cell.angle_alpha       {self.box.alpha}\n')
+            f.write(f'_cell.angle_beta        {self.box.beta}\n')
+            f.write(f'_cell.angle_gamma       {self.box.gamma}\n')
+            f.write('loop_\n')
+            f.write('_atom_site.group_PDB\n')
+            f.write('_atom_site.id\n')
+            f.write('_atom_site.type_symbol\n')
+            f.write('_atom_site.label_atom_id\n')
+            f.write('_atom_site.label_comp_id\n')
+            f.write('_atom_site.label_seq_id\n')
+            f.write('_atom_site.Cartn_x\n')
+            f.write('_atom_site.Cartn_y\n')
+            f.write('_atom_site.Cartn_z\n')
+            f.write('_atom_site.pdbx_formal_charge\n')
+            i = seq = 0
+            for sp in self.spec:
+                for im in range(sp.nmol):
+                    for at in sp.atom:
+                        f.write(f'ATOM {i+1:8d} {atomic_symbol(at.name):2s} '
+                                f'{at.uname:5s} {sp.res:4s} {seq+1:7d} '
+                                f'{self.x[i]:12.5e} {self.y[i]:12.5e} {self.z[i]:12.5e} '
+                                f'{at.q:5.2f}\n')
+                        i += 1
+                    seq += 1
+            f.write('data_\n')
+
+
+    def writeaddbonds(self):
+        """addBond commands to create OpenMM topology jointly with PDBx"""
+        with open('addbonds.py', 'w') as f:
+            f.write('def addBonds(topology):\n')
+            shift = 0
+            for sp in self.spec:
+                natom = len(sp.atom)
+                for im in range(sp.nmol):
+                    for bd in sp.bond:
+                        if bd.i < bd.j:
+                            i = bd.i + shift
+                            j = bd.j + shift
+                        else:
+                            i = bd.j + shift
+                            j = bd.i + shift
+                        f.write(f'    topology.addBond({i}, {j})\n')
+                    shift += natom
 
 
     def checkdupresidues(self):
@@ -2166,6 +2215,9 @@ class system(object):
         ftree.write('field.xml')
 
         self.writepdb()
+        self.writepdbxmmcif()
+        self.writeaddbonds()
+
 
     def writexmltypes(self, mix='g', allpairs=False):
         """
@@ -2365,6 +2417,8 @@ class system(object):
         ftree.write('field.xml')
 
         self.writepdb()
+        self.writepdbxmmcif()
+        self.writeaddbonds()
 
 
     def writecharmm(self, mix='g', allpairs=False):
