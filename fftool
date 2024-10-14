@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2024/02/20
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2024/10/14
 
 # Copyright 2013 Agilio Padua
 #
@@ -2169,9 +2169,10 @@ class system(object):
                 c4 = -4 * dit.par[3] + eps
                 c5 = 0.0
                 dimpr = ET.SubElement(torsionforce, 'Improper')
-                dimpr.set('class1', dit.iatp)
-                dimpr.set('class2', dit.jatp)
-                dimpr.set('class3', dit.katp)
+                # in OpenMM atom 1 (not 3) is the central atom of an improper dihedral
+                dimpr.set('class1', dit.katp)
+                dimpr.set('class2', dit.iatp)
+                dimpr.set('class3', dit.jatp)
                 dimpr.set('class4', dit.latp)
                 dimpr.set('c0', f'{c0:.5f}')
                 dimpr.set('c1', f'{c1:.5f}')
@@ -2362,9 +2363,10 @@ class system(object):
                         c4 = -4 * di.par[3] + eps
                         c5 = 0.0
                         dimpr = ET.SubElement(torsionforce, 'Improper')
-                        dimpr.set('class1', tp[0])
-                        dimpr.set('class2', tp[1])
-                        dimpr.set('class3', tp[2])
+                        # in OpenMM atom 1 (not 3) is the central atom of an improper dihedral
+                        dimpr.set('class1', tp[2])
+                        dimpr.set('class2', tp[0])
+                        dimpr.set('class3', tp[1])
                         dimpr.set('class4', tp[3])
                         dimpr.set('c0', f'{c0:.5f}')
                         dimpr.set('c1', f'{c1:.5f}')
