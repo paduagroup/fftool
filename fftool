@@ -2228,9 +2228,12 @@ class system(object):
 
         ET.indent(root, space=' ')
         ftree.write('field.xml')
-
-        self.writepdb()
-        self.writepdbxmmcif()
+        
+        if natom < 99999:
+            self.writepdb()
+            self.writepdbxmmcif()
+        else:
+            self.writepdbxmmcif()
 
 
     def writexmltypes(self, mix='g', allpairs=False):
@@ -2429,9 +2432,12 @@ class system(object):
 
         ET.indent(root, space=' ')
         ftree.write('field.xml')
-
-        self.writepdb()
-        self.writepdbxmmcif()
+        
+        if natom < 99999:
+            self.writepdb()
+            self.writepdbxmmcif()
+        else:
+            self.writepdbxmmcif()
 
 
     def writecharmm(self, mix='g', allpairs=False):
@@ -2972,7 +2978,7 @@ def main():
                         help = 'connect bonds across periodic boundaries in '\
                         'x, xy, xyz, etc. (default: none)')
     parser.add_argument('-x', '--xml', action = 'store_true',
-                        help = 'create OpenMM files .xml .pdb '\
+                        help = 'create OpenMM files .xml .mmcif '\
                         '(needs simbox.xyz created by Packmol)')
     parser.add_argument('--types', action='store_true',
                         help='unique atom types for non-bonded pairs in xml')
@@ -3004,6 +3010,10 @@ def main():
     if args.charmm or args.gmx: 
         if nmol > 34575:
             raise ValueError('the maximum number of molecules in a PDB file is 34575')
+
+    if args.xml:
+        if nmol > 34575:
+            print('the maximum number of molecules in a PDB file is 34575, only PDBx/mmcif will be written')
 
     if args.box and args.rho != 0.0:
         raise RuntimeError('supply density or box dimensions, not both')
