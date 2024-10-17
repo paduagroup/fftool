@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2024/10/14
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2024/10/17
 
 # Copyright 2013 Agilio Padua
 #
@@ -82,7 +82,7 @@ def atomic_number(name):
 
 def hexiflarge(i, ndig):
     """
-    Convert number to hex starting with A if more than n digits.
+    Convert number to hex starting with A000... if more than n digits.
     VMD, OpenMM convention in PDB files with natom > 99999, nmol > 9999
     """
 
@@ -94,6 +94,22 @@ def hexiflarge(i, ndig):
     else:
         i = i - declim + hexlim
         return f'{i:X}'
+
+def intfromhexiflarge(a):
+    """
+    Convert string containing hex number (large systems) to int.
+    VMD, OpenMM convention in PDB files with natom > 99999, nmol > 9999
+    """
+
+    if a.strip().isdigit():
+        return int(a)
+    
+    ndig = len(a)
+    declim = 10**ndig
+    hexlim = int('A' + (ndig-1)*'0', 16)
+
+    i = int(a, 16)
+    return i - hexlim + declim
 
 # --------------------------------------
 
@@ -2079,8 +2095,9 @@ class system(object):
 
         self.checkdupresidues()
 
-        natom = nbond = nangle = ndihed = 0
+        nmol = natom = nbond = nangle = ndihed = 0
         for sp in self.spec:
+            nmol += sp.nmol
             natom += sp.nmol * len(sp.atom)
             nbond += sp.nmol * len(sp.bond)
             nangle += sp.nmol * len(sp.angle)
@@ -2230,11 +2247,9 @@ class system(object):
         ET.indent(root, space=' ')
         ftree.write('field.xml')
         
-        if natom < 99999:
+        if nmol <= intfromhexiflarge('FFFF') and natom <= intfromhexiflarge('FFFFF'):
             self.writepdb()
-            self.writepdbxmmcif()
-        else:
-            self.writepdbxmmcif()
+        self.writepdbxmmcif()
 
 
     def writexmltypes(self, mix='g', allpairs=False):
@@ -2252,8 +2267,9 @@ class system(object):
 
         self.checkdupresidues()
 
-        natom = nbond = nangle = ndihed = 0
+        nmol = natom = nbond = nangle = ndihed = 0
         for sp in self.spec:
+            nmol += sp.nmol
             natom += sp.nmol * len(sp.atom)
             nbond += sp.nmol * len(sp.bond)
             nangle += sp.nmol * len(sp.angle)
@@ -2435,11 +2451,9 @@ class system(object):
         ET.indent(root, space=' ')
         ftree.write('field.xml')
         
-        if natom < 99999:
+        if nmol <= intfromhexiflarge('FFFF') and natom <= intfromhexiflarge('FFFFF'):
             self.writepdb()
-            self.writepdbxmmcif()
-        else:
-            self.writepdbxmmcif()
+        self.writepdbxmmcif()
 
 
     def writecharmm(self, mix='g', allpairs=False):
@@ -2980,7 +2994,7 @@ def main():
                         help = 'connect bonds across periodic boundaries in '\
                         'x, xy, xyz, etc. (default: none)')
     parser.add_argument('-x', '--xml', action = 'store_true',
-                        help = 'create OpenMM files .xml .mmcif '\
+                        help = 'create OpenMM files .xml .pdb or .mmcif '\
                         '(needs simbox.xyz created by Packmol)')
     parser.add_argument('--types', action='store_true',
                         help='unique atom types for non-bonded pairs in xml')
@@ -3008,14 +3022,6 @@ def main():
         nmols = args.infiles[::2]   # even elements are numbers of molecules
         files = args.infiles[1::2]  # odd elements are molecule files
     nmol = sum(int(n) for n in nmols)
-
-    if args.charmm or args.gmx: 
-        if nmol > 34575:
-            raise ValueError('the maximum number of molecules in a PDB file is 34575')
-
-    if args.xml:
-        if nmol > 34575:
-            print('the maximum number of molecules in a PDB file is 34575, only PDBx/mmcif will be written')
 
     if args.box and args.rho != 0.0:
         raise RuntimeError('supply density or box dimensions, not both')
@@ -3051,7 +3057,7 @@ def main():
           'natom nbond source  charge')
     connect = True
     spec = []
-    i = 0
+    i = natom = 0
     for zfile in files:
         spec.append(mol(zfile, connect, box))
         spec[i].nmol = int(nmols[i])
@@ -3060,6 +3066,7 @@ def main():
             .format(zfile, spec[i].name, spec[i].nmol, spec[i].ffile,
                     len(spec[i].atom), len(spec[i].bond), spec[i].topol,
                     spec[i].charge()))
+        natom += spec[i].nmol * len(spec[i].atom)
         i += 1
 
     sim = system(spec, box, args.mix)
@@ -3078,16 +3085,22 @@ def main():
         sim.writelmp(args.mix, args.allpairs, args.units)
     if args.xml:
         sim.readcoords('simbox.xyz')
-        print('xml files\n  field.xml\n  config.mmcif')
+        print('xml files\n  field.xml\n  config.pdb\n  config.mmcif')
+        if nmol > intfromhexiflarge('FFFF') or natom > intfromhexiflarge('FFFFF'):
+            print('maximum number of molecules or atoms in a PDB file exceeded, pdb file not written')
         if args.types:
             sim.writexmltypes(args.mix, args.allpairs)
         else:
             sim.writexml(args.mix, args.allpairs)
     if args.charmm:
+        if nmol > intfromhexiflarge('FFFF') or natom > intfromhexiflarge('FFFFF'):
+            raise ValueError('maximum number of molecules or atoms in a PDB file exceeded')
         sim.readcoords('simbox.xyz')
         print('charmm files\n  field.str\n  data.psf\n  config.pdb')
         sim.writecharmm(args.mix, args.allpairs)
     if args.gmx:
+        if nmol > intfromhexiflarge('FFFF') or natom > intfromhexiflarge('FFFFF'):
+            raise ValueError('maximum number of molecules or atoms in a PDB file exceeded')
         sim.readcoords('simbox.xyz')
         print('gromacs files\n  run.mdp\n  field.top\n  config.pdb')
         sim.writegmx(args.mix)
