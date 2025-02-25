@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2024/10/17
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2024/02/20
 
 # Copyright 2013 Agilio Padua
 #
@@ -82,7 +82,7 @@ def atomic_number(name):
 
 def hexiflarge(i, ndig):
     """
-    Convert number to hex starting with A000... if more than n digits.
+    Convert number to hex starting with A if more than n digits.
     VMD, OpenMM convention in PDB files with natom > 99999, nmol > 9999
     """
 
@@ -94,22 +94,6 @@ def hexiflarge(i, ndig):
     else:
         i = i - declim + hexlim
         return f'{i:X}'
-
-def intfromhexiflarge(a):
-    """
-    Convert string containing hex number (large systems) to int.
-    VMD, OpenMM convention in PDB files with natom > 99999, nmol > 9999
-    """
-
-    if a.strip().isdigit():
-        return int(a)
-    
-    ndig = len(a)
-    declim = 10**ndig
-    hexlim = int('A' + (ndig-1)*'0', 16)
-
-    i = int(a, 16)
-    return i - hexlim + declim
 
 # --------------------------------------
 
@@ -1969,6 +1953,172 @@ class system(object):
 
             # f.write('\n')
 
+    def writeopenmm(self):
+        natom = nbond = nangle = ndihed = 0
+        for sp in self.spec:
+            natom += sp.nmol * len(sp.atom)
+            nbond += sp.nmol * len(sp.bond)
+            nangle += sp.nmol * len(sp.angle)
+            ndihed += sp.nmol * (len(sp.dihed) + len(sp.dimpr))
+        
+        with open('omm.py', 'w') as f:
+            f.write('# created by fftool\n')
+            f.write('# {:d} atoms /'.format(natom))
+            if nbond is not None:
+                f.write(' {:d} bonds /'.format(nbond))
+            if nangle is not None:
+                f.write(' {:d} angles /'.format(nangle))
+            if ndihed is not None:
+                f.write(' {:d} dihedrals /'.format(ndihed))
+            f.write('/\n\n')
+
+            f.write('# #!/usr/bin/env python\n\n')
+
+            f.write('import sys\n')
+            f.write('import datetime\n')
+            f.write('import numpy as np\n\n')
+
+            f.write('import openmm\n')
+            f.write('from openmm import app\n')
+            f.write('from openmm import unit\n\n')
+
+            f.write('from mdtraj.reporters import HDF5Reporter\n\n')
+
+            f.write("field = 'field.xml'\n")
+            f.write("config = 'config.pdb'\n")
+            f.write("#statefile = 'state-eq.xml'\n\n")
+
+            f.write('temperature = 300.0*unit.kelvin\n')
+            f.write('pressure = 1*unit.bar\n\n')
+
+            f.write("print('#', datetime.datetime.now())\n")
+            f.write("print()\n\n")
+
+            f.write("### Input data ###\n")
+            f.write("print('#', field, config)\n")
+            f.write("forcefield = app.ForceField(field)\n")
+            f.write("pdb = app.PDBFile(config)\n")
+            f.write("# If PDBx/mmCIF format is used as config file:\n")
+            f.write("#pdb = app.PDBxFile(config)\n\n")
+            
+            f.write("### Modeller (add extra particles if necessary) ###\n")
+            f.write("modeller = app.Modeller(pdb.topology, pdb.positions)\n")
+            f.write("#print('#   adding extra particles')\n")
+            f.write("#modeller.addExtraParticles(forcefield)\n\n")
+
+            f.write("### Print topology (molecules, atoms and bonds) ###\n")
+            f.write("print('#  ', modeller.topology.getNumResidues(), 'molecules',\n")
+            f.write("    modeller.topology.getNumAtoms(), 'atoms',\n")
+            f.write("    modeller.topology.getNumBonds(), 'bonds')\n\n")
+
+            f.write("### Print box dimensions ###\n")
+            f.write("lx = modeller.topology.getUnitCellDimensions().x\n")
+            f.write("ly = modeller.topology.getUnitCellDimensions().y\n")
+            f.write("lz = modeller.topology.getUnitCellDimensions().z\n")
+            f.write("print('#   box', lx, ly, lz, 'nm')\n\n")
+
+            f.write("### System creation ###\n")
+            f.write("system = forcefield.createSystem(modeller.topology, nonbondedMethod=app.PME,\n")
+            f.write("    nonbondedCutoff=12.0*unit.angstrom, constraints=app.HBonds,\n")
+            f.write("    ewaldErrorTolerance=1.0e-5)\n\n")
+
+            f.write("### Integrator selection ###\n")
+            f.write("print('# Nose-Hoover integrator')\n")
+            f.write("integrator = openmm.NoseHooverIntegrator(temperature, 5/unit.picosecond, 1*unit.femtosecond)\n")
+            
+            f.write("#print('# Langevin integrator', temperature)\n")
+            f.write("#integrator = openmm.LangevinIntegrator(temperature, 5/unit.picosecond, 1*unit.femtosecond)\n\n")
+
+            f.write("### Barostat selection ###\n")
+            f.write("print('#   barostat', pressure)\n")
+            f.write("barostat = openmm.MonteCarloBarostat(pressure, temperature)\n")
+            f.write("system.addForce(barostat)\n\n")
+
+            f.write("### Plateform selection ###\n")
+            f.write("platform = openmm.Platform.getPlatformByName('CUDA')\n")
+            f.write("#platform = openmm.Platform.getPlatformByName('OpenCL')\n")
+            f.write("#platform.setPropertyDefaultValue('Precision', 'mixed')\n")
+            f.write("#properties = {'DeviceIndex': '1', 'Precision': 'mixed'}\n")
+            f.write("#properties = {'Precision': 'mixed'}\n")
+            f.write("properties = {'Precision': 'single'}\n\n")
+
+            f.write("### Forces ###\n")
+            f.write("# Force settings before creating Simulation\n")
+            f.write("for i, f in enumerate(system.getForces()):\n")
+            f.write("    f.setForceGroup(i)\n\n")
+
+            f.write("### Simulation creation ###\n")
+            f.write("sim = app.Simulation(modeller.topology, system, integrator, platform, properties)\n")
+            f.write("sim.context.setPositions(modeller.positions)\n")
+            f.write("sim.context.setVelocitiesToTemperature(temperature)\n\n")
+
+            f.write("# Uncomment if loading a statefile:\n")
+            f.write("#print('# coordinates and velocities from', statefile)\n")
+            f.write("#sim.loadState(statefile)\n\n")
+
+            f.write("# Uncomment if loading a restart file:\n")
+            f.write("#print('# coordinates and velocities from restart.chk')\n")
+            f.write("#sim.loadCheckpoint('restart.chk')\n\n")
+
+            f.write("state = sim.context.getState()\n")
+            f.write("sim.topology.setPeriodicBoxVectors(state.getPeriodicBoxVectors())\n\n")
+
+            f.write("platform = sim.context.getPlatform()\n")
+            f.write("print('# platform', platform.getName())\n")
+            f.write("for prop in platform.getPropertyNames():\n")
+            f.write("    print('#  ', prop, platform.getPropertyValue(sim.context, prop))\n\n")
+
+            f.write("state = sim.context.getState(getEnergy=True)\n")
+            f.write("print('# PotentielEnergy', state.getPotentialEnergy())\n\n")
+
+            f.write("for i, f in enumerate(system.getForces()):\n")
+            f.write("    state = sim.context.getState(getEnergy=True, groups={i})\n")
+            f.write("    print('#  ', f.getName(), state.getPotentialEnergy())\n\n")
+
+            f.write("### Reporters ###\n")
+            f.write("# Introduce h5 reporter format (if necessary)\n")
+            f.write("h5reporter = (HDF5Reporter('traj.h5', 1000, enforcePeriodicBox=False))\n\n")
+
+            f.write("sim.reporters = []\n")
+            f.write("sim.reporters.append(app.StateDataReporter(sys.stdout, 1000, step=True,\n")
+            f.write("    speed=True, temperature=True, separator='\t',\n")
+            f.write("    totalEnergy=True, potentialEnergy=True, density=True))\n\n")
+
+            f.write("# Remove comments to select format (default: PDB)\n")
+            f.write("sim.reporters.append(app.PDBReporter('traj.pdb', 1000))\n")
+            f.write("#sim.reporters.append(h5reporter)\n")
+            f.write("#sim.reporters.append(app.DCDReporter('traj.dcd', 1000))\n")
+            f.write("#sim.reporters.append(app.CheckpointReporter('restart.chk', 10000))\n\n")
+
+            f.write("### Run simulation ###\n")
+            f.write("for i in range(10):\n")
+            f.write("    sim.step(1000)\n\n")
+
+            f.write("### Close reporters ###\n")
+            f.write("# Close h5 reporter (if used)\n")
+            f.write("h5reporter.close()\n\n")
+
+            f.write("### End-of-simulation data ###\n")
+            f.write("print('# Force groups')\n")
+            f.write("for i, f in enumerate(system.getForces()):\n")
+            f.write("    state = sim.context.getState(getEnergy=True, groups={i})\n")
+            f.write("    print('#  ', f.getName(), state.getPotentialEnergy())\n\n")
+
+            f.write("state = sim.context.getState(getPositions=True)\n")
+            f.write("coords = state.getPositions()\n")
+            f.write("sim.topology.setPeriodicBoxVectors(state.getPeriodicBoxVectors())\n\n")
+
+            f.write("### Store last configuration (PDB or PDBx format) ###\n")
+            f.write("app.PDBFile.writeFile(sim.topology, coords, open('last.pdb', 'w'))\n")
+            f.write("#app.PDBxFile.writeFile(sim.topology, coords, open('last.mmcif', 'w'))\n\n")
+
+            f.write("sim.context.setTime(0)\n")
+            f.write("sim.context.setStepCount(0)\n")
+            f.write("sim.saveState('state-run.xml')\n")
+            f.write("print('# state saved to state-run.xml')\n\n")
+
+            f.write("print()\n")
+            f.write("print('#', datetime.datetime.now())\n")
 
     def writepdb(self):
         with open('config.pdb', 'w') as f:
@@ -2095,9 +2245,8 @@ class system(object):
 
         self.checkdupresidues()
 
-        nmol = natom = nbond = nangle = ndihed = 0
+        natom = nbond = nangle = ndihed = 0
         for sp in self.spec:
-            nmol += sp.nmol
             natom += sp.nmol * len(sp.atom)
             nbond += sp.nmol * len(sp.bond)
             nangle += sp.nmol * len(sp.angle)
@@ -2186,10 +2335,9 @@ class system(object):
                 c4 = -4 * dit.par[3] + eps
                 c5 = 0.0
                 dimpr = ET.SubElement(torsionforce, 'Improper')
-                # in OpenMM atom 1 (not 3) is the central atom of an improper dihedral
-                dimpr.set('class1', dit.katp)
-                dimpr.set('class2', dit.iatp)
-                dimpr.set('class3', dit.jatp)
+                dimpr.set('class1', dit.iatp)
+                dimpr.set('class2', dit.jatp)
+                dimpr.set('class3', dit.katp)
                 dimpr.set('class4', dit.latp)
                 dimpr.set('c0', f'{c0:.5f}')
                 dimpr.set('c1', f'{c1:.5f}')
@@ -2246,9 +2394,8 @@ class system(object):
 
         ET.indent(root, space=' ')
         ftree.write('field.xml')
-        
-        if nmol <= intfromhexiflarge('FFFF') and natom <= intfromhexiflarge('FFFFF'):
-            self.writepdb()
+
+        self.writepdb()
         self.writepdbxmmcif()
 
 
@@ -2267,9 +2414,8 @@ class system(object):
 
         self.checkdupresidues()
 
-        nmol = natom = nbond = nangle = ndihed = 0
+        natom = nbond = nangle = ndihed = 0
         for sp in self.spec:
-            nmol += sp.nmol
             natom += sp.nmol * len(sp.atom)
             nbond += sp.nmol * len(sp.bond)
             nangle += sp.nmol * len(sp.angle)
@@ -2379,10 +2525,9 @@ class system(object):
                         c4 = -4 * di.par[3] + eps
                         c5 = 0.0
                         dimpr = ET.SubElement(torsionforce, 'Improper')
-                        # in OpenMM atom 1 (not 3) is the central atom of an improper dihedral
-                        dimpr.set('class1', tp[2])
-                        dimpr.set('class2', tp[0])
-                        dimpr.set('class3', tp[1])
+                        dimpr.set('class1', tp[0])
+                        dimpr.set('class2', tp[1])
+                        dimpr.set('class3', tp[2])
                         dimpr.set('class4', tp[3])
                         dimpr.set('c0', f'{c0:.5f}')
                         dimpr.set('c1', f'{c1:.5f}')
@@ -2450,9 +2595,8 @@ class system(object):
 
         ET.indent(root, space=' ')
         ftree.write('field.xml')
-        
-        if nmol <= intfromhexiflarge('FFFF') and natom <= intfromhexiflarge('FFFFF'):
-            self.writepdb()
+
+        self.writepdb()
         self.writepdbxmmcif()
 
 
@@ -2994,7 +3138,7 @@ def main():
                         help = 'connect bonds across periodic boundaries in '\
                         'x, xy, xyz, etc. (default: none)')
     parser.add_argument('-x', '--xml', action = 'store_true',
-                        help = 'create OpenMM files .xml .pdb or .mmcif '\
+                        help = 'create OpenMM files .xml .pdb '\
                         '(needs simbox.xyz created by Packmol)')
     parser.add_argument('--types', action='store_true',
                         help='unique atom types for non-bonded pairs in xml')
@@ -3022,6 +3166,10 @@ def main():
         nmols = args.infiles[::2]   # even elements are numbers of molecules
         files = args.infiles[1::2]  # odd elements are molecule files
     nmol = sum(int(n) for n in nmols)
+
+    if args.charmm or args.gmx: 
+        if nmol > 34575:
+            raise ValueError('the maximum number of molecules in a PDB file is 34575')
 
     if args.box and args.rho != 0.0:
         raise RuntimeError('supply density or box dimensions, not both')
@@ -3057,7 +3205,7 @@ def main():
           'natom nbond source  charge')
     connect = True
     spec = []
-    i = natom = 0
+    i = 0
     for zfile in files:
         spec.append(mol(zfile, connect, box))
         spec[i].nmol = int(nmols[i])
@@ -3066,7 +3214,6 @@ def main():
             .format(zfile, spec[i].name, spec[i].nmol, spec[i].ffile,
                     len(spec[i].atom), len(spec[i].bond), spec[i].topol,
                     spec[i].charge()))
-        natom += spec[i].nmol * len(spec[i].atom)
         i += 1
 
     sim = system(spec, box, args.mix)
@@ -3085,22 +3232,17 @@ def main():
         sim.writelmp(args.mix, args.allpairs, args.units)
     if args.xml:
         sim.readcoords('simbox.xyz')
-        print('xml files\n  field.xml\n  config.pdb\n  config.mmcif')
-        if nmol > intfromhexiflarge('FFFF') or natom > intfromhexiflarge('FFFFF'):
-            print('maximum number of molecules or atoms in a PDB file exceeded, pdb file not written')
+        sim.writeopenmm()
+        print('xml files\n  field.xml\n  config.mmcif\n  omm.py')
         if args.types:
             sim.writexmltypes(args.mix, args.allpairs)
         else:
             sim.writexml(args.mix, args.allpairs)
     if args.charmm:
-        if nmol > intfromhexiflarge('FFFF') or natom > intfromhexiflarge('FFFFF'):
-            raise ValueError('maximum number of molecules or atoms in a PDB file exceeded')
         sim.readcoords('simbox.xyz')
         print('charmm files\n  field.str\n  data.psf\n  config.pdb')
         sim.writecharmm(args.mix, args.allpairs)
     if args.gmx:
-        if nmol > intfromhexiflarge('FFFF') or natom > intfromhexiflarge('FFFFF'):
-            raise ValueError('maximum number of molecules or atoms in a PDB file exceeded')
         sim.readcoords('simbox.xyz')
         print('gromacs files\n  run.mdp\n  field.top\n  config.pdb')
         sim.writegmx(args.mix)
@@ -3119,4 +3261,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
