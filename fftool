@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2024/10/17
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2025/12/16
 
 # Copyright 2013 Agilio Padua
 #
@@ -1738,10 +1738,11 @@ class system(object):
                     f.write('pair_modify mix geometric tail yes\n')
                 else:
                     f.write('pair_modify mix arithmetic tail yes\n')
-                f.write('kspace_style pppm 1.0e-5\n\n')
 
                 f.write('read_data data.lmp\n')
                 f.write('# read_restart restart1.lmp\n\n')
+
+                f.write('kspace_style pppm 1.0e-5\n\n')
 
                 f.write('# remove pair style if not using hybrid\n')
                 for att in self.attype:
@@ -1752,10 +1753,11 @@ class system(object):
                 f.write('\n')
 
             else:
-                f.write('pair_modify tail yes\n')
-                f.write('kspace_style pppm 1.0e-5\n\n')
+                f.write('pair_modify tail yes\n\n')
 
                 f.write('read_data data.lmp\n\n')
+
+                f.write('kspace_style pppm 1.0e-5\n\n')
 
                 with open('pair.lmp', 'w') as fp:
                     for nb in self.vdw:
