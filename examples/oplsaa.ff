@@ -1,4 +1,4 @@
-# oplsaa.ff, version 2023/03/10
+# oplsaa.ff, version 2025/12/19
 # units: kJ/mol, A, deg
 # bond and angle force constants are in the form k/2 (x - x0)^2
 # use cons for constrained bonds and angles
@@ -28,10 +28,10 @@ CTO   CT  12.011   0.145  lj    3.50   0.27614
 C2O   CT  12.011   0.205  lj    3.50   0.27614  
 H1O   HC   1.008   0.040  lj    2.50   0.12552
 OH    OH  15.999  -0.683  lj    3.12   0.71128
-HO    HO   1.008   0.418  lj    0.00   0.00000
+HO    HO   1.008   0.418  lj    1.00   0.00000
 # diols
 OH2   OH  15.999  -0.700  lj    3.12   0.71128
-HO2   HO   1.008   0.435  lj    0.00   0.00000
+HO2   HO   1.008   0.435  lj    1.00   0.00000
 # aromatics JACS 118(1996)11225
 CA    CA  12.011  -0.115  lj    3.55   0.29288
 HA    HA   1.008   0.115  lj    2.42   0.12552
@@ -45,7 +45,7 @@ HAT   HA   1.008   0.148  lj    2.42   0.12552
 HT    HC   1.008   0.092  lj    2.42   0.12552
 # phenol OPLS-AA
 OPH   OH  15.999  -0.585  lj    3.12   0.71128
-HPH   HO   1.008   0.435  lj    0.00   0.00000
+HPH   HO   1.008   0.435  lj    1.00   0.00000
 # cresol (us)
 CTR   CA  12.011   0.081  lj    3.55   0.29288
 COR   CA  12.011   0.210  lj    3.55   0.29288
@@ -85,7 +85,7 @@ CT1   CT  12.011   0.010  lj    3.50   0.27614
 CU    C   12.011  +0.142  lj    3.50   0.43932
 OU    O   15.999  -0.390  lj    2.96   0.87864
 NU    N   14.007  -0.542  lj    3.25   0.71128
-HU    H    1.008   0.333  lj    0.00   0.00000
+HU    H    1.008   0.333  lj    1.00   0.00000
 
 BONDS
 # i j    pot    re/A    kr/kJmol-1
