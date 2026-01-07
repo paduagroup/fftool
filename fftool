@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2025/12/16
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2026/01/07
 
 # Copyright 2013 Agilio Padua
 #
@@ -2239,12 +2239,11 @@ class system(object):
             nbforce.set('lj14scale', '0.5')
             resattr = ET.SubElement(nbforce, 'UseAttributeFromResidue')
             resattr.set('name', 'charge')
-            for sp in self.spec:
-                for at in sp.atom:
-                    atom = ET.SubElement(nbforce, 'Atom')
-                    atom.set('type', at.name)
-                    atom.set('sigma', f'{at.par[0] / 10:.5f}')
-                    atom.set('epsilon', f'{at.par[1]:.5f}')
+            for att in self.attype:
+                atom = ET.SubElement(nbforce, 'Atom')
+                atom.set('type', att.name)
+                atom.set('sigma', f'{att.par[0] / 10:.5f}')
+                atom.set('epsilon', f'{att.par[1]:.5f}')
 
         ET.indent(root, space=' ')
         ftree.write('field.xml')
