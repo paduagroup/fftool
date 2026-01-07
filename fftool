@@ -3072,7 +3072,7 @@ def main():
 
     sim = system(spec, box, args.mix)
 
-    if args.lammps:
+    if args.lmp:
         sim.readcoords('simbox.xyz')
         if args.units == 'r':
             print('lammps files units real')
@@ -3105,11 +3105,11 @@ def main():
         sim.readcoords('simbox.xyz')
         print('gromacs files\n  run.mdp\n  field.top\n  config.pdb')
         sim.writegmx(args.mix)
-    if args.dlpoly:
+    if args.dlp:
         sim.readcoords('simbox.xyz')
         print('dlpoly files\n  FIELD\n  CONFIG')
         sim.writedlp(args.cos4)
-    if not (args.lammps or args.xml or args.charmm or args.gmx or args.dlpoly):
+    if not (args.lmp or args.xml or args.charmm or args.gmx or args.dlp):
         print('packmol file\n  pack.inp')
         if args.pbc:
             boxtol = 0.0
