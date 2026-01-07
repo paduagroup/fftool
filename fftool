@@ -2971,41 +2971,41 @@ def main():
         'molecule name, '\
         'iii) after the molecule name in a COMPND record in the .pdb file, '\
         'iv) on the 2nd line of the .xyz file after the molecule name.')
-    parser.add_argument('-b', '--box', default = '', help = 'box length in A '\
+    parser.add_argument('--box', default = '', help = 'box length in A '\
                         '(cubic), for non-cubic boxes supply '
                         'a,b,c[,alpha,beta,gamma] default box '\
                         'is orthogonal (alpha = beta = gamma = 90.0)')
-    parser.add_argument('-r', '--rho', type=float, default = 0.0,
+    parser.add_argument('--rho', type=float, default = 0.0,
                         help = 'density in mol/L')
-    parser.add_argument('-c', '--center', action = 'store_true',
+    parser.add_argument('--center', action = 'store_true',
                         help = 'center box on origin')
-    parser.add_argument('-t', '--tol', type=float, default = 2.5,
+    parser.add_argument('--tol', type=float, default = 2.5,
                         help = 'tolerance for Packmol (default: 2.5)')
-    parser.add_argument('-m', '--mix', default = 'g',
+    parser.add_argument('--mix', default = 'g',
                         help = '[a]rithmetic or [g]eometric sigma_ij '\
                         '(default: g)')
-    parser.add_argument('-l', '--lammps', action = 'store_true',
+    parser.add_argument('--lmp', action = 'store_true',
                         help = 'create LAMMPS files in.lmp data.lmp '\
                         '(needs simbox.xyz created by Packmol)')
-    parser.add_argument('-a', '--allpairs', action = 'store_true',
-                        help = 'write all I-J pairs to LAMMPS files')
-    parser.add_argument('-u', '--units', default = 'r',
+    parser.add_argument('--allpairs', action = 'store_true',
+                        help = 'write all I-J pairs')
+    parser.add_argument('--units', default = 'r',
                         help = 'LAMMPS units [r]eal or [m]etal (default: r)')
-    parser.add_argument('-p', '--pbc', default = '',
+    parser.add_argument('--pbc', default = '',
                         help = 'connect bonds across periodic boundaries in '\
                         'x, xy, xyz, etc. (default: none)')
-    parser.add_argument('-x', '--xml', action = 'store_true',
-                        help = 'create OpenMM files .xml .pdb or .mmcif '\
+    parser.add_argument('--xml', action = 'store_true',
+                        help = 'create OpenMM files .xml .pdb .mmcif '\
                         '(needs simbox.xyz created by Packmol)')
     parser.add_argument('--types', action='store_true',
                         help='unique atom types for non-bonded pairs in xml')
     parser.add_argument('--charmm', action = 'store_true',
                         help = 'create CHARMM files .str .psf .pdb '\
                         '(needs simbox.xyz created by Packmol)')
-    parser.add_argument('-g', '--gmx', action = 'store_true',
+    parser.add_argument('--gmx', action = 'store_true',
                         help = 'create GROMACS files .top .gro .pdb '\
                         '(needs simbox.xyz created by Packmol)')
-    parser.add_argument('-d', '--dlpoly', action = 'store_true',
+    parser.add_argument('--dlp', action = 'store_true',
                         help = 'create DLPOLY files FIELD CONFIG '\
                         '(needs simbox.xyz created by Packmol)')
     parser.add_argument('--cos4', action = 'store_true',
