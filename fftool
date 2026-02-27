@@ -1390,7 +1390,7 @@ class forcefield(object):
             self.atom.append(atom(name, m))
             self.atom[-1].setpar(attp, q, pot, par[:2])
         bonds = root.find('Bonds')
-        if bonds:
+        if bonds is not None:
             for bd in bonds:
                 iatp = bd.get('class1')
                 jatp = bd.get('class2')
@@ -1401,7 +1401,7 @@ class forcefield(object):
                 if par[0] > self.maxbondlen:
                     self.maxbondlen = par[0]
         angles = root.find('Angles')
-        if angles:
+        if angles is not None:
             for an in angles:
                 iatp = an.get('class1')
                 jatp = an.get('class2')
@@ -1411,7 +1411,7 @@ class forcefield(object):
                 self.angle.append(angle())
                 self.angle[-1].setpar(iatp, jatp, katp, pot, par[:2])
         torsions = root.find('Torsions')
-        if torsions:
+        if torsions is not None:
             for dh in torsions.iter('Proper'):
                 iatp = dh.get('class1')
                 jatp = dh.get('class2')
