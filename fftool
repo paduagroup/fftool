@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # fftool - generate force field parameters for molecular system
-# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2026/01/07
+# Agilio Padua <agilio.padua@ens-lyon.fr>, version 2026/02/27
 
 # Copyright 2013 Agilio Padua
 #
@@ -2250,7 +2250,8 @@ class system(object):
         
         if nmol <= intfromhexiflarge('FFFF') and natom <= intfromhexiflarge('FFFFF'):
             self.writepdb()
-        self.writepdbxmmcif()
+        else:
+            self.writepdbxmmcif()
 
 
     def writexmltypes(self, mix='g', allpairs=False):
@@ -2454,7 +2455,8 @@ class system(object):
         
         if nmol <= intfromhexiflarge('FFFF') and natom <= intfromhexiflarge('FFFFF'):
             self.writepdb()
-        self.writepdbxmmcif()
+        else:
+            self.writepdbxmmcif()
 
 
     def writecharmm(self, mix='g', allpairs=False):
@@ -2995,7 +2997,7 @@ def main():
                         help = 'connect bonds across periodic boundaries in '\
                         'x, xy, xyz, etc. (default: none)')
     parser.add_argument('--xml', action = 'store_true',
-                        help = 'create OpenMM files .xml .pdb .mmcif '\
+                        help = 'create OpenMM files .xml .pdb/.mmcif '\
                         '(needs simbox.xyz created by Packmol)')
     parser.add_argument('--types', action='store_true',
                         help='unique atom types for non-bonded pairs in xml')
@@ -3086,9 +3088,11 @@ def main():
         sim.writelmp(args.mix, args.allpairs, args.units)
     if args.xml:
         sim.readcoords('simbox.xyz')
-        print('xml files\n  field.xml\n  config.pdb\n  config.mmcif')
-        if nmol > intfromhexiflarge('FFFF') or natom > intfromhexiflarge('FFFFF'):
-            print('maximum number of molecules or atoms in a PDB file exceeded, pdb file not written')
+        print('xml files\n  field.xml')
+        if nmol <= intfromhexiflarge('FFFF') or natom <= intfromhexiflarge('FFFFF'):
+            print('config.pdb')
+        else:
+            print('config.mmcif (maximum number of molecules or atoms in a PDB file exceeded)')
         if args.types:
             sim.writexmltypes(args.mix, args.allpairs)
         else:
