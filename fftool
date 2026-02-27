@@ -3077,9 +3077,9 @@ def main():
     if args.lmp:
         sim.readcoords('simbox.xyz')
         if args.units == 'r':
-            print('lammps files units real')
+            print('LAMMPS files units real')
         elif args.units == 'm':
-            print('lammps files units metal')
+            print('LAMMPS files units metal')
         else:
             raise ValueError('invalid units: choose [r]eal or [m]etal')
         print('  in.lmp\n  data.lmp')
@@ -3088,7 +3088,7 @@ def main():
         sim.writelmp(args.mix, args.allpairs, args.units)
     if args.xml:
         sim.readcoords('simbox.xyz')
-        print('xml files\n  field.xml')
+        print('OpenMM files\n  field.xml')
         if nmol <= intfromhexiflarge('FFFF') or natom <= intfromhexiflarge('FFFFF'):
             print('  config.pdb')
         else:
@@ -3101,20 +3101,20 @@ def main():
         if nmol > intfromhexiflarge('FFFF') or natom > intfromhexiflarge('FFFFF'):
             raise ValueError('maximum number of molecules or atoms in a PDB file exceeded')
         sim.readcoords('simbox.xyz')
-        print('charmm files\n  field.str\n  data.psf\n  config.pdb')
+        print('CHARMM files\n  field.str\n  data.psf\n  config.pdb')
         sim.writecharmm(args.mix, args.allpairs)
     if args.gmx:
         if nmol > intfromhexiflarge('FFFF') or natom > intfromhexiflarge('FFFFF'):
             raise ValueError('maximum number of molecules or atoms in a PDB file exceeded')
         sim.readcoords('simbox.xyz')
-        print('gromacs files\n  run.mdp\n  field.top\n  config.pdb')
+        print('Gromacs files\n  run.mdp\n  field.top\n  config.pdb')
         sim.writegmx(args.mix)
     if args.dlp:
         sim.readcoords('simbox.xyz')
-        print('dlpoly files\n  FIELD\n  CONFIG')
+        print('DLPOLY files\n  FIELD\n  CONFIG')
         sim.writedlp(args.cos4)
     if not (args.lmp or args.xml or args.charmm or args.gmx or args.dlp):
-        print('packmol file\n  pack.inp')
+        print('Packmol file\n  pack.inp')
         if args.pbc:
             boxtol = 0.0
         else:
