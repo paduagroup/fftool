@@ -3090,9 +3090,9 @@ def main():
         sim.readcoords('simbox.xyz')
         print('xml files\n  field.xml')
         if nmol <= intfromhexiflarge('FFFF') or natom <= intfromhexiflarge('FFFFF'):
-            print('config.pdb')
+            print('  config.pdb')
         else:
-            print('config.mmcif (maximum number of molecules or atoms in a PDB file exceeded)')
+            print('  config.mmcif (maximum number of molecules or atoms in a PDB file exceeded)')
         if args.types:
             sim.writexmltypes(args.mix, args.allpairs)
         else:
