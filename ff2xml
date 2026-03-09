@@ -30,12 +30,12 @@ class forcefield(object):
                 continue
             elif line.lower().startswith('dihe'):
                 section = 'dihedrals'
-                if not root.find('Torsions'):
+                if root.find('Torsions') is None:
                     torsions = ET.SubElement(root, 'Torsions')
                 continue
             elif line.lower().startswith('impro'):
                 section = 'improper'
-                if not root.find('Torsions'):
+                if root.find('Torsions') is not None:
                     torsions = ET.SubElement(root, 'Torsions')
                 continue
             tok = line.strip().split()
